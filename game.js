@@ -49,7 +49,7 @@ const contrastModeInput = document.getElementById('contrastMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.31.2';
+const GAME_VERSION = '0.32.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -75,6 +75,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.32.0', notes: ['重写前端布局：信息面板、控制区和记录区重新分层', '统一新视觉风格并保留原有玩法与存档兼容'] },
   { version: '0.31.2', notes: ['新增高对比显示开关，提升界面可读性', '设置会写入本地并跟随账号存档切换'] },
   { version: '0.31.1', notes: ['优化页面显示：统计栏改为网格，移动端布局更紧凑', '修复小屏下控件拥挤与信息可读性问题'] },
   { version: '0.31.0', notes: ['新增连击果：提供连击护航状态并奖励额外分数', '连击在短时间内不会因断档立即重置'] },

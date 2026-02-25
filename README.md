@@ -63,8 +63,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.31.2
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.32.0
 ```
+
+## 最新进展
+
+- v0.32.0：重写前端布局与视觉层次，保留原有玩法系统与存档兼容。
 
 ## 后续发展方向
 

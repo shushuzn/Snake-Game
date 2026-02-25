@@ -4,48 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>贪吃蛇游戏</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="game-shell">
-      <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.31.2</small></h1>
-        <div class="stats">
-          <span>分数：<b id="score">0</b></span>
-          <span>最高分：<b id="best">0</b></span>
-          <span>模式最高：<b id="modeBest">0</b></span>
-          <span>长度：<b id="length">3</b></span>
-          <span>时间：<b id="time" class="warn">--</b></span>
-          <span>关卡：<b id="level">--</b></span>
-          <span>最高关：<b id="bestLevel">0</b></span>
-          <span>肉鸽点：<b id="roguePerks">0</b></span>
-          <span>词条：<b id="rogueMutator">--</b></span>
-          <span>连击：<b id="combo">x1</b></span>
-          <span>护盾：<b id="shield">0</b></span>
-          <span>任务：<b id="mission">--</b></span>
-          <span>总局：<b id="plays">0</b></span>
-          <span>吃到：<b id="foods">0</b></span>
-          <span>连胜：<b id="streak">0</b></span>
-          <span>成就：<b id="achievements">0/3</b></span>
-          <span>挑战：<b id="challenge">--</b></span>
-          <span>上局：<b id="lastResult">--</b></span>
-          <span>倍率：<b id="multiplier">x1</b></span>
-          <span>状态：<b id="state">正常</b></span>
+    <main class="app-shell">
+      <header class="topbar">
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.32.0</small></h1>
+        <div class="hud-grid" aria-label="游戏状态">
+          <span>分数 <b id="score">0</b></span>
+          <span>最高 <b id="best">0</b></span>
+          <span>模式高 <b id="modeBest">0</b></span>
+          <span>长度 <b id="length">3</b></span>
+          <span>时间 <b id="time" class="warn">--</b></span>
+          <span>关卡 <b id="level">--</b></span>
+          <span>最高关 <b id="bestLevel">0</b></span>
+          <span>肉鸽点 <b id="roguePerks">0</b></span>
+          <span>词条 <b id="rogueMutator">--</b></span>
+          <span>连击 <b id="combo">x1</b></span>
+          <span>护盾 <b id="shield">0</b></span>
+          <span>任务 <b id="mission">--</b></span>
+          <span>总局 <b id="plays">0</b></span>
+          <span>吃到 <b id="foods">0</b></span>
+          <span>连胜 <b id="streak">0</b></span>
+          <span>成就 <b id="achievements">0/3</b></span>
+          <span>挑战 <b id="challenge">--</b></span>
+          <span>上局 <b id="lastResult">--</b></span>
+          <span>倍率 <b id="multiplier">x1</b></span>
+          <span>状态 <b id="state">正常</b></span>
         </div>
-      </section>
+      </header>
 
-      <div class="board-wrap">
-        <canvas id="board" width="500" height="500" aria-label="贪吃蛇棋盘"></canvas>
-        <div class="overlay" id="overlay">
-          <div>
-            <p><strong>按方向键开始游戏</strong></p>
-            <p>W/A/S/D、触屏方向键或滑动都可控制</p>
+      <section class="board-panel">
+        <div class="board-wrap">
+          <canvas id="board" width="500" height="500" aria-label="贪吃蛇棋盘"></canvas>
+          <div class="overlay" id="overlay">
+            <div>
+              <p><strong>按方向键开始游戏</strong></p>
+              <p>支持方向键 / WASD / 触屏方向键 / 滑动</p>
+            </div>
           </div>
         </div>
-      </div>
+        <p class="tips">Space / P 暂停；可切换模式、难度、皮肤与高对比显示。</p>
+      </section>
 
-      <section class="controls-row">
-        <div class="controls-group">
+      <section class="control-panel" aria-label="游戏控制">
+        <div class="controls-group action-row">
           <button id="restart" type="button">重新开始</button>
           <button id="pause" type="button" class="secondary">暂停</button>
           <button id="clearData" type="button" class="secondary">清空记录</button>
@@ -53,50 +56,47 @@
           <button id="share" type="button" class="secondary">复制战绩</button>
           <button id="help" type="button" class="secondary">帮助</button>
         </div>
-        <div class="controls-group">
-          <label class="label-inline" for="mode">模式：
+
+        <div class="controls-group setting-row">
+          <label class="label-inline" for="mode">模式
             <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="endless">无尽关卡</option><option value="roguelike">肉鸽模式</option></select>
           </label>
-          <label class="label-inline" for="difficulty">难度：
+          <label class="label-inline" for="difficulty">难度
             <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option></select>
           </label>
-          <label class="label-inline" for="skin">皮肤：
+          <label class="label-inline" for="skin">皮肤
             <select id="skin"><option value="classic" selected>经典绿</option><option value="neon">霓虹紫</option><option value="sunset">日落橙</option><option value="pixel">像素青</option></select>
           </label>
-          <label class="label-inline" for="wrapMode"><input id="wrapMode" type="checkbox" />穿墙</label>
-          <label class="label-inline" for="obstacleMode"><input id="obstacleMode" type="checkbox" checked />障碍</label>
-          <label class="label-inline" for="hardcoreMode"><input id="hardcoreMode" type="checkbox" />硬核</label>
-          <label class="label-inline" for="contrastMode"><input id="contrastMode" type="checkbox" />高对比</label>
+          <label class="label-inline compact" for="wrapMode"><input id="wrapMode" type="checkbox" />穿墙</label>
+          <label class="label-inline compact" for="obstacleMode"><input id="obstacleMode" type="checkbox" checked />障碍</label>
+          <label class="label-inline compact" for="hardcoreMode"><input id="hardcoreMode" type="checkbox" />硬核</label>
+          <label class="label-inline compact" for="contrastMode"><input id="contrastMode" type="checkbox" />高对比</label>
         </div>
       </section>
 
-      <section class="history" aria-label="本地账号">
+      <section class="panel" aria-label="本地账号">
         <h2>本地账号</h2>
-        <div class="controls-group">
+        <div class="controls-group account-row">
           <span>当前：<b id="accountName">游客</b></span>
-          <input id="accountInput" type="text" placeholder="输入账号名" maxlength="20" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#0f172a;color:#e2e8f0;" />
+          <input id="accountInput" type="text" placeholder="输入账号名" maxlength="20" />
           <button id="loginAccount" type="button" class="secondary">登录/切换</button>
           <button id="logoutAccount" type="button" class="secondary">退出账号</button>
           <button id="exportSave" type="button" class="secondary">导出存档</button>
-          <label class="label-inline" for="importSave" style="cursor:pointer;">
-            <input id="importSave" type="file" accept="application/json" style="display:none;" />
-            <span style="padding:9px 14px;border-radius:10px;font-weight:700;background:linear-gradient(135deg,#93c5fd,#60a5fa);color:#081426;">导入存档</span>
-          </label>
+          <label class="file-btn" for="importSave">导入存档</label>
+          <input id="importSave" type="file" accept="application/json" />
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增版本大事件，快速回顾每次更新重点。</p>
-      <section class="history" id="helpPanel" aria-label="玩法帮助" style="display:none;">
+      <section class="panel" id="helpPanel" aria-label="玩法帮助" style="display:none;">
         <h2>玩法帮助</h2>
         <ol>
-          <li><strong>模式</strong>：经典稳扎稳打；限时模式拼效率；无尽模式冲关；肉鸽模式每局随机词条。</li>
-          <li><strong>基础控制</strong>：方向键 / WASD / 触屏方向键，空格或 P 暂停。</li>
-          <li><strong>核心道具</strong>：护盾果保命、倍率果提分、相位果穿石、磁力果吸附道具、连击果护航连击。</li>
-          <li><strong>成长建议</strong>：优先完成任务拿护盾，连击不断档，注意高分后障碍增加。</li>
+          <li><strong>模式</strong>：经典稳扎稳打；限时拼效率；无尽冲关；肉鸽每局随机词条。</li>
+          <li><strong>控制</strong>：方向键 / WASD / 触屏方向键 / 滑动，Space 或 P 暂停。</li>
+          <li><strong>道具</strong>：护盾果保命、倍率果提分、磁力果吸附、连击果护航连击。</li>
+          <li><strong>建议</strong>：优先任务拿护盾，保持连击，注意高分后障碍增长。</li>
         </ol>
         <div class="controls-group"><button id="closeHelp" type="button" class="secondary">关闭帮助</button></div>
       </section>
-
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -107,25 +107,22 @@
         <button data-dir="ArrowRight" aria-label="右">➡️</button>
       </div>
 
-      <section class="history" aria-label="最近战绩">
+      <section class="panel" aria-label="最近战绩">
         <h2>最近战绩（最近 5 局）</h2>
         <ol id="historyList"></ol>
       </section>
 
-      <section class="history" aria-label="道具图鉴">
-        <h2>道具图鉴（已发现 <b id="codexProgress">0/9</b>）</h2>
+      <section class="panel" aria-label="道具图鉴">
+        <h2>道具图鉴（已发现 <b id="codexProgress">0/10</b>）</h2>
         <ol id="codexList"></ol>
       </section>
 
-      <section class="history" aria-label="版本大事件">
+      <section class="panel" aria-label="版本大事件">
         <h2>版本大事件（最近 8 条）</h2>
         <ol id="versionEventsList"></ol>
       </section>
-
     </main>
 
     <script src="game.js"></script>
-
-
   </body>
 </html>
