@@ -21,11 +21,19 @@
 .
 ├── index.html                                   # 页面结构
 ├── styles.css                                   # 页面样式
-├── game.js                                      # 游戏主逻辑
-├── workshop.js                                  # 创意工坊模块
-├── modes.js                                     # 模式配置与每日挑战模块
-├── input.js                                     # 输入控制模块（键盘/触屏）
-├── render.js                                    # 渲染模块（棋盘/蛇/道具）
+├── game.js                                      # 主编排入口（模块拼装）
+├── challenge.js                                 # 每日挑战刷新与锁定逻辑
+├── modes.js                                     # 模式配置/每日挑战/周主题
+├── mode_rules.js                                # 模式规则与计时收益
+├── round_state.js                               # 回合初始状态构建
+├── item_spawn.js                                # 道具生成与障碍增量
+├── loop_timers.js                               # 主循环与倒计时调度
+├── play_state.js                                # 开始/暂停/继续状态机
+├── endgame_flow.js                              # 结算触发编排
+├── reset_prepare.js / reset_flow.js             # 重开前后置编排
+├── workshop.js / workshop_runtime.js            # 工坊码与运行时应用
+├── settings.js / storage.js / account.js        # 设置、存档、账号
+├── render.js / input.js                         # 渲染与输入
 ├── README.md                                    # 项目说明
 └── skills/snake-feature-evolver/
     ├── SKILL.md
@@ -137,3 +145,12 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.76.0
 - `v0.77 ~ v0.78`：地图码（编码/校验/导入导出）+ 工坊互通。
 - `v0.79`：榜单面板前端实现 + 本地模拟榜。
 - `v0.80`：移动端引导与手势自定义第一版。
+
+
+### 路线图执行看板（滚动）
+
+- **Now（进行中）**：地图码方案设计（编码格式 + 校验位 + 兼容版本号）。
+- **Next（下一步）**：工坊与地图码互通（导入导出入口统一）。
+- **Later（随后）**：榜单面板首版（本地模拟榜 + 离线提示）。
+
+> 说明：看板用于周迭代跟踪，完成后会同步移动到“最新进展”。
