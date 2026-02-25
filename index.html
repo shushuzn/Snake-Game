@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.17.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.18.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -84,6 +84,7 @@
           <span>挑战：<b id="challenge">--</b></span>
           <span>上局：<b id="lastResult">--</b></span>
           <span>倍率：<b id="multiplier">x1</b></span>
+          <span>状态：<b id="state">正常</b></span>
         </div>
       </section>
 
@@ -118,7 +119,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增时空果：限时模式可加时 +5 秒，经典模式提供额外分数。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增冰冻果：短时间减速，帮助稳定走位。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -154,6 +155,7 @@
       const challengeEl = document.getElementById('challenge');
       const lastResultEl = document.getElementById('lastResult');
       const multiplierEl = document.getElementById('multiplier');
+      const stateEl = document.getElementById('state');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
@@ -169,7 +171,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.17.0';
+      const GAME_VERSION = '0.18.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -206,6 +208,8 @@
       let boostExpireAt = 0;
       let timeFood = null;
       let timeExpireAt = 0;
+      let freezeFood = null;
+      let freezeExpireAt = 0;
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
@@ -234,6 +238,7 @@
       let roundMaxCombo = 1;
       let scoreMultiplier = 1;
       let multiplierExpireAt = 0;
+      let freezeUntil = 0;
       let currentChallenge = dailyChallengeOptions[0];
       let lastResult = { score: 0, mode: 'classic', ts: 0 };
       let history = [];
@@ -463,6 +468,8 @@
         boostExpireAt = 0;
         timeFood = null;
         timeExpireAt = 0;
+        freezeFood = null;
+        freezeExpireAt = 0;
         rocks = [];
         score = 0;
         running = false;
@@ -489,6 +496,8 @@
         scoreMultiplier = 1;
         multiplierExpireAt = 0;
         multiplierEl.textContent = 'x1';
+        freezeUntil = 0;
+        stateEl.textContent = '正常';
         challengeEl.textContent = currentChallenge.label;
         updateTimeText();
         if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
@@ -508,6 +517,7 @@
           (shieldFood && shieldFood.x === position.x && shieldFood.y === position.y) ||
           (boostFood && boostFood.x === position.x && boostFood.y === position.y) ||
           (timeFood && timeFood.x === position.x && timeFood.y === position.y) ||
+          (freezeFood && freezeFood.x === position.x && freezeFood.y === position.y) ||
           rocks.some(rock => rock.x === position.x && rock.y === position.y)
         );
         return position;
@@ -547,6 +557,19 @@
         timeExpireAt = now + 4600;
       }
 
+
+      function maybeSpawnFreezeFood(now) {
+        if (freezeFood || score < 40) return;
+        if (score % 65 !== 0) return;
+        freezeFood = randomFreeCell();
+        freezeExpireAt = now + 4200;
+      }
+
+      function effectiveSpeed() {
+        const slowed = performance.now() < freezeUntil;
+        return speed + (slowed ? 40 : 0);
+      }
+
       function maybeAddRock() {
         if (!obstacleModeInput.checked || currentChallenge.noRocks) return;
         if (score < 80) return;
@@ -559,7 +582,7 @@
         clearInterval(loopTimer);
         clearInterval(countdownTimer);
         lastTickMs = performance.now();
-        loopTimer = setInterval(update, speed);
+        loopTimer = setInterval(update, effectiveSpeed());
       }
 
       function startGameIfNeeded() {
@@ -686,9 +709,12 @@
         if (shieldFood && now > shieldExpireAt) shieldFood = null;
         if (boostFood && now > boostExpireAt) boostFood = null;
         if (timeFood && now > timeExpireAt) timeFood = null;
+        if (freezeFood && now > freezeExpireAt) freezeFood = null;
         if (scoreMultiplier > 1 && now > multiplierExpireAt) {
           scoreMultiplier = 1;
           multiplierEl.textContent = 'x1';
+        freezeUntil = 0;
+        stateEl.textContent = '正常';
         }
 
         direction = pendingDirection;
@@ -724,6 +750,7 @@
           maybeSpawnShieldFood(now);
           maybeSpawnBoostFood(now);
           maybeSpawnTimeFood(now);
+          maybeSpawnFreezeFood(now);
           beep('eat');
         }
 
@@ -766,6 +793,17 @@
           }
           timeFood = null;
           beep('bonus');
+        }
+
+        if (freezeFood && head.x === freezeFood.x && head.y === freezeFood.y) {
+          ate = true;
+          freezeUntil = now + 6000;
+          stateEl.textContent = '减速';
+          freezeFood = null;
+          beep('mission');
+          if (running && !paused) {
+            startLoop();
+          }
         }
 
         if (ate) {
@@ -841,6 +879,7 @@
         if (shieldFood) drawCell(shieldFood, '#38bdf8', 8);
         if (boostFood) drawCell(boostFood, '#f59e0b', 8);
         if (timeFood) drawCell(timeFood, '#a78bfa', 8);
+        if (freezeFood) drawCell(freezeFood, '#22d3ee', 8);
         rocks.forEach(rock => drawCell(rock, '#64748b', 5));
         snake.forEach((segment, index) => drawCell(segment, index === 0 ? '#7dffa5' : '#22c55e'));
       }
@@ -947,7 +986,7 @@
       shareBtn.addEventListener('click', async () => {
         const modeLabel = mode === 'timed' ? '限时模式' : '经典模式';
         const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
-        const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}`;
+        const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
         try {
           if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
