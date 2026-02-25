@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.71.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.72.0
 ```
 
 ## 最新进展
 
+- v0.72.0：DLC 状态栏新增“风险/收益”规则摘要提示（hover 可见），帮助开局前快速决策。
 - v0.71.0：新增 `reset_prepare.js`，拆分重置前置（spawn + roundMeta 组装）编排逻辑。
 - v0.70.0：新增 `reset_flow.js`，拆分重置收尾（计时器停止/HUD复位/开局提示）编排逻辑。
 - v0.69.1：修复 `effectiveSpeed` 与 `refreshStateText` 缺失导致无法开局/运行的阻塞问题。
@@ -89,9 +90,9 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.71.0
 - ✅ 统一创意工坊与本地设置字段演进策略：已新增 `schemaVersion` 与迁移逻辑，兼容旧配置并自动补齐关键字段。
 
 ### P1（中期，2-4 周）
-- ⏳ 继续拆分 `game.js`：已拆出结算系统、挑战系统、存档能力、账号/设置/工坊/模式规则/战局状态/道具生成/主循环计时/状态机决策编排模块，并完成配置校验去冗余；已完成 P1 的 game.js 主流程模块化拆分，下一步进入 DLC 风险收益扩展与规则摘要可视化。
-- DLC 体系扩展：新增“风险收益型”DLC，并提供可视化规则摘要。
-- 增加每日挑战“周循环主题”（例如周末双倍率、工作日稳态挑战）。
+- ✅ 继续拆分 `game.js`：已拆出结算系统、挑战系统、存档能力、账号/设置/工坊/模式规则/战局状态/道具生成/主循环计时/状态机决策编排模块，并完成配置校验去冗余；P1 主流程模块化拆分已收敛完成。
+- ✅ DLC 体系扩展（可视化阶段）：已上线 DLC 风险/收益规则摘要提示，开局前可快速对比“收益与代价”。
+- ⏳ 增加每日挑战“周循环主题”（例如周末双倍率、工作日稳态挑战）。
 
 ### P2（长期，1-2 月）
 - 排行榜与赛季系统（可选后端）：支持模式榜、挑战榜、DLC 分类榜。

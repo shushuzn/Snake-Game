@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.71.0';
+const GAME_VERSION = '0.72.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -95,6 +95,32 @@ const customRocksKey = 'snake-custom-rocks-v1';
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
 const validDifficulties = ['140', '110', '80'];
 const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
+const dlcMeta = {
+  none: {
+    hudText: '关闭',
+    summary: '未启用扩展规则',
+    risk: '无额外风险',
+    reward: '基础平衡体验'
+  },
+  frenzy: {
+    hudText: '狂热（奖励果+10，刷新更频繁）',
+    summary: '道具刷新更快，节奏更激进',
+    risk: '走位压力更高，失误容错更低',
+    reward: '更高分数上限与爆发收益'
+  },
+  guardian: {
+    hudText: '守护（开局护盾+1）',
+    summary: '开局提供额外护盾，稳定推进',
+    risk: '前中期收益更稳但爆发较弱',
+    reward: '容错提升，任务/连胜更稳'
+  },
+  chrono: {
+    hudText: '时序（限时开局+8秒）',
+    summary: '限时类模式时间收益更突出',
+    risk: '更依赖节奏把控，拖节奏会亏时机',
+    reward: '计时模式可获得更长输出窗口'
+  }
+};
 
 function isValidModeValue(value) {
   return validModes.includes(String(value));
@@ -110,6 +136,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.72.0', notes: ['DLC 状态栏支持“风险/收益”规则摘要提示，便于开局前决策', '路线图 P1 推进：完成 DLC 风险收益可视化，进入每周挑战主题设计阶段'] },
   { version: '0.71.0', notes: ['新增 reset_prepare.js，重置前置（spawn + roundMeta 组装）从 game.js 拆分', '路线图 P1 推进：重置编排层完成前后拆分，主流程模块化进一步收敛'] },
   { version: '0.70.0', notes: ['新增 reset_flow.js，重置收尾（计时器停止/HUD复位/开局提示）从 game.js 拆分', '路线图 P1 推进：完成重置收尾编排层拆分，下一步拆分重置前置编排层'] },
   { version: '0.69.0', notes: ['新增 endgame_flow.js 与 records.js，拆分结算触发与战绩写入编排逻辑', '路线图 P1 推进：完成结算触发层 + 战绩编排层拆分，下一步拆分重置收尾编排层'] },
@@ -291,14 +318,17 @@ refreshDlcHud();
 
 
 function getDlcStatusText() {
-  if (dlcPack === 'frenzy') return '狂热（奖励果+10，刷新更频繁）';
-  if (dlcPack === 'guardian') return '守护（开局护盾+1）';
-  if (dlcPack === 'chrono') return '时序（限时开局+8秒）';
-  return '关闭';
+  return (dlcMeta[dlcPack] || dlcMeta.none).hudText;
+}
+
+function getDlcRiskRewardSummary() {
+  const meta = dlcMeta[dlcPack] || dlcMeta.none;
+  return `${meta.summary}｜收益：${meta.reward}｜风险：${meta.risk}`;
 }
 
 function refreshDlcHud() {
   dlcStatusEl.textContent = getDlcStatusText();
+  dlcStatusEl.title = getDlcRiskRewardSummary();
 }
 
 function addScore(points, source = '') {
