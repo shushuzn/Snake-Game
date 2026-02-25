@@ -57,7 +57,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.34.0';
+const GAME_VERSION = '0.35.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -83,6 +83,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.35.0', notes: ['新增快捷键：R 快速重开、M 静音、H 帮助开关', '输入框聚焦时自动忽略快捷键，避免误触影响文本输入'] },
   { version: '0.34.0', notes: ['创意工坊拆分为独立文件模块，主逻辑更清晰', '为后续继续拆分渲染/输入模块打基础'] },
   { version: '0.33.2', notes: ['创意工坊逻辑模块化，统一预设与分享码应用入口', '便于后续扩展更多工坊功能而不影响主循环'] },
   { version: '0.33.1', notes: ['创意工坊新增预设模板，可一键应用规则组合', '支持限时冲分/肉鸽硬核/无尽练习三种预设'] },
@@ -985,6 +986,14 @@ function togglePause() {
   showOverlay('<p><strong>已暂停</strong></p><p>按空格 / P 或“继续”恢复游戏</p>');
 }
 
+function shouldIgnoreHotkeys(event) {
+  if (event.metaKey || event.ctrlKey || event.altKey) return true;
+  const active = document.activeElement;
+  if (!active) return false;
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) return true;
+  return active.isContentEditable;
+}
+
 function isCollision(head) {
   const inPhase = performance.now() < phaseUntil;
   const hitWall = !wrapModeInput.checked && (head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount);
@@ -1381,12 +1390,33 @@ function draw() {
 }
 
 document.addEventListener('keydown', (event) => {
-  if (event.code === 'Space' || event.key.toLowerCase() === 'p') {
+  if (shouldIgnoreHotkeys(event)) return;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (event.code === 'Space' || key === 'p') {
     event.preventDefault();
     togglePause();
     return;
   }
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+
+  if (key === 'r') {
+    event.preventDefault();
+    resetGame(true);
+    return;
+  }
+
+  if (key === 'm') {
+    event.preventDefault();
+    muted = !muted;
+    saveAudioSetting();
+    return;
+  }
+
+  if (key === 'h') {
+    event.preventDefault();
+    toggleHelp(helpPanel.style.display === 'none');
+    return;
+  }
+
   const next = dirMap[key];
   if (!next) return;
   event.preventDefault();
