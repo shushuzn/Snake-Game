@@ -57,6 +57,7 @@ const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
+const dlcPackSelect = document.getElementById('dlcPack');
 const modeSelect = document.getElementById('mode');
 const wrapModeInput = document.getElementById('wrapMode');
 const obstacleModeInput = document.getElementById('obstacleMode');
@@ -67,7 +68,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.49.0';
+const GAME_VERSION = '0.50.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -89,6 +90,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.50.0', notes: ['新增 DLC 扩展包：狂热/守护，可切换额外规则', '创意工坊与本地设置同步支持 DLC 选项'] },
   { version: '0.49.0', notes: ['修复跨天切换时强制模式在对局中立即生效的问题', '重置时先应用挑战锁定再初始化倒计时，避免限时错位'] },
   { version: '0.48.0', notes: ['新增每日挑战“冲刺日”：可临时锁定为冲刺模式', '模式锁定期间保存设置将保留玩家原始模式偏好'] },
   { version: '0.47.0', notes: ['新增“冲刺 45 秒”模式，节奏更快更适合短局', '冲刺模式共享限时玩法并支持时间果/王冠加时奖励'] },
@@ -216,6 +218,7 @@ let lastResult = { score: 0, mode: 'classic', ts: 0 };
 let history = [];
 let discoveredCodex = {};
 let currentSkin = 'classic';
+let dlcPack = 'none';
 let activeAccount = '';
 let accountStore = {};
 let roguePerks = 0;
@@ -311,7 +314,9 @@ function startChallengeRefreshTicker() {
 }
 
 function getBonusStep() {
-  return currentChallenge.bonusStep || 50;
+  const base = currentChallenge.bonusStep || 50;
+  const dlcDelta = dlcPack === 'frenzy' ? -20 : 0;
+  return Math.max(20, base + dlcDelta);
 }
 
 function getStorageKeysForProfile() {
@@ -373,6 +378,7 @@ function reloadAllFromStorage() {
   loadSettings();
   loadCustomRocks();
   currentSkin = skinSelect.value;
+  dlcPack = dlcPackSelect.value;
   mode = modeSelect.value;
   updateLevelText();
   baseSpeed = Number(difficultySelect.value);
@@ -451,6 +457,7 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
   isValidMode: (value) => value === 'classic' || value === 'timed' || value === 'blitz' || value === 'endless' || value === 'roguelike',
   isValidDifficulty: (value) => ['140', '110', '80'].includes(String(value)),
   isValidSkin: (value) => Object.hasOwn(skinThemes, value),
+  isValidDlcPack: (value) => value === 'none' || value === 'frenzy' || value === 'guardian',
   applyVisualModes: () => {
     applyContrastMode();
     applyMiniHudMode();
@@ -481,6 +488,7 @@ function getWorkshopStateSnapshot() {
     mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
     skin: skinSelect.value,
+    dlcPack: dlcPackSelect.value,
     wrapMode: wrapModeInput.checked,
     obstacleMode: getObstacleModeSettingValue(),
     hardcoreMode: hardcoreModeInput.checked,
@@ -495,6 +503,7 @@ function applyWorkshopControls(next) {
   modePreference = modeSelect.value;
   if (next.difficulty !== undefined) difficultySelect.value = next.difficulty;
   if (next.skin !== undefined) skinSelect.value = next.skin;
+  if (next.dlcPack !== undefined) dlcPackSelect.value = next.dlcPack;
   wrapModeInput.checked = Boolean(next.wrapMode);
   obstacleModeInput.checked = next.obstacleMode !== false;
   obstacleModePreference = obstacleModeInput.checked;
@@ -519,6 +528,7 @@ function loadSettings() {
     modePreference = modeSelect.value;
     if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
     if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
+    if (parsed.dlcPack === 'none' || parsed.dlcPack === 'frenzy' || parsed.dlcPack === 'guardian') dlcPackSelect.value = parsed.dlcPack;
     wrapModeInput.checked = Boolean(parsed.wrapMode);
     obstacleModeInput.checked = parsed.obstacleMode !== false;
     obstacleModePreference = obstacleModeInput.checked;
@@ -538,6 +548,7 @@ function saveSettings() {
     mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
     skin: skinSelect.value,
+    dlcPack: dlcPackSelect.value,
     wrapMode: wrapModeInput.checked,
     obstacleMode: getObstacleModeSettingValue(),
     hardcoreMode: hardcoreModeInput.checked,
@@ -904,6 +915,7 @@ function resetGame(showStartOverlay = true) {
   snake = [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }];
   direction = { x: 1, y: 0 };
   pendingDirection = direction;
+  dlcPack = dlcPackSelect.value;
   rocks = customRocks.map(item => ({ ...item }));
   food = randomFoodPosition();
   bonusFood = null;
@@ -939,7 +951,10 @@ function resetGame(showStartOverlay = true) {
   roundMaxCombo = 1;
   lastEatMs = 0;
   shields = hardcoreModeInput.checked ? 0 : (currentChallenge.startShield || 0);
-  if (!hardcoreModeInput.checked) shields = Math.min(2, shields + rogueStartShield);
+  if (!hardcoreModeInput.checked) {
+    shields = Math.min(2, shields + rogueStartShield);
+    if (dlcPack === 'guardian') shields = Math.min(2, shields + 1);
+  }
   missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
   missionAchieved = false;
   playCountedThisRound = false;
@@ -1300,7 +1315,8 @@ function update() {
 
   if (bonusFood && ((head.x === bonusFood.x && head.y === bonusFood.y) || canMagnetCollect(head, bonusFood, now))) {
     ate = true;
-    score += 30 * scoreMultiplier;
+    const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
+    score += bonusBase * scoreMultiplier;
     foodsEaten += 1;
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
@@ -1577,6 +1593,12 @@ skinSelect.addEventListener('change', () => {
   saveSettings();
   currentSkin = skinSelect.value;
   renderer.draw();
+});
+
+dlcPackSelect.addEventListener('change', () => {
+  saveSettings();
+  dlcPack = dlcPackSelect.value;
+  resetGame(true);
 });
 
 

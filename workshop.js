@@ -21,6 +21,7 @@
       isValidMode,
       isValidDifficulty,
       isValidSkin,
+      isValidDlcPack,
       applyVisualModes,
       saveSettings,
       syncRuntime,
@@ -28,7 +29,7 @@
     } = config;
 
     const presets = {
-      'timed-rush': { mode: 'timed', difficulty: '80', skin: 'neon', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
+      'timed-rush': { mode: 'timed', difficulty: '80', skin: 'neon', dlcPack: 'frenzy', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
       'rogue-hardcore': { mode: 'roguelike', difficulty: '80', skin: 'pixel', wrapMode: false, obstacleMode: true, hardcoreMode: true, contrastMode: true, miniHudMode: true, autoPauseMode: true },
       'endless-relax': { mode: 'endless', difficulty: '140', skin: 'classic', wrapMode: true, obstacleMode: false, hardcoreMode: false, contrastMode: false, miniHudMode: false, autoPauseMode: true }
     };
@@ -39,6 +40,7 @@
         mode: state.mode,
         difficulty: state.difficulty,
         skin: state.skin,
+        dlcPack: state.dlcPack,
         wrapMode: state.wrapMode,
         obstacleMode: state.obstacleMode,
         hardcoreMode: state.hardcoreMode,
@@ -54,6 +56,7 @@
         mode: isValidMode(parsed.mode) ? parsed.mode : undefined,
         difficulty: isValidDifficulty(parsed.difficulty) ? String(parsed.difficulty) : undefined,
         skin: isValidSkin(parsed.skin) ? parsed.skin : undefined,
+        dlcPack: isValidDlcPack(parsed.dlcPack) ? parsed.dlcPack : undefined,
         wrapMode: Boolean(parsed.wrapMode),
         obstacleMode: parsed.obstacleMode !== false,
         hardcoreMode: Boolean(parsed.hardcoreMode),
