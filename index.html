@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.22.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.23.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -122,7 +122,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增王冠果：拾取后会触发随机奖励效果。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增磁力果：短时间自动吸附附近道具。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -139,7 +139,7 @@
       </section>
 
       <section class="history" aria-label="道具图鉴">
-        <h2>道具图鉴（已发现 <b id="codexProgress">0/7</b>）</h2>
+        <h2>道具图鉴（已发现 <b id="codexProgress">0/9</b>）</h2>
         <ol id="codexList"></ol>
       </section>
 
@@ -182,7 +182,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.22.0';
+      const GAME_VERSION = '0.23.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -212,7 +212,8 @@
         { id: 'time', label: '时间果', hint: '限时模式可延长倒计时。' },
         { id: 'freeze', label: '冰冻果', hint: '暂时减速，便于走位。' },
         { id: 'phase', label: '相位果', hint: '短时间穿越障碍石。' },
-        { id: 'crown', label: '王冠果', hint: '触发随机奖励：加分/护盾/增益时间。' }
+        { id: 'crown', label: '王冠果', hint: '触发随机奖励：加分/护盾/增益时间。' },
+        { id: 'magnet', label: '磁力果', hint: '短时间吸附附近道具。' }
       ];
 
       const skinThemes = {
@@ -245,6 +246,8 @@
       let phaseExpireAt = 0;
       let crownFood = null;
       let crownExpireAt = 0;
+      let magnetFood = null;
+      let magnetExpireAt = 0;
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
@@ -275,6 +278,7 @@
       let multiplierExpireAt = 0;
       let freezeUntil = 0;
       let phaseUntil = 0;
+      let magnetUntil = 0;
       let currentChallenge = dailyChallengeOptions[0];
       let lastResult = { score: 0, mode: 'classic', ts: 0 };
       let history = [];
@@ -556,6 +560,8 @@
         phaseExpireAt = 0;
         crownFood = null;
         crownExpireAt = 0;
+        magnetFood = null;
+        magnetExpireAt = 0;
         rocks = [];
         score = 0;
         running = false;
@@ -584,6 +590,7 @@
         multiplierEl.textContent = 'x1';
         freezeUntil = 0;
         phaseUntil = 0;
+        magnetUntil = 0;
         refreshStateText();
         challengeEl.textContent = currentChallenge.label;
         updateTimeText();
@@ -607,6 +614,7 @@
           (freezeFood && freezeFood.x === position.x && freezeFood.y === position.y) ||
           (phaseFood && phaseFood.x === position.x && phaseFood.y === position.y) ||
           (crownFood && crownFood.x === position.x && crownFood.y === position.y) ||
+          (magnetFood && magnetFood.x === position.x && magnetFood.y === position.y) ||
           rocks.some(rock => rock.x === position.x && rock.y === position.y)
         );
         return position;
@@ -668,6 +676,13 @@
         crownExpireAt = now + 5000;
       }
 
+      function maybeSpawnMagnetFood(now) {
+        if (magnetFood || score < 90) return;
+        if (score % 95 !== 0) return;
+        magnetFood = randomFreeCell();
+        magnetExpireAt = now + 4300;
+      }
+
       function effectiveSpeed() {
         const slowed = performance.now() < freezeUntil;
         return speed + (slowed ? 40 : 0);
@@ -677,6 +692,7 @@
         const states = [];
         if (now < freezeUntil) states.push('减速');
         if (now < phaseUntil) states.push('相位');
+        if (now < magnetUntil) states.push('磁吸');
         stateEl.textContent = states.join('+') || '正常';
       }
 
@@ -805,6 +821,12 @@
         showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
       }
 
+      function canMagnetCollect(head, pickup, now, range = 2) {
+        if (!pickup || now >= magnetUntil) return false;
+        const dist = Math.abs(head.x - pickup.x) + Math.abs(head.y - pickup.y);
+        return dist <= range;
+      }
+
       function update() {
         const now = performance.now();
         const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
@@ -823,12 +845,14 @@
         if (freezeFood && now > freezeExpireAt) freezeFood = null;
         if (phaseFood && now > phaseExpireAt) phaseFood = null;
         if (crownFood && now > crownExpireAt) crownFood = null;
+        if (magnetFood && now > magnetExpireAt) magnetFood = null;
         if (scoreMultiplier > 1 && now > multiplierExpireAt) {
           scoreMultiplier = 1;
           multiplierEl.textContent = 'x1';
         }
         if (now > freezeUntil) freezeUntil = 0;
         if (now > phaseUntil) phaseUntil = 0;
+        if (now > magnetUntil) magnetUntil = 0;
         refreshStateText(now);
 
         direction = pendingDirection;
@@ -867,11 +891,12 @@
           maybeSpawnFreezeFood(now);
           maybeSpawnPhaseFood(now);
           maybeSpawnCrownFood(now);
+          maybeSpawnMagnetFood(now);
           discoverCodex('food', '基础果');
           beep('eat');
         }
 
-        if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+        if (bonusFood && ((head.x === bonusFood.x && head.y === bonusFood.y) || canMagnetCollect(head, bonusFood, now))) {
           ate = true;
           score += 30 * scoreMultiplier;
           foodsEaten += 1;
@@ -882,7 +907,7 @@
           beep('bonus');
         }
 
-        if (shieldFood && head.x === shieldFood.x && head.y === shieldFood.y) {
+        if (shieldFood && ((head.x === shieldFood.x && head.y === shieldFood.y) || canMagnetCollect(head, shieldFood, now))) {
           ate = true;
           if (!hardcoreModeInput.checked) {
             shields = Math.min(2, shields + 1);
@@ -893,7 +918,7 @@
           beep('bonus');
         }
 
-        if (boostFood && head.x === boostFood.x && head.y === boostFood.y) {
+        if (boostFood && ((head.x === boostFood.x && head.y === boostFood.y) || canMagnetCollect(head, boostFood, now))) {
           ate = true;
           scoreMultiplier = 2;
           multiplierExpireAt = now + 8000;
@@ -903,7 +928,7 @@
           beep('mission');
         }
 
-        if (timeFood && head.x === timeFood.x && head.y === timeFood.y) {
+        if (timeFood && ((head.x === timeFood.x && head.y === timeFood.y) || canMagnetCollect(head, timeFood, now))) {
           ate = true;
           if (mode === 'timed') {
             remainingTime += 5;
@@ -916,7 +941,7 @@
           beep('bonus');
         }
 
-        if (freezeFood && head.x === freezeFood.x && head.y === freezeFood.y) {
+        if (freezeFood && ((head.x === freezeFood.x && head.y === freezeFood.y) || canMagnetCollect(head, freezeFood, now))) {
           ate = true;
           freezeUntil = now + 6000;
           freezeFood = null;
@@ -928,7 +953,7 @@
           }
         }
 
-        if (phaseFood && head.x === phaseFood.x && head.y === phaseFood.y) {
+        if (phaseFood && ((head.x === phaseFood.x && head.y === phaseFood.y) || canMagnetCollect(head, phaseFood, now))) {
           ate = true;
           phaseUntil = now + 6000;
           phaseFood = null;
@@ -937,7 +962,7 @@
           beep('mission');
         }
 
-        if (crownFood && head.x === crownFood.x && head.y === crownFood.y) {
+        if (crownFood && ((head.x === crownFood.x && head.y === crownFood.y) || canMagnetCollect(head, crownFood, now))) {
           ate = true;
           crownFood = null;
           const rewardRoll = Math.floor(Math.random() * 4);
@@ -974,6 +999,21 @@
           beep('mission');
           if (running && !paused) {
             showOverlay(`<p><strong>👑 王冠奖励</strong></p><p>${rewardText}</p>`);
+            setTimeout(() => {
+              if (running && !paused) hideOverlay();
+            }, 700);
+          }
+        }
+
+        if (magnetFood && ((head.x === magnetFood.x && head.y === magnetFood.y) || canMagnetCollect(head, magnetFood, now, 3))) {
+          ate = true;
+          magnetUntil = now + 7000;
+          magnetFood = null;
+          refreshStateText(now);
+          discoverCodex('magnet', '磁力果');
+          beep('mission');
+          if (running && !paused) {
+            showOverlay('<p><strong>🧲 磁力启动</strong></p><p>附近道具自动吸附 7 秒</p>');
             setTimeout(() => {
               if (running && !paused) hideOverlay();
             }, 700);
@@ -1058,6 +1098,7 @@
         if (freezeFood) drawCell(freezeFood, '#22d3ee', 8);
         if (phaseFood) drawCell(phaseFood, '#c084fc', 8);
         if (crownFood) drawCell(crownFood, '#fde047', 8);
+        if (magnetFood) drawCell(magnetFood, '#60a5fa', 8);
         rocks.forEach(rock => drawCell(rock, '#64748b', 5));
         const headColor = performance.now() < phaseUntil ? skinThemes[currentSkin].phaseHead : skinThemes[currentSkin].head;
         snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skinThemes[currentSkin].body));
