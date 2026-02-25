@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.75.0';
+const GAME_VERSION = '0.76.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -136,6 +136,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.76.0', notes: ['挑战面板刷新改为复用 getDailyChallengeBundle，减少重复日期/挑战推导逻辑', '路线图 P1 推进：挑战展示链路完成一次去冗余优化，便于后续维护与扩展'] },
   { version: '0.75.0', notes: ['每日挑战跨天切换优化：进行中的对局维持当局挑战，结束后再应用新日期挑战', '挑战面板新增跨天切换提示，避免午夜期间规则突变造成体验割裂'] },
   { version: '0.74.0', notes: ['优化每日挑战刷新展示：今日/明日挑战使用同一时间快照生成，跨秒显示更一致', '挑战得分倍率新增安全校验与上限保护，降低异常配置风险'] },
   { version: '0.73.0', notes: ['每日挑战新增“周循环主题”：工作日稳态 / 周末双倍率，挑战节奏更有区分度', '路线图 P1 推进：周循环主题已落地，挑战系统进入细化平衡阶段'] },

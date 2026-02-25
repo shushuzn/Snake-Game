@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.75.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.76.0
 ```
 
 ## 最新进展
 
+- v0.76.0：挑战面板刷新改为复用 `getDailyChallengeBundle`，统一当前/明日挑战与日期推导，减少重复逻辑。
 - v0.75.0：优化每日挑战跨天切换：进行中的对局将保持当局挑战，避免午夜切日导致规则突变；并增加跨天切换提示。
 - v0.74.0：优化每日挑战刷新的一致性（今日/明日基于同一时间快照生成），并为周主题得分倍率增加安全校验与上限保护。
 - v0.73.0：每日挑战新增“周循环主题”（工作日稳态 / 周末双倍率），并将周主题规则合并进挑战说明与得分结算。
@@ -98,6 +99,7 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.75.0
 - ✅ 增加每日挑战“周循环主题”：已上线工作日稳态 / 周末双倍率，并接入挑战说明与得分结算。
 - ✅ 周主题细化优化：挑战面板刷新改为统一时间快照，得分倍率增加安全校验（1~3）。
 - ✅ 跨天一致性优化：进行中对局跨天后不即时切换挑战规则，改为局后切换并提供提示。
+- ✅ 挑战链路去冗余优化：挑战面板刷新复用 `getDailyChallengeBundle`，减少重复推导与维护成本。
 
 ### P2（长期，1-2 月）
 - 排行榜与赛季系统（可选后端）：支持模式榜、挑战榜、DLC 分类榜。

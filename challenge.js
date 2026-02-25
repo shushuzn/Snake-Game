@@ -70,22 +70,19 @@ window.SnakeChallenge = (() => {
 
     function refreshHud() {
       const currentDate = getCurrentChallengeDate();
-      const nextDate = new Date(currentDate);
-      nextDate.setDate(nextDate.getDate() + 1);
-      const currentChallenge = runtime.getCurrentChallenge() || snakeModes.pickDailyChallenge(currentDate);
-      const nextChallenge = snakeModes.pickDailyChallenge(nextDate);
+      const challengeBundle = snakeModes.getDailyChallengeBundle(currentDate);
+      const currentChallenge = runtime.getCurrentChallenge() || challengeBundle.current;
+      const nextChallenge = challengeBundle.next;
       elements.challengeEl.textContent = currentChallenge.label;
       elements.challengeDetailEl.textContent = snakeModes.describeChallenge(currentChallenge);
       elements.challengeNextEl.textContent = nextChallenge.label;
       elements.challengeNextEl.title = snakeModes.describeChallenge(nextChallenge);
-      elements.challengeNextDateEl.textContent = snakeModes.formatLocalDateLabel(nextDate);
-      elements.challengeDateEl.textContent = snakeModes.formatLocalDateLabel(currentDate);
+      elements.challengeNextDateEl.textContent = challengeBundle.nextDateLabel;
+      elements.challengeDateEl.textContent = challengeBundle.currentDateLabel;
       applyControlLocks(currentChallenge);
-      if (pendingChallengeSeed) {
-        elements.challengeRefreshEl.title = '当前对局进行中：跨天后将于本局结束后切换新挑战';
-      } else {
-        elements.challengeRefreshEl.title = '';
-      }
+      elements.challengeRefreshEl.title = pendingChallengeSeed
+        ? '当前对局进行中：跨天后将于本局结束后切换新挑战'
+        : '';
       lastChallengeCountdownText = '';
       updateCountdownOnly();
     }
