@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.26.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.27.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -131,10 +131,15 @@
           <input id="accountInput" type="text" placeholder="输入账号名" maxlength="20" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#0f172a;color:#e2e8f0;" />
           <button id="loginAccount" type="button" class="secondary">登录/切换</button>
           <button id="logoutAccount" type="button" class="secondary">退出账号</button>
+          <button id="exportSave" type="button" class="secondary">导出存档</button>
+          <label class="label-inline" for="importSave" style="cursor:pointer;">
+            <input id="importSave" type="file" accept="application/json" style="display:none;" />
+            <span style="padding:9px 14px;border-radius:10px;font-weight:700;background:linear-gradient(135deg,#93c5fd,#60a5fa);color:#081426;">导入存档</span>
+          </label>
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增本地账号系统，可切换不同玩家存档。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增存档导出/导入，可备份账号进度。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -188,6 +193,8 @@
       const accountInput = document.getElementById('accountInput');
       const loginAccountBtn = document.getElementById('loginAccount');
       const logoutAccountBtn = document.getElementById('logoutAccount');
+      const exportSaveBtn = document.getElementById('exportSave');
+      const importSaveInput = document.getElementById('importSave');
       const historyListEl = document.getElementById('historyList');
       const codexListEl = document.getElementById('codexList');
       const codexProgressEl = document.getElementById('codexProgress');
@@ -200,7 +207,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.26.0';
+      const GAME_VERSION = '0.27.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -409,6 +416,49 @@
         applyProfileSnapshot({});
         refreshAccountUI();
         reloadAllFromStorage();
+      }
+
+      function exportSaveData() {
+        saveActiveAccountSnapshot();
+        const payload = {
+          version: GAME_VERSION,
+          exportedAt: new Date().toISOString(),
+          currentAccount: activeAccount,
+          accounts: accountStore,
+          guest: captureProfileSnapshot()
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `snake-save-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      async function importSaveData(file) {
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          if (!parsed || typeof parsed !== 'object') throw new Error('bad format');
+          accountStore = (parsed.accounts && typeof parsed.accounts === 'object') ? parsed.accounts : {};
+          saveAccountStore();
+          activeAccount = typeof parsed.currentAccount === 'string' ? parsed.currentAccount.trim() : '';
+          if (activeAccount) localStorage.setItem(currentAccountKey, activeAccount);
+          else localStorage.removeItem(currentAccountKey);
+          if (activeAccount && accountStore[activeAccount]) applyProfileSnapshot(accountStore[activeAccount]);
+          else applyProfileSnapshot((parsed.guest && typeof parsed.guest === 'object') ? parsed.guest : {});
+          refreshAccountUI();
+          reloadAllFromStorage();
+          showOverlay('<p><strong>✅ 导入成功</strong></p><p>存档已恢复</p>');
+          setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+        } catch {
+          showOverlay('<p><strong>导入失败</strong></p><p>存档文件无效</p>');
+          setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+        } finally {
+          importSaveInput.value = '';
+        }
       }
 
       function loadSettings() {
@@ -1420,6 +1470,8 @@
         accountInput.value = '';
       });
       logoutAccountBtn.addEventListener('click', logoutAccount);
+      exportSaveBtn.addEventListener('click', exportSaveData);
+      importSaveInput.addEventListener('change', () => importSaveData(importSaveInput.files?.[0]));
       accountInput.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter') return;
         loginAccount(accountInput.value);
