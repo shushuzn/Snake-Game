@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.64.0';
+const GAME_VERSION = '0.65.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.65.0', notes: ['新增 round_state.js，回合初始化状态与出生参数编排从 game.js 拆分', '路线图 P1 推进：战局状态编排模块化落地，下一步拆分道具生成编排层'] },
   { version: '0.64.0', notes: ['新增 mode_rules.js，限时模式与 DLC 时间/步进规则从 game.js 拆分', '路线图 P1 推进：模式规则编排模块化落地，下一步拆分战局状态编排层'] },
   { version: '0.63.0', notes: ['新增 workshop_runtime.js，工坊状态快照与按钮交互编排从 game.js 拆分', '路线图 P1 推进：工坊编排模块化落地，下一步拆分模式规则编排层'] },
   { version: '0.62.0', notes: ['新增 settings.js，设置加载/保存与视觉模式应用从 game.js 拆分', '路线图 P1 推进：设置编排模块化落地，下一步拆分工坊编排层'] },
@@ -515,6 +516,8 @@ const modeRulesRuntime = window.SnakeModeRules.createModeRulesModule({
   }
 });
 
+const roundStateRuntime = window.SnakeRoundState.createRoundStateModule();
+
 function getBonusStep() {
   return modeRulesRuntime.getBonusStep();
 }
@@ -857,49 +860,62 @@ function resetGame(showStartOverlay = true) {
   dlcPack = dlcPackSelect.value;
   rocks = customRocks.map(item => ({ ...item }));
   food = randomFoodPosition();
-  bonusFood = null;
-  bonusExpireAt = 0;
-  shieldFood = null;
-  shieldExpireAt = 0;
-  boostFood = null;
-  boostExpireAt = 0;
-  timeFood = null;
-  timeExpireAt = 0;
-  freezeFood = null;
-  freezeExpireAt = 0;
-  phaseFood = null;
-  phaseExpireAt = 0;
-  crownFood = null;
-  crownExpireAt = 0;
-  magnetFood = null;
-  magnetExpireAt = 0;
-  comboFood = null;
-  comboExpireAt = 0;
-  score = 0;
-  running = false;
-  paused = false;
+  const spawnState = roundStateRuntime.createSpawnState();
+  bonusFood = spawnState.bonusFood;
+  bonusExpireAt = spawnState.bonusExpireAt;
+  shieldFood = spawnState.shieldFood;
+  shieldExpireAt = spawnState.shieldExpireAt;
+  boostFood = spawnState.boostFood;
+  boostExpireAt = spawnState.boostExpireAt;
+  timeFood = spawnState.timeFood;
+  timeExpireAt = spawnState.timeExpireAt;
+  freezeFood = spawnState.freezeFood;
+  freezeExpireAt = spawnState.freezeExpireAt;
+  phaseFood = spawnState.phaseFood;
+  phaseExpireAt = spawnState.phaseExpireAt;
+  crownFood = spawnState.crownFood;
+  crownExpireAt = spawnState.crownExpireAt;
+  magnetFood = spawnState.magnetFood;
+  magnetExpireAt = spawnState.magnetExpireAt;
+  comboFood = spawnState.comboFood;
+  comboExpireAt = spawnState.comboExpireAt;
   challengeRuntime.refreshHud();
   refreshDlcHud();
-  const startBonusSeconds = isTimerMode() ? getTimerStartBonusSeconds() : 0;
-  settlement.resetRound(startBonusSeconds);
-  remainingTime = getModeTimeDuration() + startBonusSeconds;
-  level = 1;
-  levelTargetScore = 100;
-  lastTickMs = 0;
-  const hardcoreDelta = hardcoreModeInput.checked ? -20 : 0;
   applyRoguelikeMutator();
-  speed = Math.max(45, baseSpeed + (currentChallenge.speedDelta || 0) + hardcoreDelta + rogueSpeedDelta);
-  combo = 1;
-  roundMaxCombo = 1;
-  lastEatMs = 0;
-  shields = hardcoreModeInput.checked ? 0 : (currentChallenge.startShield || 0);
-  if (!hardcoreModeInput.checked) {
-    shields = Math.min(2, shields + rogueStartShield);
-    if (dlcPack === 'guardian') shields = Math.min(2, shields + 1);
-  }
-  missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
-  missionAchieved = false;
-  playCountedThisRound = false;
+  const roundMeta = roundStateRuntime.createRoundMeta({
+    baseSpeed,
+    currentChallenge,
+    hardcoreEnabled: hardcoreModeInput.checked,
+    rogueSpeedDelta,
+    rogueStartShield,
+    dlcPack,
+    isTimerMode: isTimerMode(),
+    getTimerStartBonusSeconds,
+    getModeTimeDuration,
+    missionOptions
+  });
+  settlement.resetRound(roundMeta.startBonusSeconds);
+  score = roundMeta.score;
+  running = roundMeta.running;
+  paused = roundMeta.paused;
+  remainingTime = roundMeta.remainingTime;
+  level = roundMeta.level;
+  levelTargetScore = roundMeta.levelTargetScore;
+  lastTickMs = roundMeta.lastTickMs;
+  speed = roundMeta.speed;
+  combo = roundMeta.combo;
+  roundMaxCombo = roundMeta.roundMaxCombo;
+  lastEatMs = roundMeta.lastEatMs;
+  shields = roundMeta.shields;
+  missionTarget = roundMeta.missionTarget;
+  missionAchieved = roundMeta.missionAchieved;
+  playCountedThisRound = roundMeta.playCountedThisRound;
+  scoreMultiplier = roundMeta.scoreMultiplier;
+  multiplierExpireAt = roundMeta.multiplierExpireAt;
+  freezeUntil = roundMeta.freezeUntil;
+  phaseUntil = roundMeta.phaseUntil;
+  magnetUntil = roundMeta.magnetUntil;
+  comboGuardUntil = roundMeta.comboGuardUntil;
   clearInterval(loopTimer);
   clearInterval(countdownTimer);
   challengeRuntime.stopTicker();
@@ -909,13 +925,7 @@ function resetGame(showStartOverlay = true) {
   comboEl.textContent = 'x1';
   shieldEl.textContent = String(shields);
   missionEl.textContent = `${missionTarget}分`;
-  scoreMultiplier = 1;
-  multiplierExpireAt = 0;
   multiplierEl.textContent = 'x1';
-  freezeUntil = 0;
-  phaseUntil = 0;
-  magnetUntil = 0;
-  comboGuardUntil = 0;
   refreshStateText();
   challengeRuntime.startTicker();
   updateTimeText();
