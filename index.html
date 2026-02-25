@@ -75,6 +75,7 @@
           <span>总局：<b id="plays">0</b></span>
           <span>吃到：<b id="foods">0</b></span>
           <span>连胜：<b id="streak">0</b></span>
+          <span>成就：<b id="achievements">0/3</b></span>
         </div>
       </section>
 
@@ -107,7 +108,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；新增连胜记录与可关闭音效。</p>
+      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；新增成就系统（高分/连击/限时通关）。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -133,6 +134,7 @@
       const playsEl = document.getElementById('plays');
       const foodsEl = document.getElementById('foods');
       const streakEl = document.getElementById('streak');
+      const achievementsEl = document.getElementById('achievements');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
@@ -152,6 +154,7 @@
       const statsKey = 'snake-stats-v1';
       const audioKey = 'snake-audio-v1';
       const bestByModeKey = 'snake-best-by-mode-v1';
+      const achievementsKey = 'snake-achievements-v1';
 
       const dirMap = {
         ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
@@ -190,6 +193,8 @@
       let playCountedThisRound = false;
       let countdownTimer = null;
       let muted = false;
+      let achievements = { score200: false, combo5: false, timedClear: false };
+      let roundMaxCombo = 1;
 
       bestEl.textContent = String(bestScore);
 
@@ -216,6 +221,41 @@
 
 
 
+
+
+      function loadAchievements() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(achievementsKey) || '{}');
+          achievements.score200 = Boolean(parsed.score200);
+          achievements.combo5 = Boolean(parsed.combo5);
+          achievements.timedClear = Boolean(parsed.timedClear);
+        } catch {
+          achievements = { score200: false, combo5: false, timedClear: false };
+        }
+        refreshAchievementsText();
+      }
+
+      function saveAchievements() {
+        localStorage.setItem(achievementsKey, JSON.stringify(achievements));
+      }
+
+      function refreshAchievementsText() {
+        const count = Number(achievements.score200) + Number(achievements.combo5) + Number(achievements.timedClear);
+        achievementsEl.textContent = `${count}/3`;
+      }
+
+      function unlockAchievement(key, label) {
+        if (achievements[key]) return;
+        achievements[key] = true;
+        saveAchievements();
+        refreshAchievementsText();
+        if (running && !paused) {
+          showOverlay(`<p><strong>🏆 解锁成就</strong></p><p>${label}</p>`);
+          setTimeout(() => {
+            if (running && !paused) hideOverlay();
+          }, 800);
+        }
+      }
 
       function loadAudioSetting() {
         muted = localStorage.getItem(audioKey) === '1';
@@ -306,6 +346,7 @@
         lastTickMs = 0;
         speed = baseSpeed;
         combo = 1;
+        roundMaxCombo = 1;
         lastEatMs = 0;
         shields = 0;
         missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
@@ -468,6 +509,10 @@
           refreshModeBestText();
         }
 
+        if (score >= 200) unlockAchievement('score200', '高分达人（单局 200 分）');
+        if (roundMaxCombo >= 5) unlockAchievement('combo5', '连击高手（连击达到 x5）');
+        if (mode === 'timed' && reasonText.includes('时间到') && score >= 120) unlockAchievement('timedClear', '限时挑战者（限时模式 120+）');
+
         beep('hit');
         showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
       }
@@ -541,6 +586,7 @@
         if (ate) {
           const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
           combo = eatDelta <= 3000 ? Math.min(combo + 1, 9) : 1;
+          roundMaxCombo = Math.max(roundMaxCombo, combo);
           score += (combo - 1) * 2;
           comboEl.textContent = `x${combo}`;
           lastEatMs = now;
@@ -679,6 +725,7 @@
         localStorage.removeItem(statsKey);
         localStorage.removeItem(bestByModeKey);
         localStorage.removeItem(audioKey);
+        localStorage.removeItem(achievementsKey);
         bestScore = 0;
         bestEl.textContent = '0';
         bestByMode = { classic: 0, timed: 0 };
@@ -691,6 +738,8 @@
         foodsEl.textContent = '0';
         playsEl.textContent = '0';
         streakEl.textContent = '0';
+        achievements = { score200: false, combo5: false, timedClear: false };
+        refreshAchievementsText();
         resetGame(true);
       });
 
@@ -700,6 +749,7 @@
       });
 
       loadLifetimeStats();
+      loadAchievements();
       loadAudioSetting();
       loadBestByMode();
       loadSettings();
