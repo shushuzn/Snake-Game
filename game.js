@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.59.0';
+const GAME_VERSION = '0.60.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -108,23 +108,9 @@ function isValidDlcPackValue(value) {
   return validDlcPacks.includes(String(value));
 }
 
-function readStorageJson(key, fallbackValue) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallbackValue;
-    const parsed = JSON.parse(raw);
-    return parsed ?? fallbackValue;
-  } catch {
-    return fallbackValue;
-  }
-}
-
-function writeStorageJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
 
 const versionEvents = [
+  { version: '0.60.0', notes: ['新增 storage.js 统一文本/JSON存储与账号快照操作，进一步减少主文件存储样板代码', '路线图 P1 推进：存档能力模块化落地，下一步拆分账号/设置编排层'] },
   { version: '0.59.0', notes: ['挑战 HUD/锁定与跨天刷新逻辑拆分至 challenge.js，主文件进一步瘦身', '路线图 P1 推进：挑战系统模块化落地，下一步拆分独立存档模块'] },
   { version: '0.58.0', notes: ['存档读写统一为 read/writeStorageJson，减少重复 try/catch 解析代码', '路线图 P1 推进：先完成存档层去冗余，再拆分独立存档模块'] },
   { version: '0.57.0', notes: ['设置校验规则改为常量化，减少重复判断分支', '路线图 P1 持续推进：先完成配置层去冗余重构'] },
@@ -218,7 +204,8 @@ let comboFood = null;
 let comboExpireAt = 0;
 let rocks = [];
 let score;
-let bestScore = Number(localStorage.getItem('snake-best') || '0');
+const storage = window.SnakeStorage.createStorageModule(localStorage);
+let bestScore = Number(storage.readText('snake-best', '0'));
 let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
 let paused = false;
@@ -338,20 +325,11 @@ function getStorageKeysForProfile() {
 }
 
 function captureProfileSnapshot() {
-  const snapshot = {};
-  for (const key of getStorageKeysForProfile()) {
-    const value = localStorage.getItem(key);
-    if (value !== null) snapshot[key] = value;
-  }
-  return snapshot;
+  return storage.captureSnapshot(getStorageKeysForProfile());
 }
 
 function applyProfileSnapshot(snapshot) {
-  const keys = getStorageKeysForProfile();
-  for (const key of keys) localStorage.removeItem(key);
-  for (const [key, value] of Object.entries(snapshot || {})) {
-    if (keys.includes(key) && typeof value === 'string') localStorage.setItem(key, value);
-  }
+  storage.applySnapshot(getStorageKeysForProfile(), snapshot);
 }
 
 function refreshAccountUI() {
@@ -359,11 +337,11 @@ function refreshAccountUI() {
 }
 
 function saveAccountStore() {
-  writeStorageJson(accountStoreKey, accountStore);
+  storage.writeJson(accountStoreKey, accountStore);
 }
 
 function loadAccountStore() {
-  accountStore = readStorageJson(accountStoreKey, {}) || {};
+  accountStore = storage.readJson(accountStoreKey, {}) || {};
 }
 
 function saveActiveAccountSnapshot() {
@@ -400,7 +378,7 @@ function loginAccount(name) {
   if (!username) return;
   saveActiveAccountSnapshot();
   activeAccount = username;
-  localStorage.setItem(currentAccountKey, activeAccount);
+  storage.writeText(currentAccountKey, activeAccount);
   applyProfileSnapshot(accountStore[activeAccount] || {});
   refreshAccountUI();
   reloadAllFromStorage();
@@ -409,7 +387,7 @@ function loginAccount(name) {
 function logoutAccount() {
   saveActiveAccountSnapshot();
   activeAccount = '';
-  localStorage.removeItem(currentAccountKey);
+  storage.remove(currentAccountKey);
   applyProfileSnapshot({});
   refreshAccountUI();
   reloadAllFromStorage();
@@ -442,8 +420,8 @@ async function importSaveData(file) {
     accountStore = (parsed.accounts && typeof parsed.accounts === 'object') ? parsed.accounts : {};
     saveAccountStore();
     activeAccount = typeof parsed.currentAccount === 'string' ? parsed.currentAccount.trim() : '';
-    if (activeAccount) localStorage.setItem(currentAccountKey, activeAccount);
-    else localStorage.removeItem(currentAccountKey);
+    if (activeAccount) storage.writeText(currentAccountKey, activeAccount);
+    else storage.remove(currentAccountKey);
     if (activeAccount && accountStore[activeAccount]) applyProfileSnapshot(accountStore[activeAccount]);
     else applyProfileSnapshot((parsed.guest && typeof parsed.guest === 'object') ? parsed.guest : {});
     refreshAccountUI();
@@ -543,11 +521,11 @@ function normalizeSettingsPayload(raw = {}) {
 
 function maybePersistSettingsMigration(normalized, raw) {
   if (!normalized || !raw || normalized.schemaVersion === raw.schemaVersion) return;
-  writeStorageJson(settingsKey, normalized);
+  storage.writeJson(settingsKey, normalized);
 }
 
 function loadSettings() {
-  const raw = readStorageJson(settingsKey, {});
+  const raw = storage.readJson(settingsKey, {});
   const parsed = normalizeSettingsPayload(raw);
   maybePersistSettingsMigration(parsed, raw);
   if (isValidModeValue(parsed.mode)) modeSelect.value = parsed.mode;
@@ -567,7 +545,7 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  writeStorageJson(settingsKey, {
+  storage.writeJson(settingsKey, {
     schemaVersion: settingsSchemaVersion,
     mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
@@ -604,12 +582,12 @@ function refreshCodex() {
 }
 
 function saveCodex() {
-  writeStorageJson(codexKey, discoveredCodex);
+  storage.writeJson(codexKey, discoveredCodex);
 }
 
 function loadCodex() {
   const base = defaultCodexState();
-  const parsed = readStorageJson(codexKey, {});
+  const parsed = storage.readJson(codexKey, {});
   discoveredCodex = { ...base, ...parsed };
   refreshCodex();
 }
@@ -637,13 +615,13 @@ function renderVersionEvents() {
 }
 
 function loadHistory() {
-  const parsed = readStorageJson(historyKey, []);
+  const parsed = storage.readJson(historyKey, []);
   history = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
   renderHistory();
 }
 
 function saveHistory() {
-  writeStorageJson(historyKey, history.slice(0, 5));
+  storage.writeJson(historyKey, history.slice(0, 5));
   saveActiveAccountSnapshot();
 }
 
@@ -671,7 +649,7 @@ function renderHistory() {
 }
 
 function loadLastResult() {
-  const parsed = readStorageJson(lastResultKey, {});
+  const parsed = storage.readJson(lastResultKey, {});
   lastResult.score = Number(parsed.score || 0);
   lastResult.mode = isValidModeValue(parsed.mode) && parsed.mode !== 'classic' ? parsed.mode : 'classic';
   lastResult.ts = Number(parsed.ts || 0);
@@ -679,7 +657,7 @@ function loadLastResult() {
 }
 
 function saveLastResult() {
-  writeStorageJson(lastResultKey, lastResult);
+  storage.writeJson(lastResultKey, lastResult);
   saveActiveAccountSnapshot();
 }
 
@@ -693,7 +671,7 @@ function refreshLastResultText() {
 }
 
 function loadAchievements() {
-  const parsed = readStorageJson(achievementsKey, {});
+  const parsed = storage.readJson(achievementsKey, {});
   achievements.score200 = Boolean(parsed.score200);
   achievements.combo5 = Boolean(parsed.combo5);
   achievements.timedClear = Boolean(parsed.timedClear);
@@ -701,7 +679,7 @@ function loadAchievements() {
 }
 
 function saveAchievements() {
-  writeStorageJson(achievementsKey, achievements);
+  storage.writeJson(achievementsKey, achievements);
   saveActiveAccountSnapshot();
 }
 
@@ -724,12 +702,12 @@ function unlockAchievement(key, label) {
 }
 
 function loadAudioSetting() {
-  muted = localStorage.getItem(audioKey) === '1';
+  muted = storage.readText(audioKey) === '1';
   muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
 }
 
 function saveAudioSetting() {
-  localStorage.setItem(audioKey, muted ? '1' : '0');
+  storage.writeText(audioKey, muted ? '1' : '0');
   muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
   saveActiveAccountSnapshot();
 }
@@ -755,7 +733,7 @@ function beep(type = 'eat') {
 }
 
 function loadBestByMode() {
-  const parsed = readStorageJson(bestByModeKey, {});
+  const parsed = storage.readJson(bestByModeKey, {});
   bestByMode.classic = Number(parsed.classic || 0);
   bestByMode.timed = Number(parsed.timed || 0);
   bestByMode.blitz = Number(parsed.blitz || 0);
@@ -764,7 +742,7 @@ function loadBestByMode() {
 }
 
 function saveBestByMode() {
-  writeStorageJson(bestByModeKey, bestByMode);
+  storage.writeJson(bestByModeKey, bestByMode);
   saveActiveAccountSnapshot();
 }
 
@@ -773,7 +751,7 @@ function refreshModeBestText() {
 }
 
 function loadLifetimeStats() {
-  const parsed = readStorageJson(statsKey, {});
+  const parsed = storage.readJson(statsKey, {});
   foodsEaten = Number(parsed.foodsEaten || 0);
   totalPlays = Number(parsed.totalPlays || 0);
   streakWins = Number(parsed.streakWins || 0);
@@ -783,29 +761,29 @@ function loadLifetimeStats() {
 }
 
 function saveLifetimeStats() {
-  writeStorageJson(statsKey, { foodsEaten, totalPlays, streakWins });
+  storage.writeJson(statsKey, { foodsEaten, totalPlays, streakWins });
   saveActiveAccountSnapshot();
 }
 
 function loadEndlessBestLevel() {
-  endlessBestLevel = Number(localStorage.getItem(endlessBestLevelKey) || '0');
+  endlessBestLevel = Number(storage.readText(endlessBestLevelKey, '0'));
   bestLevelEl.textContent = String(endlessBestLevel);
 }
 
 function saveEndlessBestLevel() {
-  localStorage.setItem(endlessBestLevelKey, String(endlessBestLevel));
+  storage.writeText(endlessBestLevelKey, String(endlessBestLevel));
   bestLevelEl.textContent = String(endlessBestLevel);
   saveActiveAccountSnapshot();
 }
 
 function loadRogueMeta() {
-  const parsed = readStorageJson(rogueMetaKey, {});
+  const parsed = storage.readJson(rogueMetaKey, {});
   roguePerks = Number(parsed.perks || 0);
   roguePerksEl.textContent = String(roguePerks);
 }
 
 function saveRogueMeta() {
-  writeStorageJson(rogueMetaKey, { perks: roguePerks });
+  storage.writeJson(rogueMetaKey, { perks: roguePerks });
   roguePerksEl.textContent = String(roguePerks);
   saveActiveAccountSnapshot();
 }
@@ -845,11 +823,11 @@ function toggleHelp(show) {
 }
 
 function maybeShowOnboarding() {
-  if (localStorage.getItem(onboardingKey) === '1') return;
+  if (storage.readText(onboardingKey) === '1') return;
   toggleHelp(true);
   showOverlay('<p><strong>欢迎来到贪吃蛇</strong></p><p>先看帮助面板，再按方向键开局</p>');
   setTimeout(() => { if (!running || paused) hideOverlay(); }, 1400);
-  localStorage.setItem(onboardingKey, '1');
+  storage.writeText(onboardingKey, '1');
 }
 
 function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
@@ -906,12 +884,12 @@ function encodeRocks(rockList) {
 }
 
 function saveCustomRocks() {
-  writeStorageJson(customRocksKey, customRocks);
+  storage.writeJson(customRocksKey, customRocks);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
 }
 
 function loadCustomRocks() {
-  const parsed = readStorageJson(customRocksKey, []);
+  const parsed = storage.readJson(customRocksKey, []);
   customRocks = normalizeRockList(Array.isArray(parsed) ? parsed : []);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
 }
@@ -1210,7 +1188,7 @@ function endGame(reasonText) {
   if (score > bestScore) {
     bestScore = score;
     bestEl.textContent = String(bestScore);
-    localStorage.setItem('snake-best', String(bestScore));
+    storage.writeText('snake-best', String(bestScore));
     saveActiveAccountSnapshot();
   }
 
@@ -1627,18 +1605,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  localStorage.removeItem('snake-best');
-  localStorage.removeItem(settingsKey);
-  localStorage.removeItem(statsKey);
-  localStorage.removeItem(bestByModeKey);
-  localStorage.removeItem(audioKey);
-  localStorage.removeItem(achievementsKey);
-  localStorage.removeItem(lastResultKey);
-  localStorage.removeItem(historyKey);
-  localStorage.removeItem(codexKey);
-  localStorage.removeItem(endlessBestLevelKey);
-  localStorage.removeItem(rogueMetaKey);
-  localStorage.removeItem(customRocksKey);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -1788,7 +1755,7 @@ clearRocksBtn.addEventListener('click', () => {
 });
 
 loadAccountStore();
-activeAccount = (localStorage.getItem(currentAccountKey) || '').trim();
+activeAccount = storage.readText(currentAccountKey, '').trim();
 if (activeAccount && accountStore[activeAccount]) {
   applyProfileSnapshot(accountStore[activeAccount]);
 }
