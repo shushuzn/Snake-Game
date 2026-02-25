@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.61.0';
+const GAME_VERSION = '0.62.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.62.0', notes: ['新增 settings.js，设置加载/保存与视觉模式应用从 game.js 拆分', '路线图 P1 推进：设置编排模块化落地，下一步拆分工坊编排层'] },
   { version: '0.61.0', notes: ['新增 account.js，账号登录/导入导出与快照恢复编排从 game.js 拆分', '路线图 P1 推进：账号编排模块化落地，下一步拆分设置编排层'] },
   { version: '0.60.0', notes: ['新增 storage.js 统一文本/JSON存储与账号快照操作，进一步减少主文件存储样板代码', '路线图 P1 推进：存档能力模块化落地，下一步拆分账号/设置编排层'] },
   { version: '0.59.0', notes: ['挑战 HUD/锁定与跨天刷新逻辑拆分至 challenge.js，主文件进一步瘦身', '路线图 P1 推进：挑战系统模块化落地，下一步拆分独立存档模块'] },
@@ -379,6 +380,59 @@ const accountRuntime = window.SnakeAccount.createAccountModule({
   }
 });
 
+const settingsRuntime = window.SnakeSettings.createSettingsModule({
+  storage,
+  settingsKey,
+  settingsSchemaVersion,
+  controls: {
+    modeSelect,
+    difficultySelect,
+    skinSelect,
+    dlcPackSelect,
+    wrapModeInput,
+    obstacleModeInput,
+    hardcoreModeInput,
+    contrastModeInput,
+    miniHudModeInput,
+    autoPauseModeInput
+  },
+  validators: {
+    isValidMode: isValidModeValue,
+    isValidDifficulty: isValidDifficultyValue,
+    isValidDlcPack: isValidDlcPackValue
+  },
+  skinThemes,
+  getModePreference: () => modePreference,
+  setModePreference: (value) => { modePreference = value; },
+  getObstacleModePreference: () => obstacleModePreference,
+  setObstacleModePreference: (value) => { obstacleModePreference = value; },
+  onSave: saveActiveAccountSnapshot
+});
+
+function getModeSettingValue() {
+  return settingsRuntime.getModeSettingValue();
+}
+
+function getObstacleModeSettingValue() {
+  return settingsRuntime.getObstacleModeSettingValue();
+}
+
+function applyContrastMode() {
+  settingsRuntime.applyContrastMode();
+}
+
+function applyMiniHudMode() {
+  settingsRuntime.applyMiniHudMode();
+}
+
+function loadSettings() {
+  settingsRuntime.loadSettings();
+}
+
+function saveSettings() {
+  settingsRuntime.saveSettings();
+}
+
 function saveActiveAccountSnapshot() {
   accountRuntime.saveActiveSnapshot();
 }
@@ -406,10 +460,7 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
   isValidDifficulty: isValidDifficultyValue,
   isValidSkin: (value) => Object.hasOwn(skinThemes, value),
   isValidDlcPack: isValidDlcPackValue,
-  applyVisualModes: () => {
-    applyContrastMode();
-    applyMiniHudMode();
-  },
+  applyVisualModes: () => settingsRuntime.applyVisualModes(),
   saveSettings,
   syncRuntime: ({ skin, mode, difficulty }) => {
     currentSkin = skin;
@@ -420,115 +471,6 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
   },
   resetAndRefresh: () => resetGame(true)
 });
-
-function getModeSettingValue() {
-  if (modeSelect.disabled) return modePreference;
-  return modeSelect.value;
-}
-
-function getObstacleModeSettingValue() {
-  if (obstacleModeInput.disabled) return obstacleModePreference;
-  return obstacleModeInput.checked;
-}
-
-function getWorkshopStateSnapshot() {
-  return {
-    mode: getModeSettingValue(),
-    difficulty: difficultySelect.value,
-    skin: skinSelect.value,
-    dlcPack: dlcPackSelect.value,
-    wrapMode: wrapModeInput.checked,
-    obstacleMode: getObstacleModeSettingValue(),
-    hardcoreMode: hardcoreModeInput.checked,
-    contrastMode: contrastModeInput.checked,
-    miniHudMode: miniHudModeInput.checked,
-    autoPauseMode: autoPauseModeInput.checked
-  };
-}
-
-function applyWorkshopControls(next) {
-  if (next.mode !== undefined) modeSelect.value = next.mode;
-  modePreference = modeSelect.value;
-  if (next.difficulty !== undefined) difficultySelect.value = next.difficulty;
-  if (next.skin !== undefined) skinSelect.value = next.skin;
-  if (next.dlcPack !== undefined) dlcPackSelect.value = next.dlcPack;
-  wrapModeInput.checked = Boolean(next.wrapMode);
-  obstacleModeInput.checked = next.obstacleMode !== false;
-  obstacleModePreference = obstacleModeInput.checked;
-  hardcoreModeInput.checked = Boolean(next.hardcoreMode);
-  contrastModeInput.checked = Boolean(next.contrastMode);
-  miniHudModeInput.checked = Boolean(next.miniHudMode);
-  autoPauseModeInput.checked = next.autoPauseMode !== false;
-}
-
-function applyContrastMode() {
-  document.body.classList.toggle('high-contrast', Boolean(contrastModeInput?.checked));
-}
-
-function applyMiniHudMode() {
-  document.body.classList.toggle('compact-hud', Boolean(miniHudModeInput?.checked));
-}
-
-function normalizeSettingsPayload(raw = {}) {
-  const normalized = { ...(raw || {}) };
-  if (!('schemaVersion' in normalized)) normalized.schemaVersion = 1;
-  if (normalized.schemaVersion < 2) {
-    if (!('dlcPack' in normalized)) normalized.dlcPack = 'none';
-    normalized.schemaVersion = 2;
-  }
-  if (!isValidDlcPackValue(normalized.dlcPack)) {
-    normalized.dlcPack = 'none';
-  }
-  return normalized;
-}
-
-function maybePersistSettingsMigration(normalized, raw) {
-  if (!normalized || !raw || normalized.schemaVersion === raw.schemaVersion) return;
-  storage.writeJson(settingsKey, normalized);
-}
-
-function loadSettings() {
-  const raw = storage.readJson(settingsKey, {});
-  const parsed = normalizeSettingsPayload(raw);
-  maybePersistSettingsMigration(parsed, raw);
-  if (isValidModeValue(parsed.mode)) modeSelect.value = parsed.mode;
-  modePreference = modeSelect.value;
-  if (isValidDifficultyValue(parsed.difficulty)) difficultySelect.value = String(parsed.difficulty);
-  if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
-  if (isValidDlcPackValue(parsed.dlcPack)) dlcPackSelect.value = parsed.dlcPack;
-  wrapModeInput.checked = Boolean(parsed.wrapMode);
-  obstacleModeInput.checked = parsed.obstacleMode !== false;
-  obstacleModePreference = obstacleModeInput.checked;
-  hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
-  contrastModeInput.checked = Boolean(parsed.contrastMode);
-  miniHudModeInput.checked = Boolean(parsed.miniHudMode);
-  autoPauseModeInput.checked = parsed.autoPauseMode !== false;
-  applyContrastMode();
-  applyMiniHudMode();
-}
-
-function saveSettings() {
-  storage.writeJson(settingsKey, {
-    schemaVersion: settingsSchemaVersion,
-    mode: getModeSettingValue(),
-    difficulty: difficultySelect.value,
-    skin: skinSelect.value,
-    dlcPack: dlcPackSelect.value,
-    wrapMode: wrapModeInput.checked,
-    obstacleMode: getObstacleModeSettingValue(),
-    hardcoreMode: hardcoreModeInput.checked,
-    contrastMode: contrastModeInput.checked,
-    miniHudMode: miniHudModeInput.checked,
-    autoPauseMode: autoPauseModeInput.checked
-  });
-  saveActiveAccountSnapshot();
-}
-
-
-
-
-
-
 
 
 function defaultCodexState() {
@@ -1729,8 +1671,6 @@ loadAudioSetting();
 loadBestByMode();
 loadSettings();
 loadCustomRocks();
-applyContrastMode();
-applyMiniHudMode();
 currentSkin = skinSelect.value;
 mode = modeSelect.value;
 updateLevelText();
