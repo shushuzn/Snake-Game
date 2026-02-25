@@ -8,11 +8,49 @@
     { id: 'no-rocks', label: '净空模式', noRocks: true }
   ];
 
+  function getLocalDateSeed(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return Number(`${y}${m}${d}`);
+  }
+
+
+  function formatLocalDateLabel(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return `${y}-${m}-${d} ${weekdays[date.getDay()]}`;
+  }
+
+  function formatRelativeLocalDateLabel(offsetDays = 0, date = new Date()) {
+    const shiftedDate = new Date(date);
+    shiftedDate.setDate(shiftedDate.getDate() + offsetDays);
+    return formatLocalDateLabel(shiftedDate);
+  }
+
   function pickDailyChallenge(date = new Date()) {
-    const dateSeed = Number(date.toISOString().slice(0, 10).replaceAll('-', ''));
+    const dateSeed = getLocalDateSeed(date);
     return dailyChallengeOptions[dateSeed % dailyChallengeOptions.length];
   }
 
+  function pickDailyChallengeByOffset(offsetDays = 0, date = new Date()) {
+    const shiftedDate = new Date(date);
+    shiftedDate.setDate(shiftedDate.getDate() + offsetDays);
+    return pickDailyChallenge(shiftedDate);
+  }
+
+  function getChallengeRefreshCountdown(now = new Date()) {
+    const next = new Date(now);
+    next.setHours(24, 0, 0, 0);
+    const diffMs = Math.max(0, next.getTime() - now.getTime());
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
 
   function describeChallenge(challenge) {
     if (!challenge || typeof challenge !== 'object') return '标准规则';
@@ -33,7 +71,12 @@
   global.SnakeModes = {
     missionOptions,
     dailyChallengeOptions,
+    getLocalDateSeed,
+    formatLocalDateLabel,
+    formatRelativeLocalDateLabel,
     pickDailyChallenge,
+    pickDailyChallengeByOffset,
+    getChallengeRefreshCountdown,
     describeChallenge,
     getModeLabel
   };

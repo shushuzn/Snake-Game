@@ -67,11 +67,15 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.38.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.42.0
 ```
 
 ## 最新进展
 
+- v0.42.0：新增明日日期展示，挑战日期增加星期信息。
+- v0.41.0：每日挑战支持跨天自动刷新，并新增挑战日期显示。
+- v0.40.0：每日挑战改为本地日期计算，并新增挑战刷新倒计时显示。
+- v0.39.0：HUD 新增“明日挑战”预告，并补全每日挑战选择逻辑。
 - v0.38.0：新增障碍编辑器，支持坐标导入/导出/清空，并可持久化自定义障碍布局。
 - v0.37.0：新增每日挑战效果展示与新手引导入口，帮助玩家更快理解当日规则。
 - v0.36.0：继续拆分 `game.js`，新增 `modes.js` / `input.js` / `render.js` 三个模块，主文件更聚焦。

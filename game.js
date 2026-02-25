@@ -18,6 +18,10 @@ const streakEl = document.getElementById('streak');
 const achievementsEl = document.getElementById('achievements');
 const challengeEl = document.getElementById('challenge');
 const challengeDetailEl = document.getElementById('challengeDetail');
+const challengeNextEl = document.getElementById('challengeNext');
+const challengeNextDateEl = document.getElementById('challengeNextDate');
+const challengeRefreshEl = document.getElementById('challengeRefresh');
+const challengeDateEl = document.getElementById('challengeDate');
 const lastResultEl = document.getElementById('lastResult');
 const multiplierEl = document.getElementById('multiplier');
 const stateEl = document.getElementById('state');
@@ -63,7 +67,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.38.0';
+const GAME_VERSION = '0.42.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -84,6 +88,10 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.42.0', notes: ['HUD 新增明日日期展示，预告信息更完整', '挑战日期文案升级为日期+星期，便于快速识别日历'] },
+  { version: '0.41.0', notes: ['跨天后每日挑战自动刷新，无需手动重开', 'HUD 新增挑战日期显示，便于核对本地日历'] },
+  { version: '0.40.0', notes: ['每日挑战改用本地日期计算，避免跨时区显示错位', 'HUD 新增挑战刷新倒计时，明确信息切换时间点'] },
+  { version: '0.39.0', notes: ['新增“明日挑战”HUD预告，方便提前规划玩法', '补全每日挑战选择逻辑并清理重复赋值代码'] },
   { version: '0.38.0', notes: ['新增障碍编辑器：支持坐标导入/导出/清空', '可保存自定义障碍布局并在新局自动应用'] },
   { version: '0.37.0', notes: ['新增每日挑战效果文案展示，规则变化更直观', '新增“新手引导”按钮与首次启动提示，降低上手门槛'] },
   { version: '0.36.0', notes: ['继续拆分 game.js：输入、渲染、模式配置已模块化', '新增 input.js / render.js / modes.js，主文件职责更聚焦'] },
@@ -179,6 +187,7 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let countdownTimer = null;
+let challengeRefreshTimer = null;
 let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
@@ -189,6 +198,7 @@ let phaseUntil = 0;
 let magnetUntil = 0;
 let comboGuardUntil = 0;
 let currentChallenge = SnakeModes.dailyChallengeOptions[0];
+let currentChallengeSeed = 0;
 let lastResult = { score: 0, mode: 'classic', ts: 0 };
 let history = [];
 let discoveredCodex = {};
@@ -211,11 +221,30 @@ roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
 
 
-function selectDailyChallenge() {
-  currentChallenge = SnakeModes.pickDailyChallenge();
+function refreshChallengeHud() {
   challengeEl.textContent = currentChallenge.label;
   challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  const nextChallenge = SnakeModes.pickDailyChallengeByOffset(1);
+  challengeNextEl.textContent = nextChallenge.label;
+  challengeNextEl.title = SnakeModes.describeChallenge(nextChallenge);
+  challengeNextDateEl.textContent = SnakeModes.formatRelativeLocalDateLabel(1);
+  challengeRefreshEl.textContent = SnakeModes.getChallengeRefreshCountdown();
+  challengeDateEl.textContent = SnakeModes.formatLocalDateLabel();
+}
+
+function selectDailyChallenge() {
+  currentChallenge = SnakeModes.pickDailyChallenge();
+  currentChallengeSeed = SnakeModes.getLocalDateSeed();
+  refreshChallengeHud();
+}
+
+function refreshChallengeByDateIfNeeded() {
+  const latestSeed = SnakeModes.getLocalDateSeed();
+  if (latestSeed === currentChallengeSeed) {
+    challengeRefreshEl.textContent = SnakeModes.getChallengeRefreshCountdown();
+    return;
+  }
+  selectDailyChallenge();
 }
 
 function getBonusStep() {
@@ -835,6 +864,7 @@ function resetGame(showStartOverlay = true) {
   playCountedThisRound = false;
   clearInterval(loopTimer);
   clearInterval(countdownTimer);
+  clearInterval(challengeRefreshTimer);
   pauseBtn.textContent = '暂停';
   scoreEl.textContent = '0';
   lengthEl.textContent = String(snake.length);
@@ -849,8 +879,8 @@ function resetGame(showStartOverlay = true) {
   magnetUntil = 0;
   comboGuardUntil = 0;
   refreshStateText();
-  challengeEl.textContent = currentChallenge.label;
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  refreshChallengeHud();
+  challengeRefreshTimer = setInterval(refreshChallengeByDateIfNeeded, 1000);
   updateTimeText();
   updateLevelText();
   if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
