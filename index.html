@@ -66,6 +66,7 @@
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
+          <span>模式最高：<b id="modeBest">0</b></span>
           <span>长度：<b id="length">3</b></span>
           <span>时间：<b id="time" class="warn">--</b></span>
           <span>连击：<b id="combo">x1</b></span>
@@ -104,7 +105,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；金色食物 +30 分，蓝色食物获得护盾；可清空本地记录。</p>
+      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；分模式记录最高分（经典/限时）；可清空本地记录。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -121,6 +122,7 @@
       const ctx = canvas.getContext('2d');
       const scoreEl = document.getElementById('score');
       const bestEl = document.getElementById('best');
+      const modeBestEl = document.getElementById('modeBest');
       const lengthEl = document.getElementById('length');
       const timeEl = document.getElementById('time');
       const comboEl = document.getElementById('combo');
@@ -144,6 +146,7 @@
       const missionOptions = [120, 180, 240, 300];
       const settingsKey = 'snake-settings-v2';
       const statsKey = 'snake-stats-v1';
+      const bestByModeKey = 'snake-best-by-mode-v1';
 
       const dirMap = {
         ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
@@ -161,6 +164,7 @@
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
+      let bestByMode = { classic: 0, timed: 0 };
       let running = false;
       let paused = false;
       let loopTimer;
@@ -177,6 +181,7 @@
       let missionAchieved = false;
       let foodsEaten = 0;
       let totalPlays = 0;
+      let playCountedThisRound = false;
 
       bestEl.textContent = String(bestScore);
 
@@ -201,6 +206,25 @@
         }));
       }
 
+
+
+      function loadBestByMode() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(bestByModeKey) || '{}');
+          bestByMode.classic = Number(parsed.classic || 0);
+          bestByMode.timed = Number(parsed.timed || 0);
+        } catch {
+          bestByMode = { classic: 0, timed: 0 };
+        }
+      }
+
+      function saveBestByMode() {
+        localStorage.setItem(bestByModeKey, JSON.stringify(bestByMode));
+      }
+
+      function refreshModeBestText() {
+        modeBestEl.textContent = String(bestByMode[mode] || 0);
+      }
 
       function loadLifetimeStats() {
         try {
@@ -244,9 +268,7 @@
         shields = 0;
         missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
         missionAchieved = false;
-        totalPlays += 1;
-        playsEl.textContent = String(totalPlays);
-        saveLifetimeStats();
+        playCountedThisRound = false;
         clearInterval(loopTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
@@ -311,6 +333,12 @@
         if (!running) {
           running = true;
           paused = false;
+          if (!playCountedThisRound) {
+            totalPlays += 1;
+            playsEl.textContent = String(totalPlays);
+            saveLifetimeStats();
+            playCountedThisRound = true;
+          }
           pauseBtn.textContent = '暂停';
           startCountdown(() => {
             hideOverlay();
@@ -372,6 +400,12 @@
           bestScore = score;
           bestEl.textContent = String(bestScore);
           localStorage.setItem('snake-best', String(bestScore));
+        }
+
+        if (score > (bestByMode[mode] || 0)) {
+          bestByMode[mode] = score;
+          saveBestByMode();
+          refreshModeBestText();
         }
 
         showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
@@ -559,6 +593,7 @@
       modeSelect.addEventListener('change', () => {
         saveSettings();
         mode = modeSelect.value;
+        refreshModeBestText();
         resetGame(true);
       });
 
@@ -577,8 +612,11 @@
         localStorage.removeItem('snake-best');
         localStorage.removeItem(settingsKey);
         localStorage.removeItem(statsKey);
+        localStorage.removeItem(bestByModeKey);
         bestScore = 0;
         bestEl.textContent = '0';
+        bestByMode = { classic: 0, timed: 0 };
+        refreshModeBestText();
         foodsEaten = 0;
         totalPlays = 0;
         foodsEl.textContent = '0';
@@ -587,9 +625,11 @@
       });
 
       loadLifetimeStats();
+      loadBestByMode();
       loadSettings();
       mode = modeSelect.value;
       baseSpeed = Number(difficultySelect.value);
+      refreshModeBestText();
       resetGame(true);
     </script>
   </body>
