@@ -51,6 +51,8 @@ const applyWorkshopPresetBtn = document.getElementById('applyWorkshopPreset');
 const rockEditorInput = document.getElementById('rockEditor');
 const applyRocksBtn = document.getElementById('applyRocks');
 const exportRocksBtn = document.getElementById('exportRocks');
+const genMapCodeBtn = document.getElementById('genMapCode');
+const applyMapCodeBtn = document.getElementById('applyMapCode');
 const clearRocksBtn = document.getElementById('clearRocks');
 const historyListEl = document.getElementById('historyList');
 const codexListEl = document.getElementById('codexList');
@@ -70,7 +72,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.76.0';
+const GAME_VERSION = '0.77.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -136,6 +138,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.77.0', notes: ['障碍编辑器新增地图码（SNKMAP1）生成与应用，支持校验码验证', '路线图 P2 推进：地图码导入导出首版落地，进入工坊互通阶段'] },
   { version: '0.76.0', notes: ['挑战面板刷新改为复用 getDailyChallengeBundle，减少重复日期/挑战推导逻辑', '路线图 P1 推进：挑战展示链路完成一次去冗余优化，便于后续维护与扩展'] },
   { version: '0.75.0', notes: ['每日挑战跨天切换优化：进行中的对局维持当局挑战，结束后再应用新日期挑战', '挑战面板新增跨天切换提示，避免午夜期间规则突变造成体验割裂'] },
   { version: '0.74.0', notes: ['优化每日挑战刷新展示：今日/明日挑战使用同一时间快照生成，跨秒显示更一致', '挑战得分倍率新增安全校验与上限保护，降低异常配置风险'] },
@@ -1144,6 +1147,59 @@ function encodeRocks(rockList) {
   return rockList.map(item => `${item.x},${item.y}`).join('\n');
 }
 
+function encodeMapPayload(rockList) {
+  return rockList.map(item => `${item.x},${item.y}`).join(';');
+}
+
+function checksumMapPayload(payload) {
+  let acc = 7;
+  for (let i = 0; i < payload.length; i += 1) {
+    acc = (acc * 131 + payload.charCodeAt(i)) % 104729;
+  }
+  return acc.toString(36).toUpperCase();
+}
+
+function encodeMapCode(rockList) {
+  const normalized = normalizeRockList(rockList);
+  const payload = encodeMapPayload(normalized);
+  const checksum = checksumMapPayload(payload);
+  return `SNKMAP1:${payload}:${checksum}`;
+}
+
+function parseMapCode(raw) {
+  const text = String(raw || '').trim();
+  if (!text.startsWith('SNKMAP1:')) {
+    return { ok: false, reason: '缺少 SNKMAP1 前缀' };
+  }
+  const parts = text.split(':');
+  if (parts.length !== 3) {
+    return { ok: false, reason: '地图码结构错误（应为 SNKMAP1:payload:checksum）' };
+  }
+  const payload = parts[1] || '';
+  const checksum = (parts[2] || '').toUpperCase();
+  if (checksumMapPayload(payload) != checksum) {
+    return { ok: false, reason: '地图码校验失败，请确认完整复制' };
+  }
+  const entries = payload ? payload.split(';') : [];
+  const parsed = entries.map((entry) => {
+    const [x, y] = entry.split(',').map(v => Number(v));
+    return { x, y };
+  });
+  const normalized = normalizeRockList(parsed);
+  return { ok: true, rocks: normalized };
+}
+
+function parseRocksFromInput(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return { rocks: [], mode: 'empty' };
+  if (text.startsWith('SNKMAP1:')) {
+    const parsedMap = parseMapCode(text);
+    if (!parsedMap.ok) return { error: parsedMap.reason, mode: 'mapCode' };
+    return { rocks: parsedMap.rocks, mode: 'mapCode' };
+  }
+  return { rocks: parseRockEditorText(text), mode: 'coords' };
+}
+
 function saveCustomRocks() {
   storage.writeJson(customRocksKey, customRocks);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
@@ -1686,11 +1742,17 @@ accountInput.addEventListener('keydown', (event) => {
 workshopRuntime.bindEvents();
 
 applyRocksBtn.addEventListener('click', () => {
-  const parsed = parseRockEditorText(rockEditorInput.value);
-  customRocks = parsed;
+  const parsed = parseRocksFromInput(rockEditorInput.value);
+  if (parsed.error) {
+    showOverlay(`<p><strong>地图解析失败</strong></p><p>${parsed.error}</p>`);
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+    return;
+  }
+  customRocks = parsed.rocks;
   saveCustomRocks();
   resetGame(true);
-  showOverlay(`<p><strong>障碍已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  const sourceText = parsed.mode === 'mapCode' ? '（来源：地图码）' : '';
+  showOverlay(`<p><strong>障碍已应用${sourceText}</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
 });
 
@@ -1704,6 +1766,32 @@ exportRocksBtn.addEventListener('click', async () => {
     showOverlay('<p><strong>已导出当前障碍</strong></p><p>坐标已写入文本框，可手动复制</p>');
   }
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+});
+
+genMapCodeBtn.addEventListener('click', async () => {
+  const code = encodeMapCode(rocks);
+  rockEditorInput.value = code;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(code);
+    showOverlay(`<p><strong>地图码已生成</strong></p><p>长度 ${code.length}，已写入并复制</p>`);
+  } catch {
+    showOverlay(`<p><strong>地图码已生成</strong></p><p>长度 ${code.length}，已写入文本框</p>`);
+  }
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+});
+
+applyMapCodeBtn.addEventListener('click', () => {
+  const parsed = parseMapCode(rockEditorInput.value);
+  if (!parsed.ok) {
+    showOverlay(`<p><strong>地图码无效</strong></p><p>${parsed.reason}</p>`);
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+    return;
+  }
+  customRocks = parsed.rocks;
+  saveCustomRocks();
+  resetGame(true);
+  showOverlay(`<p><strong>地图码已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
 });
 
 clearRocksBtn.addEventListener('click', () => {
