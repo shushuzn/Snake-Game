@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.69.1';
+const GAME_VERSION = '0.70.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.70.0', notes: ['新增 reset_flow.js，重置收尾（计时器停止/HUD复位/开局提示）从 game.js 拆分', '路线图 P1 推进：完成重置收尾编排层拆分，下一步拆分重置前置编排层'] },
   { version: '0.69.0', notes: ['新增 endgame_flow.js 与 records.js，拆分结算触发与战绩写入编排逻辑', '路线图 P1 推进：完成结算触发层 + 战绩编排层拆分，下一步拆分重置收尾编排层'] },
   { version: '0.68.0', notes: ['新增 play_state.js，开局/继续/暂停状态机决策从 game.js 拆分', '路线图 P1 推进：状态机决策层模块化落地，下一步拆分结算触发编排层'] },
   { version: '0.67.0', notes: ['新增 loop_timers.js，主循环与倒计时计时器编排从 game.js 拆分', '路线图 P1 推进：主循环计时编排模块化落地，下一步拆分状态机决策层'] },
@@ -593,6 +594,57 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   onResume: startLoop
 });
 
+const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
+  runtime: {
+    applyRoundMeta: (roundMeta) => {
+      score = roundMeta.score;
+      running = roundMeta.running;
+      paused = roundMeta.paused;
+      remainingTime = roundMeta.remainingTime;
+      level = roundMeta.level;
+      levelTargetScore = roundMeta.levelTargetScore;
+      lastTickMs = roundMeta.lastTickMs;
+      speed = roundMeta.speed;
+      combo = roundMeta.combo;
+      roundMaxCombo = roundMeta.roundMaxCombo;
+      lastEatMs = roundMeta.lastEatMs;
+      shields = roundMeta.shields;
+      missionTarget = roundMeta.missionTarget;
+      missionAchieved = roundMeta.missionAchieved;
+      playCountedThisRound = roundMeta.playCountedThisRound;
+      scoreMultiplier = roundMeta.scoreMultiplier;
+      multiplierExpireAt = roundMeta.multiplierExpireAt;
+      freezeUntil = roundMeta.freezeUntil;
+      phaseUntil = roundMeta.phaseUntil;
+      magnetUntil = roundMeta.magnetUntil;
+      comboGuardUntil = roundMeta.comboGuardUntil;
+    },
+    getShields: () => shields,
+    getMissionTarget: () => missionTarget
+  },
+  ui: {
+    setPauseButtonPausedLabel: () => { pauseBtn.textContent = '暂停'; },
+    setScore: (value) => { scoreEl.textContent = String(value); },
+    setLength: (value) => { lengthEl.textContent = String(value); },
+    setCombo: (value) => { comboEl.textContent = `x${value}`; },
+    setShield: (value) => { shieldEl.textContent = String(value); },
+    setMissionTarget: (value) => { missionEl.textContent = `${value}分`; },
+    setMultiplier: (value) => { multiplierEl.textContent = `x${value}`; },
+    refreshStateText,
+    updateTimeText,
+    updateLevelText,
+    showStartOverlay: () => showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>')
+  },
+  timers: {
+    stopAll: () => loopTimersRuntime.stopAll()
+  },
+  challenge: {
+    stopTicker: () => challengeRuntime.stopTicker(),
+    startTicker: () => challengeRuntime.startTicker()
+  },
+  render: { draw: () => renderer.draw() }
+});
+
 const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   runtime: {
     stopLoop: () => loopTimersRuntime.stopAll(),
@@ -1045,42 +1097,11 @@ function resetGame(showStartOverlay = true) {
     missionOptions
   });
   settlement.resetRound(roundMeta.startBonusSeconds);
-  score = roundMeta.score;
-  running = roundMeta.running;
-  paused = roundMeta.paused;
-  remainingTime = roundMeta.remainingTime;
-  level = roundMeta.level;
-  levelTargetScore = roundMeta.levelTargetScore;
-  lastTickMs = roundMeta.lastTickMs;
-  speed = roundMeta.speed;
-  combo = roundMeta.combo;
-  roundMaxCombo = roundMeta.roundMaxCombo;
-  lastEatMs = roundMeta.lastEatMs;
-  shields = roundMeta.shields;
-  missionTarget = roundMeta.missionTarget;
-  missionAchieved = roundMeta.missionAchieved;
-  playCountedThisRound = roundMeta.playCountedThisRound;
-  scoreMultiplier = roundMeta.scoreMultiplier;
-  multiplierExpireAt = roundMeta.multiplierExpireAt;
-  freezeUntil = roundMeta.freezeUntil;
-  phaseUntil = roundMeta.phaseUntil;
-  magnetUntil = roundMeta.magnetUntil;
-  comboGuardUntil = roundMeta.comboGuardUntil;
-  loopTimersRuntime.stopAll();
-  challengeRuntime.stopTicker();
-  pauseBtn.textContent = '暂停';
-  scoreEl.textContent = '0';
-  lengthEl.textContent = String(snake.length);
-  comboEl.textContent = 'x1';
-  shieldEl.textContent = String(shields);
-  missionEl.textContent = `${missionTarget}分`;
-  multiplierEl.textContent = 'x1';
-  refreshStateText();
-  challengeRuntime.startTicker();
-  updateTimeText();
-  updateLevelText();
-  if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
-  renderer.draw();
+  resetFlowRuntime.applyResetRound({
+    roundMeta,
+    snakeLength: snake.length,
+    showStartOverlay
+  });
 }
 
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
