@@ -56,6 +56,7 @@ const historyListEl = document.getElementById('historyList');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
+const settlementListEl = document.getElementById('settlementList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const dlcPackSelect = document.getElementById('dlcPack');
@@ -69,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.52.0';
+const GAME_VERSION = '0.53.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -91,6 +92,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.53.0', notes: ['新增最近一局结算明细面板，便于复盘限时与冲刺对局', '展示开局加时/时间果/王冠加时等关键时间来源'] },
   { version: '0.52.0', notes: ['HUD 新增 DLC 状态展示，当前规则一眼可见', '不同 DLC 的核心收益会同步显示在状态栏'] },
   { version: '0.51.0', notes: ['新增 DLC：时序扩展，强化限时类模式的时间收益', '工坊预设 timed-rush 默认改为时序扩展，短局节奏更稳定'] },
   { version: '0.50.0', notes: ['新增 DLC 扩展包：狂热/守护，可切换额外规则', '创意工坊与本地设置同步支持 DLC 选项'] },
@@ -222,6 +224,9 @@ let history = [];
 let discoveredCodex = {};
 let currentSkin = 'classic';
 let dlcPack = 'none';
+let startBonusSecondsThisRound = 0;
+let fruitTimeBonusSeconds = 0;
+let crownTimeBonusSeconds = 0;
 let activeAccount = '';
 let accountStore = {};
 let roguePerks = 0;
@@ -326,6 +331,24 @@ function getDlcStatusText() {
 
 function refreshDlcHud() {
   dlcStatusEl.textContent = getDlcStatusText();
+}
+
+function refreshSettlementPanel(extra = {}) {
+  const modeLabel = SnakeModes.getModeLabel(mode);
+  const lines = [
+    `模式：${modeLabel}`,
+    `DLC：${getDlcStatusText()}`,
+    `得分：${score}`
+  ];
+
+  if (isTimerMode()) {
+    lines.push(`开局加时：+${startBonusSecondsThisRound}s`);
+    lines.push(`时间果加时：+${fruitTimeBonusSeconds}s`);
+    lines.push(`王冠加时：+${crownTimeBonusSeconds}s`);
+    if (typeof extra.remainingTime === 'number') lines.push(`结束剩余：${Math.max(0, Math.ceil(extra.remainingTime))}s`);
+  }
+
+  settlementListEl.innerHTML = lines.map((line) => `<li>${line}</li>`).join('');
 }
 
 function getBonusStep() {
@@ -971,7 +994,10 @@ function resetGame(showStartOverlay = true) {
   paused = false;
   refreshChallengeHud();
   refreshDlcHud();
-  remainingTime = getModeTimeDuration() + (isTimerMode() ? getTimerStartBonusSeconds() : 0);
+  startBonusSecondsThisRound = isTimerMode() ? getTimerStartBonusSeconds() : 0;
+  fruitTimeBonusSeconds = 0;
+  crownTimeBonusSeconds = 0;
+  remainingTime = getModeTimeDuration() + startBonusSecondsThisRound;
   level = 1;
   levelTargetScore = 100;
   lastTickMs = 0;
@@ -1248,6 +1274,7 @@ function endGame(reasonText) {
     saveEndlessBestLevel();
   }
 
+  refreshSettlementPanel({ remainingTime });
   lastResult = { score, mode, ts: Date.now() };
   saveLastResult();
   refreshLastResultText();
@@ -1380,7 +1407,9 @@ function update() {
   if (timeFood && ((head.x === timeFood.x && head.y === timeFood.y) || canMagnetCollect(head, timeFood, now))) {
     ate = true;
     if (isTimerMode()) {
-      remainingTime += getTimeFruitBonusSeconds();
+      const extraSeconds = getTimeFruitBonusSeconds();
+      remainingTime += extraSeconds;
+      fruitTimeBonusSeconds += extraSeconds;
       updateTimeText();
     } else {
       score += 15 * scoreMultiplier;
@@ -1437,6 +1466,7 @@ function update() {
       if (isTimerMode()) {
         const extraSeconds = getCrownTimeBonusSeconds();
         remainingTime += extraSeconds;
+        crownTimeBonusSeconds += extraSeconds;
         updateTimeText();
         rewardText = `奖励 +${extraSeconds} 秒`;
       } else {
