@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.24.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.25.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -75,6 +75,7 @@
           <span>长度：<b id="length">3</b></span>
           <span>时间：<b id="time" class="warn">--</b></span>
           <span>关卡：<b id="level">--</b></span>
+          <span>最高关：<b id="bestLevel">0</b></span>
           <span>连击：<b id="combo">x1</b></span>
           <span>护盾：<b id="shield">0</b></span>
           <span>任务：<b id="mission">--</b></span>
@@ -123,7 +124,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增关卡无尽模式：分数提升会自动升级关卡。</p>
+      <p class="tips">提示：空格/P 暂停或继续。无尽模式新增最高关记录与里程碑奖励。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -155,6 +156,7 @@
       const lengthEl = document.getElementById('length');
       const timeEl = document.getElementById('time');
       const levelEl = document.getElementById('level');
+      const bestLevelEl = document.getElementById('bestLevel');
       const comboEl = document.getElementById('combo');
       const shieldEl = document.getElementById('shield');
       const missionEl = document.getElementById('mission');
@@ -184,7 +186,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.24.0';
+      const GAME_VERSION = '0.25.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -197,6 +199,7 @@
       const lastResultKey = 'snake-last-result-v1';
       const historyKey = 'snake-history-v1';
       const codexKey = 'snake-codex-v1';
+      const endlessBestLevelKey = 'snake-endless-best-level-v1';
 
       const dailyChallengeOptions = [
         { id: 'fast-start', label: '极速热身', speedDelta: -15 },
@@ -264,6 +267,7 @@
       let remainingTime = timedModeDuration;
       let level = 1;
       let levelTargetScore = 100;
+      let endlessBestLevel = 0;
       let lastTickMs = 0;
       let combo = 1;
       let lastEatMs = 0;
@@ -292,6 +296,7 @@
       bestEl.textContent = String(bestScore);
       versionTag.textContent = `v${GAME_VERSION}`;
       versionTag.title = `Snake build ${GAME_VERSION}`;
+      bestLevelEl.textContent = '0';
 
 
       function selectDailyChallenge() {
@@ -540,6 +545,16 @@
 
       function saveLifetimeStats() {
         localStorage.setItem(statsKey, JSON.stringify({ foodsEaten, totalPlays, streakWins }));
+      }
+
+      function loadEndlessBestLevel() {
+        endlessBestLevel = Number(localStorage.getItem(endlessBestLevelKey) || '0');
+        bestLevelEl.textContent = String(endlessBestLevel);
+      }
+
+      function saveEndlessBestLevel() {
+        localStorage.setItem(endlessBestLevelKey, String(endlessBestLevel));
+        bestLevelEl.textContent = String(endlessBestLevel);
       }
 
       function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
@@ -817,6 +832,11 @@
           refreshModeBestText();
         }
 
+        if (mode === 'endless' && level > endlessBestLevel) {
+          endlessBestLevel = level;
+          saveEndlessBestLevel();
+        }
+
         lastResult = { score, mode, ts: Date.now() };
         saveLastResult();
         refreshLastResultText();
@@ -1060,12 +1080,31 @@
             level += 1;
             levelTargetScore += 100 + (level - 1) * 20;
             speed = Math.max(40, speed - 4);
+
+            let milestoneText = '';
+            if (level % 3 === 0) {
+              if (!hardcoreModeInput.checked) {
+                shields = Math.min(2, shields + 1);
+                shieldEl.textContent = String(shields);
+                milestoneText = '里程碑奖励：护盾 +1';
+              } else {
+                score += 25 * scoreMultiplier;
+                milestoneText = '里程碑奖励：硬核补偿 +25 分';
+              }
+            }
+
+            if (level > endlessBestLevel) {
+              endlessBestLevel = level;
+              saveEndlessBestLevel();
+            }
+
             updateLevelText();
             if (running && !paused) {
-              showOverlay(`<p><strong>⬆️ 升级！</strong></p><p>进入第 ${level} 关</p>`);
+              const extra = milestoneText ? `<p>${milestoneText}</p>` : '';
+              showOverlay(`<p><strong>⬆️ 升级！</strong></p><p>进入第 ${level} 关</p>${extra}`);
               setTimeout(() => {
                 if (running && !paused) hideOverlay();
-              }, 650);
+              }, 750);
             }
           }
         }
@@ -1212,6 +1251,7 @@
         localStorage.removeItem(lastResultKey);
         localStorage.removeItem(historyKey);
         localStorage.removeItem(codexKey);
+        localStorage.removeItem(endlessBestLevelKey);
         bestScore = 0;
         bestEl.textContent = '0';
         bestByMode = { classic: 0, timed: 0, endless: 0 };
@@ -1232,6 +1272,8 @@
         renderHistory();
         discoveredCodex = defaultCodexState();
         refreshCodex();
+        endlessBestLevel = 0;
+        saveEndlessBestLevel();
         resetGame(true);
       });
 
@@ -1239,7 +1281,8 @@
       shareBtn.addEventListener('click', async () => {
         const modeLabel = mode === 'timed' ? '限时模式' : (mode === 'endless' ? '无尽模式' : '经典模式');
         const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
-        const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
+        const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
+        const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
         try {
           if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
@@ -1261,6 +1304,7 @@
       loadLifetimeStats();
       loadHistory();
       loadCodex();
+      loadEndlessBestLevel();
       loadLastResult();
       loadAchievements();
       loadAudioSetting();
