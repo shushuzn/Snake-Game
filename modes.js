@@ -13,6 +13,11 @@
     return dailyChallengeOptions[dateSeed % dailyChallengeOptions.length];
   }
 
+  function pickDailyChallengeByOffset(offsetDays = 0, date = new Date()) {
+    const shiftedDate = new Date(date);
+    shiftedDate.setDate(shiftedDate.getDate() + offsetDays);
+    return pickDailyChallenge(shiftedDate);
+  }
 
   function describeChallenge(challenge) {
     if (!challenge || typeof challenge !== 'object') return '标准规则';
@@ -34,6 +39,7 @@
     missionOptions,
     dailyChallengeOptions,
     pickDailyChallenge,
+    pickDailyChallengeByOffset,
     describeChallenge,
     getModeLabel
   };
