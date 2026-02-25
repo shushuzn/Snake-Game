@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.70.0';
+const GAME_VERSION = '0.71.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.71.0', notes: ['新增 reset_prepare.js，重置前置（spawn + roundMeta 组装）从 game.js 拆分', '路线图 P1 推进：重置编排层完成前后拆分，主流程模块化进一步收敛'] },
   { version: '0.70.0', notes: ['新增 reset_flow.js，重置收尾（计时器停止/HUD复位/开局提示）从 game.js 拆分', '路线图 P1 推进：完成重置收尾编排层拆分，下一步拆分重置前置编排层'] },
   { version: '0.69.0', notes: ['新增 endgame_flow.js 与 records.js，拆分结算触发与战绩写入编排逻辑', '路线图 P1 推进：完成结算触发层 + 战绩编排层拆分，下一步拆分重置收尾编排层'] },
   { version: '0.68.0', notes: ['新增 play_state.js，开局/继续/暂停状态机决策从 game.js 拆分', '路线图 P1 推进：状态机决策层模块化落地，下一步拆分结算触发编排层'] },
@@ -594,6 +595,62 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   onResume: startLoop
 });
 
+const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
+  state: {
+    setSnake: (value) => { snake = value; },
+    setDirection: (value) => { direction = value; },
+    syncPendingDirection: () => { pendingDirection = direction; },
+    applyRoguelikeMutator,
+    getRogueSpeedDelta: () => rogueSpeedDelta,
+    getRogueStartShield: () => rogueStartShield
+  },
+  world: {
+    resetRocksFromCustom: () => { rocks = customRocks.map(item => ({ ...item })); },
+    spawnFood: () => { food = randomFoodPosition(); },
+    applySpawnState: (spawnState) => {
+      bonusFood = spawnState.bonusFood;
+      bonusExpireAt = spawnState.bonusExpireAt;
+      shieldFood = spawnState.shieldFood;
+      shieldExpireAt = spawnState.shieldExpireAt;
+      boostFood = spawnState.boostFood;
+      boostExpireAt = spawnState.boostExpireAt;
+      timeFood = spawnState.timeFood;
+      timeExpireAt = spawnState.timeExpireAt;
+      freezeFood = spawnState.freezeFood;
+      freezeExpireAt = spawnState.freezeExpireAt;
+      phaseFood = spawnState.phaseFood;
+      phaseExpireAt = spawnState.phaseExpireAt;
+      crownFood = spawnState.crownFood;
+      crownExpireAt = spawnState.crownExpireAt;
+      magnetFood = spawnState.magnetFood;
+      magnetExpireAt = spawnState.magnetExpireAt;
+      comboFood = spawnState.comboFood;
+      comboExpireAt = spawnState.comboExpireAt;
+    }
+  },
+  dlc: {
+    syncSelectedPack: () => { dlcPack = dlcPackSelect.value; },
+    refreshHud: refreshDlcHud,
+    getPack: () => dlcPack
+  },
+  challenge: {
+    refreshHud: () => challengeRuntime.refreshHud(),
+    getCurrentChallenge: () => currentChallenge
+  },
+  round: {
+    createSpawnState: () => roundStateRuntime.createSpawnState(),
+    createRoundMeta: (args) => roundStateRuntime.createRoundMeta(args)
+  },
+  mode: {
+    getBaseSpeed: () => baseSpeed,
+    isHardcoreEnabled: () => hardcoreModeInput.checked,
+    isTimerMode,
+    getTimerStartBonusSeconds,
+    getModeTimeDuration,
+    getMissionOptions: () => missionOptions
+  }
+});
+
 const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
   runtime: {
     applyRoundMeta: (roundMeta) => {
@@ -1056,46 +1113,7 @@ function loadCustomRocks() {
 }
 
 function resetGame(showStartOverlay = true) {
-  snake = [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }];
-  direction = { x: 1, y: 0 };
-  pendingDirection = direction;
-  dlcPack = dlcPackSelect.value;
-  rocks = customRocks.map(item => ({ ...item }));
-  food = randomFoodPosition();
-  const spawnState = roundStateRuntime.createSpawnState();
-  bonusFood = spawnState.bonusFood;
-  bonusExpireAt = spawnState.bonusExpireAt;
-  shieldFood = spawnState.shieldFood;
-  shieldExpireAt = spawnState.shieldExpireAt;
-  boostFood = spawnState.boostFood;
-  boostExpireAt = spawnState.boostExpireAt;
-  timeFood = spawnState.timeFood;
-  timeExpireAt = spawnState.timeExpireAt;
-  freezeFood = spawnState.freezeFood;
-  freezeExpireAt = spawnState.freezeExpireAt;
-  phaseFood = spawnState.phaseFood;
-  phaseExpireAt = spawnState.phaseExpireAt;
-  crownFood = spawnState.crownFood;
-  crownExpireAt = spawnState.crownExpireAt;
-  magnetFood = spawnState.magnetFood;
-  magnetExpireAt = spawnState.magnetExpireAt;
-  comboFood = spawnState.comboFood;
-  comboExpireAt = spawnState.comboExpireAt;
-  challengeRuntime.refreshHud();
-  refreshDlcHud();
-  applyRoguelikeMutator();
-  const roundMeta = roundStateRuntime.createRoundMeta({
-    baseSpeed,
-    currentChallenge,
-    hardcoreEnabled: hardcoreModeInput.checked,
-    rogueSpeedDelta,
-    rogueStartShield,
-    dlcPack,
-    isTimerMode: isTimerMode(),
-    getTimerStartBonusSeconds,
-    getModeTimeDuration,
-    missionOptions
-  });
+  const roundMeta = resetPrepareRuntime.prepareRound();
   settlement.resetRound(roundMeta.startBonusSeconds);
   resetFlowRuntime.applyResetRound({
     roundMeta,

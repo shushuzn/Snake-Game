@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.70.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.71.0
 ```
 
 ## 最新进展
 
+- v0.71.0：新增 `reset_prepare.js`，拆分重置前置（spawn + roundMeta 组装）编排逻辑。
 - v0.70.0：新增 `reset_flow.js`，拆分重置收尾（计时器停止/HUD复位/开局提示）编排逻辑。
 - v0.69.1：修复 `effectiveSpeed` 与 `refreshStateText` 缺失导致无法开局/运行的阻塞问题。
 - v0.69.0：新增 `endgame_flow.js`，拆分结算触发（连胜/最佳/成就/肉鸽收益/结束弹层）编排逻辑。
@@ -79,7 +80,6 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.70.0
 - v0.68.0：新增 `play_state.js`，拆分开局/继续/暂停状态机决策编排逻辑。
 - v0.67.0：新增 `loop_timers.js`，拆分主循环与倒计时计时器编排逻辑。
 - v0.66.0：新增 `item_spawn.js`，拆分道具生成与加石头规则编排逻辑。
-- v0.65.0：新增 `round_state.js`，拆分回合初始化状态与出生参数编排逻辑。
 
 ## 工作路线图
 
@@ -89,7 +89,7 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.70.0
 - ✅ 统一创意工坊与本地设置字段演进策略：已新增 `schemaVersion` 与迁移逻辑，兼容旧配置并自动补齐关键字段。
 
 ### P1（中期，2-4 周）
-- ⏳ 继续拆分 `game.js`：已拆出结算系统、挑战系统、存档能力、账号/设置/工坊/模式规则/战局状态/道具生成/主循环计时/状态机决策编排模块，并完成配置校验去冗余；下一步拆分重置前置编排层（spawn + roundMeta 组装）。
+- ⏳ 继续拆分 `game.js`：已拆出结算系统、挑战系统、存档能力、账号/设置/工坊/模式规则/战局状态/道具生成/主循环计时/状态机决策编排模块，并完成配置校验去冗余；已完成 P1 的 game.js 主流程模块化拆分，下一步进入 DLC 风险收益扩展与规则摘要可视化。
 - DLC 体系扩展：新增“风险收益型”DLC，并提供可视化规则摘要。
 - 增加每日挑战“周循环主题”（例如周末双倍率、工作日稳态挑战）。
 
