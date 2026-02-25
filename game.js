@@ -55,6 +55,8 @@ const genMapCodeBtn = document.getElementById('genMapCode');
 const applyMapCodeBtn = document.getElementById('applyMapCode');
 const clearRocksBtn = document.getElementById('clearRocks');
 const historyListEl = document.getElementById('historyList');
+const leaderboardListEl = document.getElementById('leaderboardList');
+const leaderboardStatusEl = document.getElementById('leaderboardStatus');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
@@ -72,7 +74,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.78.0';
+const GAME_VERSION = '0.79.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -93,6 +95,7 @@ const currentAccountKey = 'snake-current-account-v1';
 const rogueMetaKey = 'snake-roguelike-meta-v1';
 const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
+const leaderboardKey = 'snake-leaderboard-v1';
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
 const validDifficulties = ['140', '110', '80'];
@@ -138,6 +141,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.79.0', notes: ['新增本地排行榜面板（Top20），按分数/时间排序并持久化到本地', '路线图 P2 推进：榜单面板首版完成，下一步进入赛季信息区与历史入口'] },
   { version: '0.78.0', notes: ['创意工坊规则码新增 mapCode 字段，支持障碍地图随规则一键分享与应用', '路线图 P2 推进：工坊与地图码互通完成，下一步进入榜单面板首版'] },
   { version: '0.77.0', notes: ['障碍编辑器新增地图码（SNKMAP1）生成与应用，支持校验码验证', '路线图 P2 推进：地图码导入导出首版落地，进入工坊互通阶段'] },
   { version: '0.76.0', notes: ['挑战面板刷新改为复用 getDailyChallengeBundle，减少重复日期/挑战推导逻辑', '路线图 P1 推进：挑战展示链路完成一次去冗余优化，便于后续维护与扩展'] },
@@ -651,6 +655,16 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   onResume: startLoop
 });
 
+const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
+  storage,
+  key: leaderboardKey,
+  listEl: leaderboardListEl,
+  statusEl: leaderboardStatusEl,
+  getModeLabel: SnakeModes.getModeLabel,
+  onPersist: saveActiveAccountSnapshot
+});
+
+
 const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   state: {
     setSnake: (value) => { snake = value; },
@@ -804,6 +818,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   records: {
     recordRound: (nextScore, modeName) => {
       recordsRuntime.recordRound(nextScore, modeName);
+      leaderboardRuntime.recordRound(nextScore, modeName);
     }
   },
   achievements: {
@@ -1676,7 +1691,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -1693,6 +1708,7 @@ clearDataBtn.addEventListener('click', () => {
   refreshAchievementsText();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
+  leaderboardRuntime.clear();
   discoveredCodex = defaultCodexState();
   refreshCodex();
   endlessBestLevel = 0;
@@ -1818,6 +1834,7 @@ challengeRuntime.selectDailyChallenge();
 renderVersionEvents();
 loadLifetimeStats();
 loadHistory();
+leaderboardRuntime.load();
 loadCodex();
 loadEndlessBestLevel();
 loadRogueMeta();

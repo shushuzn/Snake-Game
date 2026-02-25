@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.78.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.79.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -158,6 +158,13 @@
         <button data-dir="ArrowRight" aria-label="右">➡️</button>
       </div>
 
+
+      <section class="panel" aria-label="本地排行榜">
+        <h2>本地排行榜（Top 20）</h2>
+        <p class="tips" id="leaderboardStatus">本地榜：暂无数据</p>
+        <ol id="leaderboardList"></ol>
+      </section>
+
       <section class="panel" aria-label="最近战绩">
         <h2>最近战绩（最近 5 局）</h2>
         <ol id="historyList"></ol>
@@ -192,6 +199,7 @@
     <script src="item_spawn.js"></script>
     <script src="loop_timers.js"></script>
     <script src="play_state.js"></script>
+    <script src="leaderboard.js"></script>
     <script src="records.js"></script>
     <script src="endgame_flow.js"></script>
     <script src="reset_prepare.js"></script>
