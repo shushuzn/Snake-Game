@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.51.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.52.0
 ```
 
 ## 最新进展
 
+- v0.52.0：HUD 新增 DLC 状态与效果提示，当前扩展规则更直观。
 - v0.51.0：新增 DLC「时序扩展」，为限时与冲刺模式提供额外时间增益。
 - v0.50.0：新增 DLC 扩展包（狂热/守护），并支持工坊与设置同步。
 - v0.49.0：修复强制模式挑战在进行中对局的切换时机，并校正重置时的计时初始化顺序。

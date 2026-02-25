@@ -25,6 +25,7 @@ const challengeDateEl = document.getElementById('challengeDate');
 const lastResultEl = document.getElementById('lastResult');
 const multiplierEl = document.getElementById('multiplier');
 const stateEl = document.getElementById('state');
+const dlcStatusEl = document.getElementById('dlcStatus');
 const overlay = document.getElementById('overlay');
 const restartBtn = document.getElementById('restart');
 const pauseBtn = document.getElementById('pause');
@@ -68,7 +69,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.51.0';
+const GAME_VERSION = '0.52.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -90,6 +91,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.52.0', notes: ['HUD 新增 DLC 状态展示，当前规则一眼可见', '不同 DLC 的核心收益会同步显示在状态栏'] },
   { version: '0.51.0', notes: ['新增 DLC：时序扩展，强化限时类模式的时间收益', '工坊预设 timed-rush 默认改为时序扩展，短局节奏更稳定'] },
   { version: '0.50.0', notes: ['新增 DLC 扩展包：狂热/守护，可切换额外规则', '创意工坊与本地设置同步支持 DLC 选项'] },
   { version: '0.49.0', notes: ['修复跨天切换时强制模式在对局中立即生效的问题', '重置时先应用挑战锁定再初始化倒计时，避免限时错位'] },
@@ -236,6 +238,7 @@ versionTag.title = `Snake build ${GAME_VERSION}`;
 bestLevelEl.textContent = '0';
 roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
+refreshDlcHud();
 
 
 function applyChallengeControlLocks() {
@@ -312,6 +315,17 @@ function startChallengeRefreshTicker() {
   clearInterval(challengeRefreshTimer);
   refreshChallengeByDateIfNeeded();
   challengeRefreshTimer = setInterval(refreshChallengeByDateIfNeeded, 1000);
+}
+
+function getDlcStatusText() {
+  if (dlcPack === 'frenzy') return '狂热（奖励果+10，刷新更频繁）';
+  if (dlcPack === 'guardian') return '守护（开局护盾+1）';
+  if (dlcPack === 'chrono') return '时序（限时开局+8秒）';
+  return '关闭';
+}
+
+function refreshDlcHud() {
+  dlcStatusEl.textContent = getDlcStatusText();
 }
 
 function getBonusStep() {
@@ -826,6 +840,7 @@ function applyRoguelikeMutator() {
 
   if (mode !== 'roguelike') {
     rogueMutatorEl.textContent = '--';
+refreshDlcHud();
     return;
   }
 
@@ -955,6 +970,7 @@ function resetGame(showStartOverlay = true) {
   running = false;
   paused = false;
   refreshChallengeHud();
+  refreshDlcHud();
   remainingTime = getModeTimeDuration() + (isTimerMode() ? getTimerStartBonusSeconds() : 0);
   level = 1;
   levelTargetScore = 100;
@@ -1614,6 +1630,7 @@ skinSelect.addEventListener('change', () => {
 dlcPackSelect.addEventListener('change', () => {
   saveSettings();
   dlcPack = dlcPackSelect.value;
+  refreshDlcHud();
   resetGame(true);
 });
 
