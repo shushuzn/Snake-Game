@@ -18,6 +18,7 @@ const streakEl = document.getElementById('streak');
 const achievementsEl = document.getElementById('achievements');
 const challengeEl = document.getElementById('challenge');
 const challengeDetailEl = document.getElementById('challengeDetail');
+const challengeNextEl = document.getElementById('challengeNext');
 const lastResultEl = document.getElementById('lastResult');
 const multiplierEl = document.getElementById('multiplier');
 const stateEl = document.getElementById('state');
@@ -63,7 +64,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.38.0';
+const GAME_VERSION = '0.39.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -84,6 +85,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.39.0', notes: ['新增“明日挑战”HUD预告，方便提前规划玩法', '补全每日挑战选择逻辑并清理重复赋值代码'] },
   { version: '0.38.0', notes: ['新增障碍编辑器：支持坐标导入/导出/清空', '可保存自定义障碍布局并在新局自动应用'] },
   { version: '0.37.0', notes: ['新增每日挑战效果文案展示，规则变化更直观', '新增“新手引导”按钮与首次启动提示，降低上手门槛'] },
   { version: '0.36.0', notes: ['继续拆分 game.js：输入、渲染、模式配置已模块化', '新增 input.js / render.js / modes.js，主文件职责更聚焦'] },
@@ -211,11 +213,16 @@ roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
 
 
-function selectDailyChallenge() {
-  currentChallenge = SnakeModes.pickDailyChallenge();
+function refreshChallengeHud() {
   challengeEl.textContent = currentChallenge.label;
   challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  const nextChallenge = SnakeModes.pickDailyChallengeByOffset(1);
+  challengeNextEl.textContent = nextChallenge.label;
+}
+
+function selectDailyChallenge() {
+  currentChallenge = SnakeModes.pickDailyChallenge();
+  refreshChallengeHud();
 }
 
 function getBonusStep() {
@@ -849,8 +856,7 @@ function resetGame(showStartOverlay = true) {
   magnetUntil = 0;
   comboGuardUntil = 0;
   refreshStateText();
-  challengeEl.textContent = currentChallenge.label;
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  refreshChallengeHud();
   updateTimeText();
   updateLevelText();
   if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
