@@ -45,6 +45,10 @@
       .label-inline input { accent-color: #34d399; }
       select { background: #1e293b; color: #f8fafc; padding: 7px 10px; border: 1px solid rgba(255, 255, 255, 0.18); }
       .tips { margin-top: 10px; color: #d3d3e7; font-size: 0.88rem; }
+      .history { margin-top: 12px; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 12px; }
+      .history h2 { margin: 0 0 8px; font-size: 0.95rem; color: #c7d2fe; }
+      .history ol { margin: 0; padding-left: 18px; color: #dbeafe; font-size: 0.86rem; }
+      .history li { margin: 2px 0; }
       .overlay {
         position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
         padding: 12px; color: #fff; pointer-events: none; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -63,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.13.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.14.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -122,6 +126,12 @@
         <button data-dir="ArrowDown" aria-label="下">⬇️</button>
         <button data-dir="ArrowRight" aria-label="右">➡️</button>
       </div>
+
+      <section class="history" aria-label="最近战绩">
+        <h2>最近战绩（最近 5 局）</h2>
+        <ol id="historyList"></ol>
+      </section>
+
     </main>
 
     <script>
@@ -147,6 +157,7 @@
       const clearDataBtn = document.getElementById('clearData');
       const muteBtn = document.getElementById('mute');
       const shareBtn = document.getElementById('share');
+      const historyListEl = document.getElementById('historyList');
       const difficultySelect = document.getElementById('difficulty');
       const modeSelect = document.getElementById('mode');
       const wrapModeInput = document.getElementById('wrapMode');
@@ -154,7 +165,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.13.0';
+      const GAME_VERSION = '0.14.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -165,6 +176,7 @@
       const bestByModeKey = 'snake-best-by-mode-v1';
       const achievementsKey = 'snake-achievements-v1';
       const lastResultKey = 'snake-last-result-v1';
+      const historyKey = 'snake-history-v1';
 
       const dailyChallengeOptions = [
         { id: 'fast-start', label: '极速热身', speedDelta: -15 },
@@ -214,6 +226,7 @@
       let roundMaxCombo = 1;
       let currentChallenge = dailyChallengeOptions[0];
       let lastResult = { score: 0, mode: 'classic', ts: 0 };
+      let history = [];
 
       bestEl.textContent = String(bestScore);
       versionTag.textContent = `v${GAME_VERSION}`;
@@ -255,6 +268,44 @@
 
 
 
+
+
+      function loadHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          history = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+        } catch {
+          history = [];
+        }
+        renderHistory();
+      }
+
+      function saveHistory() {
+        localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 5)));
+      }
+
+      function addHistoryEntry(score, modeName) {
+        history.unshift({ score, mode: modeName, ts: Date.now() });
+        history = history.slice(0, 5);
+        saveHistory();
+        renderHistory();
+      }
+
+      function renderHistory() {
+        if (!history.length) {
+          historyListEl.innerHTML = '<li>暂无记录</li>';
+          return;
+        }
+        historyListEl.innerHTML = history
+          .map(item => {
+            const modeLabel = item.mode === 'timed' ? '限时' : '经典';
+            const d = new Date(item.ts || Date.now());
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            return `<li>${modeLabel}：${item.score} 分 <small>(${hh}:${mm})</small></li>`;
+          })
+          .join('');
+      }
 
       function loadLastResult() {
         try {
@@ -571,6 +622,7 @@
         lastResult = { score, mode, ts: Date.now() };
         saveLastResult();
         refreshLastResultText();
+        addHistoryEntry(score, mode);
 
         if (score >= 200) unlockAchievement('score200', '高分达人（单局 200 分）');
         if (roundMaxCombo >= 5) unlockAchievement('combo5', '连击高手（连击达到 x5）');
@@ -790,6 +842,7 @@
         localStorage.removeItem(audioKey);
         localStorage.removeItem(achievementsKey);
         localStorage.removeItem(lastResultKey);
+        localStorage.removeItem(historyKey);
         bestScore = 0;
         bestEl.textContent = '0';
         bestByMode = { classic: 0, timed: 0 };
@@ -806,6 +859,8 @@
         refreshAchievementsText();
         lastResult = { score: 0, mode: 'classic', ts: 0 };
         refreshLastResultText();
+        history = [];
+        renderHistory();
         resetGame(true);
       });
 
@@ -832,6 +887,7 @@
 
       selectDailyChallenge();
       loadLifetimeStats();
+      loadHistory();
       loadLastResult();
       loadAchievements();
       loadAudioSetting();
