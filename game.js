@@ -39,6 +39,8 @@ const workshopCodeInput = document.getElementById('workshopCode');
 const genWorkshopBtn = document.getElementById('genWorkshop');
 const copyWorkshopBtn = document.getElementById('copyWorkshop');
 const applyWorkshopBtn = document.getElementById('applyWorkshop');
+const workshopPresetSelect = document.getElementById('workshopPreset');
+const applyWorkshopPresetBtn = document.getElementById('applyWorkshopPreset');
 const historyListEl = document.getElementById('historyList');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
@@ -55,7 +57,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.33.0';
+const GAME_VERSION = '0.33.1';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -81,6 +83,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.33.1', notes: ['创意工坊新增预设模板，可一键应用规则组合', '支持限时冲分/肉鸽硬核/无尽练习三种预设'] },
   { version: '0.33.0', notes: ['新增创意工坊：可生成/复制/应用规则代码', '支持快速分享模式、难度、皮肤与开关配置'] },
   { version: '0.32.2', notes: ['新增失焦自动暂停开关，支持不中断后台运行偏好', '设置随本地账号快照一起保存'] },
   { version: '0.32.1', notes: ['新增精简HUD开关，移动端信息展示更聚焦', '显示偏好写入设置并随账号切换恢复'] },
@@ -113,6 +116,13 @@ const codexCatalog = [
   { id: 'magnet', label: '磁力果', hint: '短时间吸附附近道具。' },
   { id: 'combo', label: '连击果', hint: '提供连击护航，短时不断连。' }
 ];
+
+
+const workshopPresets = {
+  'timed-rush': { mode: 'timed', difficulty: '80', skin: 'neon', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
+  'rogue-hardcore': { mode: 'roguelike', difficulty: '80', skin: 'pixel', wrapMode: false, obstacleMode: true, hardcoreMode: true, contrastMode: true, miniHudMode: true, autoPauseMode: true },
+  'endless-relax': { mode: 'endless', difficulty: '140', skin: 'classic', wrapMode: true, obstacleMode: false, hardcoreMode: false, contrastMode: false, miniHudMode: false, autoPauseMode: true }
+};
 
 const skinThemes = {
   classic: { board: '#0f1322', head: '#7dffa5', body: '#22c55e', phaseHead: '#d8b4fe', grid: 'rgba(255,255,255,0.07)' },
@@ -371,31 +381,36 @@ function generateWorkshopCode() {
   }
 }
 
+function applyWorkshopPayload(parsed) {
+  if (!parsed || typeof parsed !== 'object') return false;
+  if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
+  if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
+  if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
+  wrapModeInput.checked = Boolean(parsed.wrapMode);
+  obstacleModeInput.checked = parsed.obstacleMode !== false;
+  hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
+  contrastModeInput.checked = Boolean(parsed.contrastMode);
+  miniHudModeInput.checked = Boolean(parsed.miniHudMode);
+  autoPauseModeInput.checked = parsed.autoPauseMode !== false;
+  applyContrastMode();
+  applyMiniHudMode();
+  saveSettings();
+  currentSkin = skinSelect.value;
+  mode = modeSelect.value;
+  baseSpeed = Number(difficultySelect.value);
+  updateLevelText();
+  refreshModeBestText();
+  resetGame(true);
+  return true;
+}
+
 function applyWorkshopCode(raw) {
   const text = String(raw || '').trim();
   if (!text.startsWith('SWK1:')) return false;
   try {
     const decoded = decodeURIComponent(escape(atob(text.slice(5))));
     const parsed = JSON.parse(decoded);
-    if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
-    if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
-    if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
-    wrapModeInput.checked = Boolean(parsed.wrapMode);
-    obstacleModeInput.checked = parsed.obstacleMode !== false;
-    hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
-    contrastModeInput.checked = Boolean(parsed.contrastMode);
-    miniHudModeInput.checked = Boolean(parsed.miniHudMode);
-    autoPauseModeInput.checked = parsed.autoPauseMode !== false;
-    applyContrastMode();
-    applyMiniHudMode();
-    saveSettings();
-    currentSkin = skinSelect.value;
-    mode = modeSelect.value;
-    baseSpeed = Number(difficultySelect.value);
-    updateLevelText();
-    refreshModeBestText();
-    resetGame(true);
-    return true;
+    return applyWorkshopPayload(parsed);
   } catch {
     return false;
   }
@@ -1568,6 +1583,19 @@ applyWorkshopBtn.addEventListener('click', () => {
     return;
   }
   showOverlay('<p><strong>已应用工坊规则</strong></p><p>已重置并按新规则开始</p>');
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+});
+applyWorkshopPresetBtn.addEventListener('click', () => {
+  const key = workshopPresetSelect.value;
+  const preset = workshopPresets[key];
+  if (!preset) {
+    showOverlay('<p><strong>请选择预设</strong></p><p>可先选择一个创意工坊模板</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+    return;
+  }
+  applyWorkshopPayload(preset);
+  generateWorkshopCode();
+  showOverlay('<p><strong>预设已应用</strong></p><p>规则已切换并生成对应分享码</p>');
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
 });
 
