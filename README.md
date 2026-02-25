@@ -23,6 +23,9 @@
 ├── styles.css                                   # 页面样式
 ├── game.js                                      # 游戏主逻辑
 ├── workshop.js                                  # 创意工坊模块
+├── modes.js                                     # 模式配置与每日挑战模块
+├── input.js                                     # 输入控制模块（键盘/触屏）
+├── render.js                                    # 渲染模块（棋盘/蛇/道具）
 ├── README.md                                    # 项目说明
 └── skills/snake-feature-evolver/
     ├── SKILL.md
@@ -50,7 +53,7 @@ node --check game.js
 ### 2) HTML/CSS/JS 资源引用检查（快速）
 
 ```bash
-rg -n "styles.css|workshop.js|game.js" index.html
+rg -n "styles.css|workshop.js|modes.js|input.js|render.js|game.js" index.html
 ```
 
 ### 3) Git 空白与冲突标记检查
@@ -64,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.34.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.36.0
 ```
 
 ## 最新进展
 
+- v0.36.0：继续拆分 `game.js`，新增 `modes.js` / `input.js` / `render.js` 三个模块，主文件更聚焦。
 - v0.35.0：新增快捷键（R 重开 / M 静音 / H 帮助），并避免输入框聚焦时误触快捷键。
 - v0.34.0：创意工坊进一步文件模块化，拆分为独立 `workshop.js`。
 - v0.33.2：创意工坊逻辑模块化，统一预设与分享码应用入口。

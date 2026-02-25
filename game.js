@@ -57,11 +57,11 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.35.0';
+const GAME_VERSION = '0.36.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
-const missionOptions = [120, 180, 240, 300];
+const missionOptions = SnakeModes.missionOptions;
 const settingsKey = 'snake-settings-v2';
 const statsKey = 'snake-stats-v1';
 const audioKey = 'snake-audio-v1';
@@ -75,14 +75,8 @@ const accountStoreKey = 'snake-accounts-v1';
 const currentAccountKey = 'snake-current-account-v1';
 const rogueMetaKey = 'snake-roguelike-meta-v1';
 
-const dailyChallengeOptions = [
-  { id: 'fast-start', label: '极速热身', speedDelta: -15 },
-  { id: 'bonus-rush', label: '多金模式', bonusStep: 30 },
-  { id: 'tough-skin', label: '坚韧模式', startShield: 1 },
-  { id: 'no-rocks', label: '净空模式', noRocks: true }
-];
-
 const versionEvents = [
+  { version: '0.36.0', notes: ['继续拆分 game.js：输入、渲染、模式配置已模块化', '新增 input.js / render.js / modes.js，主文件职责更聚焦'] },
   { version: '0.35.0', notes: ['新增快捷键：R 快速重开、M 静音、H 帮助开关', '输入框聚焦时自动忽略快捷键，避免误触影响文本输入'] },
   { version: '0.34.0', notes: ['创意工坊拆分为独立文件模块，主逻辑更清晰', '为后续继续拆分渲染/输入模块打基础'] },
   { version: '0.33.2', notes: ['创意工坊逻辑模块化，统一预设与分享码应用入口', '便于后续扩展更多工坊功能而不影响主循环'] },
@@ -128,11 +122,6 @@ const skinThemes = {
   pixel: { board: '#0d1b1e', head: '#2dd4bf', body: '#14b8a6', phaseHead: '#93c5fd', grid: 'rgba(255,255,255,0.06)' }
 };
 
-const dirMap = {
-  ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
-  w: { x: 0, y: -1 }, s: { x: 0, y: 1 }, a: { x: -1, y: 0 }, d: { x: 1, y: 0 }
-};
-
 let snake;
 let direction;
 let pendingDirection;
@@ -164,7 +153,6 @@ let paused = false;
 let loopTimer;
 let baseSpeed = Number(difficultySelect.value);
 let speed = baseSpeed;
-let touchStart = null;
 let mode = modeSelect.value;
 let remainingTime = timedModeDuration;
 let level = 1;
@@ -190,7 +178,7 @@ let freezeUntil = 0;
 let phaseUntil = 0;
 let magnetUntil = 0;
 let comboGuardUntil = 0;
-let currentChallenge = dailyChallengeOptions[0];
+let currentChallenge = SnakeModes.dailyChallengeOptions[0];
 let lastResult = { score: 0, mode: 'classic', ts: 0 };
 let history = [];
 let discoveredCodex = {};
@@ -213,8 +201,7 @@ rogueMutatorEl.textContent = '--';
 
 
 function selectDailyChallenge() {
-  const dateSeed = Number(new Date().toISOString().slice(0, 10).replaceAll('-', ''));
-  currentChallenge = dailyChallengeOptions[dateSeed % dailyChallengeOptions.length];
+  currentChallenge = SnakeModes.pickDailyChallenge();
   challengeEl.textContent = currentChallenge.label;
 }
 
@@ -527,7 +514,7 @@ function renderHistory() {
   }
   historyListEl.innerHTML = history
     .map(item => {
-      const modeLabel = item.mode === 'timed' ? '限时' : (item.mode === 'endless' ? '无尽' : (item.mode === 'roguelike' ? '肉鸽' : '经典'));
+      const modeLabel = SnakeModes.getModeLabel(item.mode).replace('模式', '');
       const d = new Date(item.ts || Date.now());
       const hh = String(d.getHours()).padStart(2, '0');
       const mm = String(d.getMinutes()).padStart(2, '0');
@@ -558,7 +545,7 @@ function refreshLastResultText() {
     lastResultEl.textContent = '--';
     return;
   }
-  const modeLabel = lastResult.mode === 'timed' ? '限时' : (lastResult.mode === 'endless' ? '无尽' : (lastResult.mode === 'roguelike' ? '肉鸽' : '经典'));
+  const modeLabel = SnakeModes.getModeLabel(lastResult.mode).replace('模式', '');
   lastResultEl.textContent = `${modeLabel} ${lastResult.score}分`;
 }
 
@@ -797,7 +784,7 @@ function resetGame(showStartOverlay = true) {
   updateTimeText();
   updateLevelText();
   if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
-  draw();
+  renderer.draw();
 }
 
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
@@ -1347,105 +1334,36 @@ function update() {
     }
   }
 
-  draw();
+  renderer.draw();
 }
 
-function drawGrid() {
-  ctx.strokeStyle = skinThemes[currentSkin].grid;
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= tileCount; i++) {
-    const line = i * gridSize;
-    ctx.beginPath(); ctx.moveTo(line, 0); ctx.lineTo(line, canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, line); ctx.lineTo(canvas.width, line); ctx.stroke();
-  }
-}
+const renderer = SnakeRender.createRenderer({
+  ctx,
+  canvas,
+  gridSize,
+  tileCount,
+  getSkinThemes: () => skinThemes,
+  getCurrentSkin: () => currentSkin,
+  getState: () => ({
+    food, bonusFood, shieldFood, boostFood, timeFood, freezeFood,
+    phaseFood, crownFood, magnetFood, comboFood, rocks, snake, phaseUntil
+  })
+});
 
-function drawCell({ x, y }, color, radius = 4) {
-  const px = x * gridSize;
-  const py = y * gridSize;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(px + 1, py + 1, gridSize - 2, gridSize - 2, radius);
-  ctx.fill();
-}
-
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = skinThemes[currentSkin].board;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawGrid();
-  drawCell(food, '#f472b6', 6);
-  if (bonusFood) drawCell(bonusFood, '#facc15', 8);
-  if (shieldFood) drawCell(shieldFood, '#38bdf8', 8);
-  if (boostFood) drawCell(boostFood, '#f59e0b', 8);
-  if (timeFood) drawCell(timeFood, '#a78bfa', 8);
-  if (freezeFood) drawCell(freezeFood, '#22d3ee', 8);
-  if (phaseFood) drawCell(phaseFood, '#c084fc', 8);
-  if (crownFood) drawCell(crownFood, '#fde047', 8);
-  if (magnetFood) drawCell(magnetFood, '#60a5fa', 8);
-  if (comboFood) drawCell(comboFood, '#fb7185', 8);
-  rocks.forEach(rock => drawCell(rock, '#64748b', 5));
-  const headColor = performance.now() < phaseUntil ? skinThemes[currentSkin].phaseHead : skinThemes[currentSkin].head;
-  snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skinThemes[currentSkin].body));
-}
-
-document.addEventListener('keydown', (event) => {
-  if (shouldIgnoreHotkeys(event)) return;
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  if (event.code === 'Space' || key === 'p') {
-    event.preventDefault();
-    togglePause();
-    return;
-  }
-
-  if (key === 'r') {
-    event.preventDefault();
-    resetGame(true);
-    return;
-  }
-
-  if (key === 'm') {
-    event.preventDefault();
+SnakeInput.createInputController({
+  documentEl: document,
+  canvas,
+  mobilePad,
+  shouldIgnoreHotkeys,
+  onTogglePause: () => togglePause(),
+  onRestart: () => resetGame(true),
+  onToggleMute: () => {
     muted = !muted;
     saveAudioSetting();
-    return;
-  }
-
-  if (key === 'h') {
-    event.preventDefault();
-    toggleHelp(helpPanel.style.display === 'none');
-    return;
-  }
-
-  const next = dirMap[key];
-  if (!next) return;
-  event.preventDefault();
-  changeDirection(next);
+  },
+  onToggleHelp: () => toggleHelp(helpPanel.style.display === 'none'),
+  onDirection: (next) => changeDirection(next)
 });
-
-mobilePad.addEventListener('click', (event) => {
-  const button = event.target.closest('button[data-dir]');
-  if (!button) return;
-  changeDirection(dirMap[button.dataset.dir]);
-});
-
-canvas.addEventListener('touchstart', (event) => {
-  const touch = event.changedTouches[0];
-  touchStart = { x: touch.clientX, y: touch.clientY };
-}, { passive: true });
-
-canvas.addEventListener('touchend', (event) => {
-  if (!touchStart) return;
-  const touch = event.changedTouches[0];
-  const dx = touch.clientX - touchStart.x;
-  const dy = touch.clientY - touchStart.y;
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
-  if (absX < 18 && absY < 18) { touchStart = null; return; }
-  if (absX > absY) changeDirection(dx > 0 ? dirMap.ArrowRight : dirMap.ArrowLeft);
-  else changeDirection(dy > 0 ? dirMap.ArrowDown : dirMap.ArrowUp);
-  touchStart = null;
-}, { passive: true });
 
 restartBtn.addEventListener('click', () => resetGame(true));
 pauseBtn.addEventListener('click', togglePause);
@@ -1476,7 +1394,7 @@ autoPauseModeInput.addEventListener('change', saveSettings);
 skinSelect.addEventListener('change', () => {
   saveSettings();
   currentSkin = skinSelect.value;
-  draw();
+  renderer.draw();
 });
 
 
@@ -1532,7 +1450,7 @@ clearDataBtn.addEventListener('click', () => {
 
 
 shareBtn.addEventListener('click', async () => {
-  const modeLabel = mode === 'timed' ? '限时模式' : (mode === 'endless' ? '无尽模式' : (mode === 'roguelike' ? '肉鸽模式' : '经典模式'));
+  const modeLabel = SnakeModes.getModeLabel(mode);
   const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
   const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
   const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
