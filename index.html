@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.21.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.22.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -122,7 +122,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增皮肤装扮：可切换经典/霓虹/日落/像素风。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增王冠果：拾取后会触发随机奖励效果。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -182,7 +182,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.21.0';
+      const GAME_VERSION = '0.22.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -211,7 +211,8 @@
         { id: 'boost', label: '倍率果', hint: '短时间分数 x2。' },
         { id: 'time', label: '时间果', hint: '限时模式可延长倒计时。' },
         { id: 'freeze', label: '冰冻果', hint: '暂时减速，便于走位。' },
-        { id: 'phase', label: '相位果', hint: '短时间穿越障碍石。' }
+        { id: 'phase', label: '相位果', hint: '短时间穿越障碍石。' },
+        { id: 'crown', label: '王冠果', hint: '触发随机奖励：加分/护盾/增益时间。' }
       ];
 
       const skinThemes = {
@@ -242,6 +243,8 @@
       let freezeExpireAt = 0;
       let phaseFood = null;
       let phaseExpireAt = 0;
+      let crownFood = null;
+      let crownExpireAt = 0;
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
@@ -551,6 +554,8 @@
         freezeExpireAt = 0;
         phaseFood = null;
         phaseExpireAt = 0;
+        crownFood = null;
+        crownExpireAt = 0;
         rocks = [];
         score = 0;
         running = false;
@@ -601,6 +606,7 @@
           (timeFood && timeFood.x === position.x && timeFood.y === position.y) ||
           (freezeFood && freezeFood.x === position.x && freezeFood.y === position.y) ||
           (phaseFood && phaseFood.x === position.x && phaseFood.y === position.y) ||
+          (crownFood && crownFood.x === position.x && crownFood.y === position.y) ||
           rocks.some(rock => rock.x === position.x && rock.y === position.y)
         );
         return position;
@@ -653,6 +659,13 @@
         if (score % 85 !== 0) return;
         phaseFood = randomFreeCell();
         phaseExpireAt = now + 4500;
+      }
+
+      function maybeSpawnCrownFood(now) {
+        if (crownFood || score < 100) return;
+        if (score % 110 !== 0) return;
+        crownFood = randomFreeCell();
+        crownExpireAt = now + 5000;
       }
 
       function effectiveSpeed() {
@@ -809,6 +822,7 @@
         if (timeFood && now > timeExpireAt) timeFood = null;
         if (freezeFood && now > freezeExpireAt) freezeFood = null;
         if (phaseFood && now > phaseExpireAt) phaseFood = null;
+        if (crownFood && now > crownExpireAt) crownFood = null;
         if (scoreMultiplier > 1 && now > multiplierExpireAt) {
           scoreMultiplier = 1;
           multiplierEl.textContent = 'x1';
@@ -852,6 +866,7 @@
           maybeSpawnTimeFood(now);
           maybeSpawnFreezeFood(now);
           maybeSpawnPhaseFood(now);
+          maybeSpawnCrownFood(now);
           discoverCodex('food', '基础果');
           beep('eat');
         }
@@ -920,6 +935,49 @@
           refreshStateText(now);
           discoverCodex('phase', '相位果');
           beep('mission');
+        }
+
+        if (crownFood && head.x === crownFood.x && head.y === crownFood.y) {
+          ate = true;
+          crownFood = null;
+          const rewardRoll = Math.floor(Math.random() * 4);
+          let rewardText = '';
+          if (rewardRoll === 0) {
+            score += 40 * scoreMultiplier;
+            rewardText = '奖励 +40 分';
+          } else if (rewardRoll === 1) {
+            if (!hardcoreModeInput.checked) {
+              shields = Math.min(2, shields + 1);
+              shieldEl.textContent = String(shields);
+              rewardText = '奖励 护盾 +1';
+            } else {
+              score += 20 * scoreMultiplier;
+              rewardText = '硬核补偿 +20 分';
+            }
+          } else if (rewardRoll === 2) {
+            scoreMultiplier = 2;
+            multiplierExpireAt = Math.max(multiplierExpireAt, now + 6000);
+            multiplierEl.textContent = 'x2';
+            rewardText = '奖励 倍率 x2';
+          } else {
+            if (mode === 'timed') {
+              remainingTime += 7;
+              updateTimeText();
+              rewardText = '奖励 +7 秒';
+            } else {
+              phaseUntil = Math.max(phaseUntil, now + 4000);
+              refreshStateText(now);
+              rewardText = '奖励 相位 4 秒';
+            }
+          }
+          discoverCodex('crown', '王冠果');
+          beep('mission');
+          if (running && !paused) {
+            showOverlay(`<p><strong>👑 王冠奖励</strong></p><p>${rewardText}</p>`);
+            setTimeout(() => {
+              if (running && !paused) hideOverlay();
+            }, 700);
+          }
         }
 
         if (ate) {
@@ -999,6 +1057,7 @@
         if (timeFood) drawCell(timeFood, '#a78bfa', 8);
         if (freezeFood) drawCell(freezeFood, '#22d3ee', 8);
         if (phaseFood) drawCell(phaseFood, '#c084fc', 8);
+        if (crownFood) drawCell(crownFood, '#fde047', 8);
         rocks.forEach(rock => drawCell(rock, '#64748b', 5));
         const headColor = performance.now() < phaseUntil ? skinThemes[currentSkin].phaseHead : skinThemes[currentSkin].head;
         snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skinThemes[currentSkin].body));
