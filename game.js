@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.57.0';
+const GAME_VERSION = '0.58.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -108,8 +108,24 @@ function isValidDlcPackValue(value) {
   return validDlcPacks.includes(String(value));
 }
 
+function readStorageJson(key, fallbackValue) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallbackValue;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallbackValue;
+  } catch {
+    return fallbackValue;
+  }
+}
+
+function writeStorageJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 
 const versionEvents = [
+  { version: '0.58.0', notes: ['存档读写统一为 read/writeStorageJson，减少重复 try/catch 解析代码', '路线图 P1 推进：先完成存档层去冗余，再拆分独立存档模块'] },
   { version: '0.57.0', notes: ['设置校验规则改为常量化，减少重复判断分支', '路线图 P1 持续推进：先完成配置层去冗余重构'] },
   { version: '0.56.0', notes: ['结算统计逻辑拆分到 settlement.js，主循环职责更聚焦', '路线图 P1 启动：结算模块已从 game.js 抽离为独立模块'] },
   { version: '0.55.0', notes: ['新增设置迁移流程与 schema 版本标记，兼容历史本地配置', '路线图 P0 补齐配置字段演进策略并落地首版实现'] },
@@ -405,15 +421,11 @@ function refreshAccountUI() {
 }
 
 function saveAccountStore() {
-  localStorage.setItem(accountStoreKey, JSON.stringify(accountStore));
+  writeStorageJson(accountStoreKey, accountStore);
 }
 
 function loadAccountStore() {
-  try {
-    accountStore = JSON.parse(localStorage.getItem(accountStoreKey) || '{}') || {};
-  } catch {
-    accountStore = {};
-  }
+  accountStore = readStorageJson(accountStoreKey, {}) || {};
 }
 
 function saveActiveAccountSnapshot() {
@@ -593,35 +605,31 @@ function normalizeSettingsPayload(raw = {}) {
 
 function maybePersistSettingsMigration(normalized, raw) {
   if (!normalized || !raw || normalized.schemaVersion === raw.schemaVersion) return;
-  localStorage.setItem(settingsKey, JSON.stringify(normalized));
+  writeStorageJson(settingsKey, normalized);
 }
 
 function loadSettings() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(settingsKey) || '{}');
-    const parsed = normalizeSettingsPayload(raw);
-    maybePersistSettingsMigration(parsed, raw);
-    if (isValidModeValue(parsed.mode)) modeSelect.value = parsed.mode;
-    modePreference = modeSelect.value;
-    if (isValidDifficultyValue(parsed.difficulty)) difficultySelect.value = String(parsed.difficulty);
-    if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
-    if (isValidDlcPackValue(parsed.dlcPack)) dlcPackSelect.value = parsed.dlcPack;
-    wrapModeInput.checked = Boolean(parsed.wrapMode);
-    obstacleModeInput.checked = parsed.obstacleMode !== false;
-    obstacleModePreference = obstacleModeInput.checked;
-    hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
-    contrastModeInput.checked = Boolean(parsed.contrastMode);
-    miniHudModeInput.checked = Boolean(parsed.miniHudMode);
-    autoPauseModeInput.checked = parsed.autoPauseMode !== false;
-  } catch {
-    // ignore malformed settings
-  }
+  const raw = readStorageJson(settingsKey, {});
+  const parsed = normalizeSettingsPayload(raw);
+  maybePersistSettingsMigration(parsed, raw);
+  if (isValidModeValue(parsed.mode)) modeSelect.value = parsed.mode;
+  modePreference = modeSelect.value;
+  if (isValidDifficultyValue(parsed.difficulty)) difficultySelect.value = String(parsed.difficulty);
+  if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
+  if (isValidDlcPackValue(parsed.dlcPack)) dlcPackSelect.value = parsed.dlcPack;
+  wrapModeInput.checked = Boolean(parsed.wrapMode);
+  obstacleModeInput.checked = parsed.obstacleMode !== false;
+  obstacleModePreference = obstacleModeInput.checked;
+  hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
+  contrastModeInput.checked = Boolean(parsed.contrastMode);
+  miniHudModeInput.checked = Boolean(parsed.miniHudMode);
+  autoPauseModeInput.checked = parsed.autoPauseMode !== false;
   applyContrastMode();
   applyMiniHudMode();
 }
 
 function saveSettings() {
-  localStorage.setItem(settingsKey, JSON.stringify({
+  writeStorageJson(settingsKey, {
     schemaVersion: settingsSchemaVersion,
     mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
@@ -633,7 +641,7 @@ function saveSettings() {
     contrastMode: contrastModeInput.checked,
     miniHudMode: miniHudModeInput.checked,
     autoPauseMode: autoPauseModeInput.checked
-  }));
+  });
   saveActiveAccountSnapshot();
 }
 
@@ -658,17 +666,13 @@ function refreshCodex() {
 }
 
 function saveCodex() {
-  localStorage.setItem(codexKey, JSON.stringify(discoveredCodex));
+  writeStorageJson(codexKey, discoveredCodex);
 }
 
 function loadCodex() {
   const base = defaultCodexState();
-  try {
-    const parsed = JSON.parse(localStorage.getItem(codexKey) || '{}');
-    discoveredCodex = { ...base, ...parsed };
-  } catch {
-    discoveredCodex = base;
-  }
+  const parsed = readStorageJson(codexKey, {});
+  discoveredCodex = { ...base, ...parsed };
   refreshCodex();
 }
 
@@ -695,17 +699,13 @@ function renderVersionEvents() {
 }
 
 function loadHistory() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(historyKey) || '[]');
-    history = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
-  } catch {
-    history = [];
-  }
+  const parsed = readStorageJson(historyKey, []);
+  history = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
   renderHistory();
 }
 
 function saveHistory() {
-  localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 5)));
+  writeStorageJson(historyKey, history.slice(0, 5));
   saveActiveAccountSnapshot();
 }
 
@@ -733,19 +733,15 @@ function renderHistory() {
 }
 
 function loadLastResult() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(lastResultKey) || '{}');
-    lastResult.score = Number(parsed.score || 0);
-    lastResult.mode = isValidModeValue(parsed.mode) && parsed.mode !== 'classic' ? parsed.mode : 'classic';
-    lastResult.ts = Number(parsed.ts || 0);
-  } catch {
-    lastResult = { score: 0, mode: 'classic', ts: 0 };
-  }
+  const parsed = readStorageJson(lastResultKey, {});
+  lastResult.score = Number(parsed.score || 0);
+  lastResult.mode = isValidModeValue(parsed.mode) && parsed.mode !== 'classic' ? parsed.mode : 'classic';
+  lastResult.ts = Number(parsed.ts || 0);
   refreshLastResultText();
 }
 
 function saveLastResult() {
-  localStorage.setItem(lastResultKey, JSON.stringify(lastResult));
+  writeStorageJson(lastResultKey, lastResult);
   saveActiveAccountSnapshot();
 }
 
@@ -759,19 +755,15 @@ function refreshLastResultText() {
 }
 
 function loadAchievements() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(achievementsKey) || '{}');
-    achievements.score200 = Boolean(parsed.score200);
-    achievements.combo5 = Boolean(parsed.combo5);
-    achievements.timedClear = Boolean(parsed.timedClear);
-  } catch {
-    achievements = { score200: false, combo5: false, timedClear: false };
-  }
+  const parsed = readStorageJson(achievementsKey, {});
+  achievements.score200 = Boolean(parsed.score200);
+  achievements.combo5 = Boolean(parsed.combo5);
+  achievements.timedClear = Boolean(parsed.timedClear);
   refreshAchievementsText();
 }
 
 function saveAchievements() {
-  localStorage.setItem(achievementsKey, JSON.stringify(achievements));
+  writeStorageJson(achievementsKey, achievements);
   saveActiveAccountSnapshot();
 }
 
@@ -825,20 +817,16 @@ function beep(type = 'eat') {
 }
 
 function loadBestByMode() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(bestByModeKey) || '{}');
-    bestByMode.classic = Number(parsed.classic || 0);
-    bestByMode.timed = Number(parsed.timed || 0);
-    bestByMode.blitz = Number(parsed.blitz || 0);
-    bestByMode.endless = Number(parsed.endless || 0);
-    bestByMode.roguelike = Number(parsed.roguelike || 0);
-  } catch {
-    bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
-  }
+  const parsed = readStorageJson(bestByModeKey, {});
+  bestByMode.classic = Number(parsed.classic || 0);
+  bestByMode.timed = Number(parsed.timed || 0);
+  bestByMode.blitz = Number(parsed.blitz || 0);
+  bestByMode.endless = Number(parsed.endless || 0);
+  bestByMode.roguelike = Number(parsed.roguelike || 0);
 }
 
 function saveBestByMode() {
-  localStorage.setItem(bestByModeKey, JSON.stringify(bestByMode));
+  writeStorageJson(bestByModeKey, bestByMode);
   saveActiveAccountSnapshot();
 }
 
@@ -847,23 +835,17 @@ function refreshModeBestText() {
 }
 
 function loadLifetimeStats() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(statsKey) || '{}');
-    foodsEaten = Number(parsed.foodsEaten || 0);
-    totalPlays = Number(parsed.totalPlays || 0);
-    streakWins = Number(parsed.streakWins || 0);
-  } catch {
-    foodsEaten = 0;
-    totalPlays = 0;
-    streakWins = 0;
-  }
+  const parsed = readStorageJson(statsKey, {});
+  foodsEaten = Number(parsed.foodsEaten || 0);
+  totalPlays = Number(parsed.totalPlays || 0);
+  streakWins = Number(parsed.streakWins || 0);
   foodsEl.textContent = String(foodsEaten);
   playsEl.textContent = String(totalPlays);
   streakEl.textContent = String(streakWins);
 }
 
 function saveLifetimeStats() {
-  localStorage.setItem(statsKey, JSON.stringify({ foodsEaten, totalPlays, streakWins }));
+  writeStorageJson(statsKey, { foodsEaten, totalPlays, streakWins });
   saveActiveAccountSnapshot();
 }
 
@@ -879,17 +861,13 @@ function saveEndlessBestLevel() {
 }
 
 function loadRogueMeta() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(rogueMetaKey) || '{}');
-    roguePerks = Number(parsed.perks || 0);
-  } catch {
-    roguePerks = 0;
-  }
+  const parsed = readStorageJson(rogueMetaKey, {});
+  roguePerks = Number(parsed.perks || 0);
   roguePerksEl.textContent = String(roguePerks);
 }
 
 function saveRogueMeta() {
-  localStorage.setItem(rogueMetaKey, JSON.stringify({ perks: roguePerks }));
+  writeStorageJson(rogueMetaKey, { perks: roguePerks });
   roguePerksEl.textContent = String(roguePerks);
   saveActiveAccountSnapshot();
 }
@@ -990,17 +968,13 @@ function encodeRocks(rockList) {
 }
 
 function saveCustomRocks() {
-  localStorage.setItem(customRocksKey, JSON.stringify(customRocks));
+  writeStorageJson(customRocksKey, customRocks);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
 }
 
 function loadCustomRocks() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(customRocksKey) || '[]');
-    customRocks = normalizeRockList(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    customRocks = [];
-  }
+  const parsed = readStorageJson(customRocksKey, []);
+  customRocks = normalizeRockList(Array.isArray(parsed) ? parsed : []);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
 }
 
