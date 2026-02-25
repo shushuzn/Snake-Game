@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.56.0';
+const GAME_VERSION = '0.57.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -92,7 +92,25 @@ const rogueMetaKey = 'snake-roguelike-meta-v1';
 const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
+const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
+const validDifficulties = ['140', '110', '80'];
+const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
+
+function isValidModeValue(value) {
+  return validModes.includes(String(value));
+}
+
+function isValidDifficultyValue(value) {
+  return validDifficulties.includes(String(value));
+}
+
+function isValidDlcPackValue(value) {
+  return validDlcPacks.includes(String(value));
+}
+
+
 const versionEvents = [
+  { version: '0.57.0', notes: ['设置校验规则改为常量化，减少重复判断分支', '路线图 P1 持续推进：先完成配置层去冗余重构'] },
   { version: '0.56.0', notes: ['结算统计逻辑拆分到 settlement.js，主循环职责更聚焦', '路线图 P1 启动：结算模块已从 game.js 抽离为独立模块'] },
   { version: '0.55.0', notes: ['新增设置迁移流程与 schema 版本标记，兼容历史本地配置', '路线图 P0 补齐配置字段演进策略并落地首版实现'] },
   { version: '0.54.0', notes: ['结算面板新增得分来源拆分（基础果/奖励果/王冠/连击等）', '路线图更新为阶段进度视图并标注当前聚焦项'] },
@@ -493,10 +511,10 @@ async function importSaveData(file) {
 const Workshop = window.SnakeWorkshop.createWorkshopModule({
   version: GAME_VERSION,
   inputEl: workshopCodeInput,
-  isValidMode: (value) => value === 'classic' || value === 'timed' || value === 'blitz' || value === 'endless' || value === 'roguelike',
-  isValidDifficulty: (value) => ['140', '110', '80'].includes(String(value)),
+  isValidMode: isValidModeValue,
+  isValidDifficulty: isValidDifficultyValue,
   isValidSkin: (value) => Object.hasOwn(skinThemes, value),
-  isValidDlcPack: (value) => value === 'none' || value === 'frenzy' || value === 'guardian' || value === 'chrono',
+  isValidDlcPack: isValidDlcPackValue,
   applyVisualModes: () => {
     applyContrastMode();
     applyMiniHudMode();
@@ -567,7 +585,7 @@ function normalizeSettingsPayload(raw = {}) {
     if (!('dlcPack' in normalized)) normalized.dlcPack = 'none';
     normalized.schemaVersion = 2;
   }
-  if (!['none', 'frenzy', 'guardian', 'chrono'].includes(String(normalized.dlcPack))) {
+  if (!isValidDlcPackValue(normalized.dlcPack)) {
     normalized.dlcPack = 'none';
   }
   return normalized;
@@ -583,11 +601,11 @@ function loadSettings() {
     const raw = JSON.parse(localStorage.getItem(settingsKey) || '{}');
     const parsed = normalizeSettingsPayload(raw);
     maybePersistSettingsMigration(parsed, raw);
-    if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'blitz' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
+    if (isValidModeValue(parsed.mode)) modeSelect.value = parsed.mode;
     modePreference = modeSelect.value;
-    if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
+    if (isValidDifficultyValue(parsed.difficulty)) difficultySelect.value = String(parsed.difficulty);
     if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
-    dlcPackSelect.value = parsed.dlcPack;
+    if (isValidDlcPackValue(parsed.dlcPack)) dlcPackSelect.value = parsed.dlcPack;
     wrapModeInput.checked = Boolean(parsed.wrapMode);
     obstacleModeInput.checked = parsed.obstacleMode !== false;
     obstacleModePreference = obstacleModeInput.checked;
@@ -718,7 +736,7 @@ function loadLastResult() {
   try {
     const parsed = JSON.parse(localStorage.getItem(lastResultKey) || '{}');
     lastResult.score = Number(parsed.score || 0);
-    lastResult.mode = (parsed.mode === 'timed' || parsed.mode === 'blitz' || parsed.mode === 'endless' || parsed.mode === 'roguelike') ? parsed.mode : 'classic';
+    lastResult.mode = isValidModeValue(parsed.mode) && parsed.mode !== 'classic' ? parsed.mode : 'classic';
     lastResult.ts = Number(parsed.ts || 0);
   } catch {
     lastResult = { score: 0, mode: 'classic', ts: 0 };
