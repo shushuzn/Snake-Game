@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.53.0';
+const GAME_VERSION = '0.54.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -92,6 +92,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.54.0', notes: ['结算面板新增得分来源拆分（基础果/奖励果/王冠/连击等）', '路线图更新为阶段进度视图并标注当前聚焦项'] },
   { version: '0.53.0', notes: ['新增最近一局结算明细面板，便于复盘限时与冲刺对局', '展示开局加时/时间果/王冠加时等关键时间来源'] },
   { version: '0.52.0', notes: ['HUD 新增 DLC 状态展示，当前规则一眼可见', '不同 DLC 的核心收益会同步显示在状态栏'] },
   { version: '0.51.0', notes: ['新增 DLC：时序扩展，强化限时类模式的时间收益', '工坊预设 timed-rush 默认改为时序扩展，短局节奏更稳定'] },
@@ -227,6 +228,13 @@ let dlcPack = 'none';
 let startBonusSecondsThisRound = 0;
 let fruitTimeBonusSeconds = 0;
 let crownTimeBonusSeconds = 0;
+let scoreFromFood = 0;
+let scoreFromBonus = 0;
+let scoreFromTimeFruit = 0;
+let scoreFromCrown = 0;
+let scoreFromComboFruit = 0;
+let scoreFromComboChain = 0;
+let scoreFromMilestone = 0;
 let activeAccount = '';
 let accountStore = {};
 let roguePerks = 0;
@@ -333,12 +341,26 @@ function refreshDlcHud() {
   dlcStatusEl.textContent = getDlcStatusText();
 }
 
+function addScore(points, source = '') {
+  const delta = Number(points || 0);
+  if (!delta) return;
+  score += delta;
+  if (source === 'food') scoreFromFood += delta;
+  else if (source === 'bonus') scoreFromBonus += delta;
+  else if (source === 'timeFruit') scoreFromTimeFruit += delta;
+  else if (source === 'crown') scoreFromCrown += delta;
+  else if (source === 'comboFruit') scoreFromComboFruit += delta;
+  else if (source === 'comboChain') scoreFromComboChain += delta;
+  else if (source === 'milestone') scoreFromMilestone += delta;
+}
+
 function refreshSettlementPanel(extra = {}) {
   const modeLabel = SnakeModes.getModeLabel(mode);
   const lines = [
     `模式：${modeLabel}`,
     `DLC：${getDlcStatusText()}`,
-    `得分：${score}`
+    `得分：${score}`,
+    `得分拆分：基础果 ${scoreFromFood} / 奖励果 ${scoreFromBonus} / 时间果 ${scoreFromTimeFruit} / 王冠 ${scoreFromCrown} / 连击果 ${scoreFromComboFruit} / 连击奖励 ${scoreFromComboChain} / 里程碑 ${scoreFromMilestone}`
   ];
 
   if (isTimerMode()) {
@@ -997,6 +1019,13 @@ function resetGame(showStartOverlay = true) {
   startBonusSecondsThisRound = isTimerMode() ? getTimerStartBonusSeconds() : 0;
   fruitTimeBonusSeconds = 0;
   crownTimeBonusSeconds = 0;
+  scoreFromFood = 0;
+  scoreFromBonus = 0;
+  scoreFromTimeFruit = 0;
+  scoreFromCrown = 0;
+  scoreFromComboFruit = 0;
+  scoreFromComboChain = 0;
+  scoreFromMilestone = 0;
   remainingTime = getModeTimeDuration() + startBonusSecondsThisRound;
   level = 1;
   levelTargetScore = 100;
@@ -1353,7 +1382,7 @@ function update() {
   let ate = false;
   if (head.x === food.x && head.y === food.y) {
     ate = true;
-    score += (10 + rogueScoreBonus) * scoreMultiplier;
+    addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
     foodsEaten += 1;
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
@@ -1374,7 +1403,7 @@ function update() {
   if (bonusFood && ((head.x === bonusFood.x && head.y === bonusFood.y) || canMagnetCollect(head, bonusFood, now))) {
     ate = true;
     const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
-    score += bonusBase * scoreMultiplier;
+    addScore(bonusBase * scoreMultiplier, 'bonus');
     foodsEaten += 1;
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
@@ -1412,7 +1441,7 @@ function update() {
       fruitTimeBonusSeconds += extraSeconds;
       updateTimeText();
     } else {
-      score += 15 * scoreMultiplier;
+      addScore(15 * scoreMultiplier, 'timeFruit');
     }
     timeFood = null;
     discoverCodex('time', '时间果');
@@ -1446,7 +1475,7 @@ function update() {
     const rewardRoll = Math.floor(Math.random() * 4);
     let rewardText = '';
     if (rewardRoll === 0) {
-      score += 40 * scoreMultiplier;
+      addScore(40 * scoreMultiplier, 'crown');
       rewardText = '奖励 +40 分';
     } else if (rewardRoll === 1) {
       if (!hardcoreModeInput.checked) {
@@ -1454,7 +1483,7 @@ function update() {
         shieldEl.textContent = String(shields);
         rewardText = '奖励 护盾 +1';
       } else {
-        score += 20 * scoreMultiplier;
+        addScore(20 * scoreMultiplier, 'crown');
         rewardText = '硬核补偿 +20 分';
       }
     } else if (rewardRoll === 2) {
@@ -1504,7 +1533,7 @@ function update() {
     ate = true;
     comboFood = null;
     comboGuardUntil = now + 6000;
-    score += 20 * scoreMultiplier;
+    addScore(20 * scoreMultiplier, 'comboFruit');
     refreshStateText(now);
     discoverCodex('combo', '连击果');
     beep('bonus');
@@ -1521,7 +1550,7 @@ function update() {
     const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
     combo = eatDelta <= comboWindow ? Math.min(combo + 1, 9) : 1;
     roundMaxCombo = Math.max(roundMaxCombo, combo);
-    score += (combo - 1) * 2 * scoreMultiplier;
+    addScore((combo - 1) * 2 * scoreMultiplier, 'comboChain');
     comboEl.textContent = `x${combo}`;
     lastEatMs = now;
     maybeAddRock();
@@ -1555,7 +1584,7 @@ function update() {
           shieldEl.textContent = String(shields);
           milestoneText = '里程碑奖励：护盾 +1';
         } else {
-          score += 25 * scoreMultiplier;
+          addScore(25 * scoreMultiplier, 'milestone');
           milestoneText = '里程碑奖励：硬核补偿 +25 分';
         }
       }
