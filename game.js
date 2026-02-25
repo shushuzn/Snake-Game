@@ -68,7 +68,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.50.0';
+const GAME_VERSION = '0.51.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -90,6 +90,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.51.0', notes: ['新增 DLC：时序扩展，强化限时类模式的时间收益', '工坊预设 timed-rush 默认改为时序扩展，短局节奏更稳定'] },
   { version: '0.50.0', notes: ['新增 DLC 扩展包：狂热/守护，可切换额外规则', '创意工坊与本地设置同步支持 DLC 选项'] },
   { version: '0.49.0', notes: ['修复跨天切换时强制模式在对局中立即生效的问题', '重置时先应用挑战锁定再初始化倒计时，避免限时错位'] },
   { version: '0.48.0', notes: ['新增每日挑战“冲刺日”：可临时锁定为冲刺模式', '模式锁定期间保存设置将保留玩家原始模式偏好'] },
@@ -457,7 +458,7 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
   isValidMode: (value) => value === 'classic' || value === 'timed' || value === 'blitz' || value === 'endless' || value === 'roguelike',
   isValidDifficulty: (value) => ['140', '110', '80'].includes(String(value)),
   isValidSkin: (value) => Object.hasOwn(skinThemes, value),
-  isValidDlcPack: (value) => value === 'none' || value === 'frenzy' || value === 'guardian',
+  isValidDlcPack: (value) => value === 'none' || value === 'frenzy' || value === 'guardian' || value === 'chrono',
   applyVisualModes: () => {
     applyContrastMode();
     applyMiniHudMode();
@@ -528,7 +529,7 @@ function loadSettings() {
     modePreference = modeSelect.value;
     if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
     if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
-    if (parsed.dlcPack === 'none' || parsed.dlcPack === 'frenzy' || parsed.dlcPack === 'guardian') dlcPackSelect.value = parsed.dlcPack;
+    if (parsed.dlcPack === 'none' || parsed.dlcPack === 'frenzy' || parsed.dlcPack === 'guardian' || parsed.dlcPack === 'chrono') dlcPackSelect.value = parsed.dlcPack;
     wrapModeInput.checked = Boolean(parsed.wrapMode);
     obstacleModeInput.checked = parsed.obstacleMode !== false;
     obstacleModePreference = obstacleModeInput.checked;
@@ -860,6 +861,20 @@ function maybeShowOnboarding() {
 function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
 function hideOverlay() { overlay.style.display = 'none'; }
 function isTimerMode() { return mode === 'timed' || mode === 'blitz'; }
+
+function getTimerStartBonusSeconds() {
+  if (dlcPack === 'chrono') return 8;
+  return 0;
+}
+
+function getTimeFruitBonusSeconds() {
+  return dlcPack === 'chrono' ? 8 : 5;
+}
+
+function getCrownTimeBonusSeconds() {
+  return dlcPack === 'chrono' ? 10 : 7;
+}
+
 function getModeTimeDuration() { return mode === 'blitz' ? blitzModeDuration : timedModeDuration; }
 function updateTimeText() { timeEl.textContent = isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
@@ -940,7 +955,7 @@ function resetGame(showStartOverlay = true) {
   running = false;
   paused = false;
   refreshChallengeHud();
-  remainingTime = getModeTimeDuration();
+  remainingTime = getModeTimeDuration() + (isTimerMode() ? getTimerStartBonusSeconds() : 0);
   level = 1;
   levelTargetScore = 100;
   lastTickMs = 0;
@@ -1349,7 +1364,7 @@ function update() {
   if (timeFood && ((head.x === timeFood.x && head.y === timeFood.y) || canMagnetCollect(head, timeFood, now))) {
     ate = true;
     if (isTimerMode()) {
-      remainingTime += 5;
+      remainingTime += getTimeFruitBonusSeconds();
       updateTimeText();
     } else {
       score += 15 * scoreMultiplier;
@@ -1404,9 +1419,10 @@ function update() {
       rewardText = '奖励 倍率 x2';
     } else {
       if (isTimerMode()) {
-        remainingTime += 7;
+        const extraSeconds = getCrownTimeBonusSeconds();
+        remainingTime += extraSeconds;
         updateTimeText();
-        rewardText = '奖励 +7 秒';
+        rewardText = `奖励 +${extraSeconds} 秒`;
       } else {
         phaseUntil = Math.max(phaseUntil, now + 4000);
         refreshStateText(now);

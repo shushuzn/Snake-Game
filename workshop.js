@@ -29,7 +29,7 @@
     } = config;
 
     const presets = {
-      'timed-rush': { mode: 'timed', difficulty: '80', skin: 'neon', dlcPack: 'frenzy', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
+      'timed-rush': { mode: 'timed', difficulty: '80', skin: 'neon', dlcPack: 'chrono', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
       'rogue-hardcore': { mode: 'roguelike', difficulty: '80', skin: 'pixel', wrapMode: false, obstacleMode: true, hardcoreMode: true, contrastMode: true, miniHudMode: true, autoPauseMode: true },
       'endless-relax': { mode: 'endless', difficulty: '140', skin: 'classic', wrapMode: true, obstacleMode: false, hardcoreMode: false, contrastMode: false, miniHudMode: false, autoPauseMode: true }
     };
