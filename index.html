@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.29.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.30.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -142,7 +142,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增帮助面板：快速查看模式与道具说明。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增版本大事件，快速回顾每次更新重点。</p>
       <section class="history" id="helpPanel" aria-label="玩法帮助" style="display:none;">
         <h2>玩法帮助</h2>
         <ol>
@@ -172,6 +172,11 @@
       <section class="history" aria-label="道具图鉴">
         <h2>道具图鉴（已发现 <b id="codexProgress">0/9</b>）</h2>
         <ol id="codexList"></ol>
+      </section>
+
+      <section class="history" aria-label="版本大事件">
+        <h2>版本大事件（最近 8 条）</h2>
+        <ol id="versionEventsList"></ol>
       </section>
 
     </main>
@@ -217,6 +222,7 @@
       const historyListEl = document.getElementById('historyList');
       const codexListEl = document.getElementById('codexList');
       const codexProgressEl = document.getElementById('codexProgress');
+      const versionEventsListEl = document.getElementById('versionEventsList');
       const difficultySelect = document.getElementById('difficulty');
       const skinSelect = document.getElementById('skin');
       const modeSelect = document.getElementById('mode');
@@ -226,7 +232,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.29.0';
+      const GAME_VERSION = '0.30.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -249,6 +255,19 @@
         { id: 'bonus-rush', label: '多金模式', bonusStep: 30 },
         { id: 'tough-skin', label: '坚韧模式', startShield: 1 },
         { id: 'no-rocks', label: '净空模式', noRocks: true }
+      ];
+
+      const versionEvents = [
+        { version: '0.30.0', notes: ['新增版本大事件面板，可查看历史更新重点', '帮助回顾玩法演进，便于老玩家快速上手'] },
+        { version: '0.29.0', notes: ['新增帮助面板，集中说明模式、道具和成长建议'] },
+        { version: '0.28.0', notes: ['加入肉鸽模式，随机词条与肉鸽点成长'] },
+        { version: '0.27.0', notes: ['加入本地账号存档导出/导入（JSON）'] },
+        { version: '0.26.0', notes: ['加入本地账号系统，支持玩家切换存档'] },
+        { version: '0.25.0', notes: ['无尽模式新增最高关记录与里程碑奖励'] },
+        { version: '0.24.0', notes: ['新增无尽关卡模式，分数提升自动升级'] },
+        { version: '0.23.0', notes: ['新增磁力果，可吸附附近道具'] },
+        { version: '0.22.0', notes: ['新增王冠果，触发随机奖励效果'] },
+        { version: '0.21.0', notes: ['加入皮肤装扮系统（经典/霓虹/日落/像素）'] }
       ];
 
 
@@ -562,6 +581,15 @@
             if (running && !paused) hideOverlay();
           }, 750);
         }
+      }
+
+      function renderVersionEvents() {
+        const recent = versionEvents.slice(0, 8);
+        versionEventsListEl.innerHTML = recent.map(item => {
+          const head = item.version === GAME_VERSION ? `v${item.version}（当前）` : `v${item.version}`;
+          const body = item.notes.map(note => `• ${note}`).join('；');
+          return `<li><strong>${head}</strong>：${body}</li>`;
+        }).join('');
       }
 
       function loadHistory() {
@@ -1578,6 +1606,7 @@
       refreshAccountUI();
 
       selectDailyChallenge();
+      renderVersionEvents();
       loadLifetimeStats();
       loadHistory();
       loadCodex();
