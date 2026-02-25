@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.55.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.56.0
 ```
 
 ## 最新进展
 
+- v0.56.0：结算统计逻辑拆分到 `settlement.js`，并启动路线图 P1 模块化工作。
 - v0.55.0：设置系统新增 schema 迁移流程，兼容历史配置并自动补齐 DLC 字段。
 - v0.54.0：结算面板新增得分来源拆分，并更新路线图阶段进度。
 - v0.53.0：新增最近一局结算明细面板（含限时加时来源），便于复盘。
@@ -108,7 +109,7 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.55.0
 - ✅ 统一创意工坊与本地设置字段演进策略：已新增 `schemaVersion` 与迁移逻辑，兼容旧配置并自动补齐关键字段。
 
 ### P1（中期，2-4 周）
-- 继续拆分 `game.js`：把挑战系统、结算系统、存档系统拆为独立模块。
+- ⏳ 继续拆分 `game.js`：已拆出结算系统到 `settlement.js`，下一步拆分挑战系统与存档系统。
 - DLC 体系扩展：新增“风险收益型”DLC，并提供可视化规则摘要。
 - 增加每日挑战“周循环主题”（例如周末双倍率、工作日稳态挑战）。
 

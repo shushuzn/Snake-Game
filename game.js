@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.55.0';
+const GAME_VERSION = '0.56.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -93,6 +93,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.56.0', notes: ['结算统计逻辑拆分到 settlement.js，主循环职责更聚焦', '路线图 P1 启动：结算模块已从 game.js 抽离为独立模块'] },
   { version: '0.55.0', notes: ['新增设置迁移流程与 schema 版本标记，兼容历史本地配置', '路线图 P0 补齐配置字段演进策略并落地首版实现'] },
   { version: '0.54.0', notes: ['结算面板新增得分来源拆分（基础果/奖励果/王冠/连击等）', '路线图更新为阶段进度视图并标注当前聚焦项'] },
   { version: '0.53.0', notes: ['新增最近一局结算明细面板，便于复盘限时与冲刺对局', '展示开局加时/时间果/王冠加时等关键时间来源'] },
@@ -227,16 +228,7 @@ let history = [];
 let discoveredCodex = {};
 let currentSkin = 'classic';
 let dlcPack = 'none';
-let startBonusSecondsThisRound = 0;
-let fruitTimeBonusSeconds = 0;
-let crownTimeBonusSeconds = 0;
-let scoreFromFood = 0;
-let scoreFromBonus = 0;
-let scoreFromTimeFruit = 0;
-let scoreFromCrown = 0;
-let scoreFromComboFruit = 0;
-let scoreFromComboChain = 0;
-let scoreFromMilestone = 0;
+const settlement = window.SnakeSettlement.createSettlementModule({ settlementListEl });
 let activeAccount = '';
 let accountStore = {};
 let roguePerks = 0;
@@ -347,32 +339,17 @@ function addScore(points, source = '') {
   const delta = Number(points || 0);
   if (!delta) return;
   score += delta;
-  if (source === 'food') scoreFromFood += delta;
-  else if (source === 'bonus') scoreFromBonus += delta;
-  else if (source === 'timeFruit') scoreFromTimeFruit += delta;
-  else if (source === 'crown') scoreFromCrown += delta;
-  else if (source === 'comboFruit') scoreFromComboFruit += delta;
-  else if (source === 'comboChain') scoreFromComboChain += delta;
-  else if (source === 'milestone') scoreFromMilestone += delta;
+  settlement.addScore(source, delta);
 }
 
 function refreshSettlementPanel(extra = {}) {
-  const modeLabel = SnakeModes.getModeLabel(mode);
-  const lines = [
-    `模式：${modeLabel}`,
-    `DLC：${getDlcStatusText()}`,
-    `得分：${score}`,
-    `得分拆分：基础果 ${scoreFromFood} / 奖励果 ${scoreFromBonus} / 时间果 ${scoreFromTimeFruit} / 王冠 ${scoreFromCrown} / 连击果 ${scoreFromComboFruit} / 连击奖励 ${scoreFromComboChain} / 里程碑 ${scoreFromMilestone}`
-  ];
-
-  if (isTimerMode()) {
-    lines.push(`开局加时：+${startBonusSecondsThisRound}s`);
-    lines.push(`时间果加时：+${fruitTimeBonusSeconds}s`);
-    lines.push(`王冠加时：+${crownTimeBonusSeconds}s`);
-    if (typeof extra.remainingTime === 'number') lines.push(`结束剩余：${Math.max(0, Math.ceil(extra.remainingTime))}s`);
-  }
-
-  settlementListEl.innerHTML = lines.map((line) => `<li>${line}</li>`).join('');
+  settlement.render({
+    modeLabel: SnakeModes.getModeLabel(mode),
+    dlcText: getDlcStatusText(),
+    score,
+    timerMode: isTimerMode(),
+    remainingTime: extra.remainingTime
+  });
 }
 
 function getBonusStep() {
@@ -1039,17 +1016,9 @@ function resetGame(showStartOverlay = true) {
   paused = false;
   refreshChallengeHud();
   refreshDlcHud();
-  startBonusSecondsThisRound = isTimerMode() ? getTimerStartBonusSeconds() : 0;
-  fruitTimeBonusSeconds = 0;
-  crownTimeBonusSeconds = 0;
-  scoreFromFood = 0;
-  scoreFromBonus = 0;
-  scoreFromTimeFruit = 0;
-  scoreFromCrown = 0;
-  scoreFromComboFruit = 0;
-  scoreFromComboChain = 0;
-  scoreFromMilestone = 0;
-  remainingTime = getModeTimeDuration() + startBonusSecondsThisRound;
+  const startBonusSeconds = isTimerMode() ? getTimerStartBonusSeconds() : 0;
+  settlement.resetRound(startBonusSeconds);
+  remainingTime = getModeTimeDuration() + startBonusSeconds;
   level = 1;
   levelTargetScore = 100;
   lastTickMs = 0;
@@ -1461,7 +1430,7 @@ function update() {
     if (isTimerMode()) {
       const extraSeconds = getTimeFruitBonusSeconds();
       remainingTime += extraSeconds;
-      fruitTimeBonusSeconds += extraSeconds;
+      settlement.addTimeBonus('fruit', extraSeconds);
       updateTimeText();
     } else {
       addScore(15 * scoreMultiplier, 'timeFruit');
@@ -1518,7 +1487,7 @@ function update() {
       if (isTimerMode()) {
         const extraSeconds = getCrownTimeBonusSeconds();
         remainingTime += extraSeconds;
-        crownTimeBonusSeconds += extraSeconds;
+        settlement.addTimeBonus('crown', extraSeconds);
         updateTimeText();
         rewardText = `奖励 +${extraSeconds} 秒`;
       } else {
