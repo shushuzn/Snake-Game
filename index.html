@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.16.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.17.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -118,7 +118,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增闪电道具：短时间双倍得分（x2）。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增时空果：限时模式可加时 +5 秒，经典模式提供额外分数。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -169,7 +169,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.16.0';
+      const GAME_VERSION = '0.17.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -204,6 +204,8 @@
       let shieldExpireAt = 0;
       let boostFood = null;
       let boostExpireAt = 0;
+      let timeFood = null;
+      let timeExpireAt = 0;
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
@@ -459,6 +461,8 @@
         shieldExpireAt = 0;
         boostFood = null;
         boostExpireAt = 0;
+        timeFood = null;
+        timeExpireAt = 0;
         rocks = [];
         score = 0;
         running = false;
@@ -503,6 +507,7 @@
           (bonusFood && bonusFood.x === position.x && bonusFood.y === position.y) ||
           (shieldFood && shieldFood.x === position.x && shieldFood.y === position.y) ||
           (boostFood && boostFood.x === position.x && boostFood.y === position.y) ||
+          (timeFood && timeFood.x === position.x && timeFood.y === position.y) ||
           rocks.some(rock => rock.x === position.x && rock.y === position.y)
         );
         return position;
@@ -532,6 +537,14 @@
         if (score % 90 !== 0) return;
         boostFood = randomFreeCell();
         boostExpireAt = now + 4200;
+      }
+
+
+      function maybeSpawnTimeFood(now) {
+        if (timeFood || score < 50) return;
+        if (score % 75 !== 0) return;
+        timeFood = randomFreeCell();
+        timeExpireAt = now + 4600;
       }
 
       function maybeAddRock() {
@@ -672,6 +685,7 @@
         if (bonusFood && now > bonusExpireAt) bonusFood = null;
         if (shieldFood && now > shieldExpireAt) shieldFood = null;
         if (boostFood && now > boostExpireAt) boostFood = null;
+        if (timeFood && now > timeExpireAt) timeFood = null;
         if (scoreMultiplier > 1 && now > multiplierExpireAt) {
           scoreMultiplier = 1;
           multiplierEl.textContent = 'x1';
@@ -709,6 +723,7 @@
           maybeSpawnBonusFood(now);
           maybeSpawnShieldFood(now);
           maybeSpawnBoostFood(now);
+          maybeSpawnTimeFood(now);
           beep('eat');
         }
 
@@ -739,6 +754,18 @@
           multiplierEl.textContent = 'x2';
           boostFood = null;
           beep('mission');
+        }
+
+        if (timeFood && head.x === timeFood.x && head.y === timeFood.y) {
+          ate = true;
+          if (mode === 'timed') {
+            remainingTime += 5;
+            updateTimeText();
+          } else {
+            score += 15 * scoreMultiplier;
+          }
+          timeFood = null;
+          beep('bonus');
         }
 
         if (ate) {
@@ -813,6 +840,7 @@
         if (bonusFood) drawCell(bonusFood, '#facc15', 8);
         if (shieldFood) drawCell(shieldFood, '#38bdf8', 8);
         if (boostFood) drawCell(boostFood, '#f59e0b', 8);
+        if (timeFood) drawCell(timeFood, '#a78bfa', 8);
         rocks.forEach(rock => drawCell(rock, '#64748b', 5));
         snake.forEach((segment, index) => drawCell(segment, index === 0 ? '#7dffa5' : '#22c55e'));
       }
