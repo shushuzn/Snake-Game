@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.63.0';
+const GAME_VERSION = '0.64.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.64.0', notes: ['新增 mode_rules.js，限时模式与 DLC 时间/步进规则从 game.js 拆分', '路线图 P1 推进：模式规则编排模块化落地，下一步拆分战局状态编排层'] },
   { version: '0.63.0', notes: ['新增 workshop_runtime.js，工坊状态快照与按钮交互编排从 game.js 拆分', '路线图 P1 推进：工坊编排模块化落地，下一步拆分模式规则编排层'] },
   { version: '0.62.0', notes: ['新增 settings.js，设置加载/保存与视觉模式应用从 game.js 拆分', '路线图 P1 推进：设置编排模块化落地，下一步拆分工坊编排层'] },
   { version: '0.61.0', notes: ['新增 account.js，账号登录/导入导出与快照恢复编排从 game.js 拆分', '路线图 P1 推进：账号编排模块化落地，下一步拆分设置编排层'] },
@@ -314,12 +315,6 @@ function refreshSettlementPanel(extra = {}) {
   });
 }
 
-function getBonusStep() {
-  const base = currentChallenge.bonusStep || 50;
-  const dlcDelta = dlcPack === 'frenzy' ? -20 : 0;
-  return Math.max(20, base + dlcDelta);
-}
-
 function getStorageKeysForProfile() {
   return [
     'snake-best', settingsKey, statsKey, audioKey, bestByModeKey,
@@ -509,6 +504,40 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
   applyContrastMode,
   applyMiniHudMode
 });
+
+const modeRulesRuntime = window.SnakeModeRules.createModeRulesModule({
+  timedModeDuration,
+  blitzModeDuration,
+  runtime: {
+    getMode: () => mode,
+    getDlcPack: () => dlcPack,
+    getCurrentChallenge: () => currentChallenge
+  }
+});
+
+function getBonusStep() {
+  return modeRulesRuntime.getBonusStep();
+}
+
+function isTimerMode() {
+  return modeRulesRuntime.isTimerMode();
+}
+
+function getTimerStartBonusSeconds() {
+  return modeRulesRuntime.getTimerStartBonusSeconds();
+}
+
+function getTimeFruitBonusSeconds() {
+  return modeRulesRuntime.getTimeFruitBonusSeconds();
+}
+
+function getCrownTimeBonusSeconds() {
+  return modeRulesRuntime.getCrownTimeBonusSeconds();
+}
+
+function getModeTimeDuration() {
+  return modeRulesRuntime.getModeTimeDuration();
+}
 
 
 function defaultCodexState() {
@@ -775,22 +804,6 @@ function maybeShowOnboarding() {
 
 function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
 function hideOverlay() { overlay.style.display = 'none'; }
-function isTimerMode() { return mode === 'timed' || mode === 'blitz'; }
-
-function getTimerStartBonusSeconds() {
-  if (dlcPack === 'chrono') return 8;
-  return 0;
-}
-
-function getTimeFruitBonusSeconds() {
-  return dlcPack === 'chrono' ? 8 : 5;
-}
-
-function getCrownTimeBonusSeconds() {
-  return dlcPack === 'chrono' ? 10 : 7;
-}
-
-function getModeTimeDuration() { return mode === 'blitz' ? blitzModeDuration : timedModeDuration; }
 function updateTimeText() { timeEl.textContent = isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
 
