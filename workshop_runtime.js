@@ -3,10 +3,7 @@ window.SnakeWorkshopRuntime = (() => {
     workshop,
     controls,
     runtime,
-    ui,
-    saveSettings,
-    applyContrastMode,
-    applyMiniHudMode
+    ui
   }) {
     function getStateSnapshot() {
       return {
@@ -86,11 +83,6 @@ window.SnakeWorkshopRuntime = (() => {
       });
     }
 
-    function bootstrapVisualModes() {
-      applyContrastMode();
-      applyMiniHudMode();
-    }
-
     function generateInitialCode() {
       workshop.generateCode(getStateSnapshot);
     }
@@ -99,7 +91,6 @@ window.SnakeWorkshopRuntime = (() => {
       getStateSnapshot,
       applyControls,
       bindEvents,
-      bootstrapVisualModes,
       generateInitialCode
     };
   }

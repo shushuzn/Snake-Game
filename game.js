@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.67.0';
+const GAME_VERSION = '0.68.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.68.0', notes: ['新增 play_state.js，开局/继续/暂停状态机决策从 game.js 拆分', '路线图 P1 推进：状态机决策层模块化落地，下一步拆分结算触发编排层'] },
   { version: '0.67.0', notes: ['新增 loop_timers.js，主循环与倒计时计时器编排从 game.js 拆分', '路线图 P1 推进：主循环计时编排模块化落地，下一步拆分状态机决策层'] },
   { version: '0.66.0', notes: ['新增 item_spawn.js，道具生成与加石头规则编排从 game.js 拆分', '路线图 P1 推进：道具生成编排模块化落地，下一步拆分主循环状态机编排层'] },
   { version: '0.65.0', notes: ['新增 round_state.js，回合初始化状态与出生参数编排从 game.js 拆分', '路线图 P1 推进：战局状态编排模块化落地，下一步拆分道具生成编排层'] },
@@ -500,10 +501,7 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
     hideOverlay,
     isRunning: () => running,
     isPaused: () => paused
-  },
-  saveSettings,
-  applyContrastMode,
-  applyMiniHudMode
+  }
 });
 
 const modeRulesRuntime = window.SnakeModeRules.createModeRulesModule({
@@ -558,6 +556,33 @@ const loopTimersRuntime = window.SnakeLoopTimers.createLoopTimersModule({
   onTick: update,
   isPaused: () => paused,
   isRunning: () => running
+});
+
+const playStateRuntime = window.SnakePlayState.createPlayStateModule({
+  runtime: {
+    isRunning: () => running,
+    isPaused: () => paused,
+    setRunning: (value) => { running = value; },
+    setPaused: (value) => { paused = value; },
+    isPlayCountedThisRound: () => playCountedThisRound,
+    setPlayCountedThisRound: (value) => { playCountedThisRound = value; }
+  },
+  ui: {
+    showOverlay,
+    hideOverlay,
+    setPauseButtonPausedLabel: () => { pauseBtn.textContent = '暂停'; },
+    setPauseButtonResumeLabel: () => { pauseBtn.textContent = '继续'; }
+  },
+  timers: loopTimersRuntime,
+  stats: {
+    incrementTotalPlays: () => {
+      totalPlays += 1;
+      playsEl.textContent = String(totalPlays);
+      saveLifetimeStats();
+    }
+  },
+  onCountdownDone: startLoop,
+  onResume: startLoop
 });
 
 function getBonusStep() {
@@ -1007,30 +1032,7 @@ function startLoop() {
 }
 
 function startGameIfNeeded() {
-  if (running && !paused) return;
-  if (!running) {
-    running = true;
-    paused = false;
-    if (!playCountedThisRound) {
-      totalPlays += 1;
-      playsEl.textContent = String(totalPlays);
-      saveLifetimeStats();
-      playCountedThisRound = true;
-    }
-    pauseBtn.textContent = '暂停';
-    startCountdown(() => {
-      if (paused || !running) return;
-      hideOverlay();
-      startLoop();
-    });
-    return;
-  }
-  if (paused) {
-    paused = false;
-    hideOverlay();
-    pauseBtn.textContent = '暂停';
-    startLoop();
-  }
+  playStateRuntime.startGameIfNeeded();
 }
 
 
@@ -1045,12 +1047,7 @@ function changeDirection(next) {
 }
 
 function togglePause() {
-  if (!running) return;
-  if (paused) return startGameIfNeeded();
-  paused = true;
-  loopTimersRuntime.stopAll();
-  pauseBtn.textContent = '继续';
-  showOverlay('<p><strong>已暂停</strong></p><p>按空格 / P 或“继续”恢复游戏</p>');
+  playStateRuntime.togglePause();
 }
 
 function shouldIgnoreHotkeys(event) {
