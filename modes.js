@@ -100,6 +100,20 @@
     return pickDailyChallenge(shiftedDate);
   }
 
+  function getDailyChallengeBundle(date = new Date()) {
+    const currentDate = new Date(date);
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const current = pickDailyChallenge(currentDate);
+    const next = pickDailyChallenge(nextDate);
+    return {
+      current,
+      next,
+      currentDateLabel: formatLocalDateLabel(currentDate),
+      nextDateLabel: formatLocalDateLabel(nextDate)
+    };
+  }
+
   function getChallengeRefreshCountdown(now = new Date()) {
     const next = new Date(now);
     next.setHours(24, 0, 0, 0);
@@ -139,6 +153,7 @@
     getWeeklyTheme,
     pickDailyChallenge,
     pickDailyChallengeByOffset,
+    getDailyChallengeBundle,
     getChallengeRefreshCountdown,
     describeChallenge,
     getModeLabel

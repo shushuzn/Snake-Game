@@ -54,15 +54,16 @@ window.SnakeChallenge = (() => {
     }
 
     function refreshHud() {
+      const challengeBundle = snakeModes.getDailyChallengeBundle();
       const currentChallenge = runtime.getCurrentChallenge();
-      elements.challengeEl.textContent = currentChallenge.label;
-      elements.challengeDetailEl.textContent = snakeModes.describeChallenge(currentChallenge);
-      const nextChallenge = snakeModes.pickDailyChallengeByOffset(1);
-      elements.challengeNextEl.textContent = nextChallenge.label;
-      elements.challengeNextEl.title = snakeModes.describeChallenge(nextChallenge);
-      elements.challengeNextDateEl.textContent = snakeModes.formatRelativeLocalDateLabel(1);
-      elements.challengeDateEl.textContent = snakeModes.formatLocalDateLabel();
-      applyControlLocks(currentChallenge);
+      const challengeLabel = currentChallenge?.label || challengeBundle.current.label;
+      elements.challengeEl.textContent = challengeLabel;
+      elements.challengeDetailEl.textContent = snakeModes.describeChallenge(currentChallenge || challengeBundle.current);
+      elements.challengeNextEl.textContent = challengeBundle.next.label;
+      elements.challengeNextEl.title = snakeModes.describeChallenge(challengeBundle.next);
+      elements.challengeNextDateEl.textContent = challengeBundle.nextDateLabel;
+      elements.challengeDateEl.textContent = challengeBundle.currentDateLabel;
+      applyControlLocks(currentChallenge || challengeBundle.current);
       lastChallengeCountdownText = '';
       updateCountdownOnly();
     }
