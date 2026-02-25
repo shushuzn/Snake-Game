@@ -1,95 +1,74 @@
-# Snake 单文件网页游戏
+# Snake 多文件网页游戏
 
-这是一个 **无需构建工具、无需安装依赖** 的单文件贪吃蛇项目。
-游戏核心逻辑、样式与界面均在 `index.html` 中，下载后即可运行。
+这是一个**无需构建工具、无需安装依赖**的贪吃蛇网页项目，现已从单文件结构发展为多文件结构：
+
+- `index.html`：页面结构与控件布局
+- `styles.css`：样式与响应式布局
+- `game.js`：游戏主逻辑与状态管理
 
 ## 当前能力（持续发展中）
 
 - **4 种模式**：经典、限时 60 秒、无尽关卡、肉鸽模式。
-- **多输入支持**：键盘方向键、W/A/S/D、触屏方向键、滑动操作。
-- **道具与成长系统**：基础果、奖励果、护盾果、倍率果、时间果、冰冻果、相位果、王冠果。
-- **玩法系统**：障碍、硬核模式、连击、任务、成就、图鉴。
-- **局外成长**：肉鸽模式支持随机词条与肉鸽点数成长。
-- **信息辅助**：内置帮助面板、版本大事件（最近更新重点）。
-- **本地持久化**：设置、历史、最佳分、模式记录、成就等存于 `localStorage`。
+- **多输入支持**：方向键、W/A/S/D、触屏方向键、滑动。
+- **道具与成长**：基础果、奖励果、护盾果、倍率果、时间果、冰冻果、相位果、王冠果。
+- **系统机制**：障碍、硬核模式、连击、任务、成就、图鉴。
+- **局外成长**：肉鸽词条 + 肉鸽点成长。
+- **本地持久化**：设置、战绩、最佳分、模式记录、成就等数据保存在 `localStorage`。
 
 ## 目录结构
 
 ```text
 .
-├── index.html                                   # 游戏本体（HTML/CSS/JS 单文件）
+├── index.html                                   # 页面结构
+├── styles.css                                   # 页面样式
+├── game.js                                      # 游戏逻辑
 ├── README.md                                    # 项目说明
 └── skills/snake-feature-evolver/
-    ├── SKILL.md                                 # 功能演进说明
-    ├── references/modes-and-systems.md          # 模式与系统参考
-    └── scripts/bump_version.py                  # 版本号同步脚本
+    ├── SKILL.md
+    ├── references/modes-and-systems.md
+    └── scripts/bump_version.py
 ```
 
 ## 快速开始
 
-### 推荐：本地静态服务器
-
 ```bash
 python3 -m http.server 4173
-# 浏览器打开 http://localhost:4173/index.html
+# 浏览器访问 http://localhost:4173/index.html
 ```
 
-### 或：直接打开文件
-
-直接双击 `index.html` 也可运行。
-若浏览器对本地文件策略较严格，建议改用上方静态服务器方式。
-
-## 基础操作
-
-- **移动**：方向键 / W A S D / 触屏方向键 / 滑动。
-- **暂停/继续**：`Space` 或 `P`。
-- **模式切换**：顶部模式下拉框（经典 / 限时 / 无尽 / 肉鸽）。
-- **帮助面板**：点击“帮助”查看模式与道具说明。
-
-## 数据与存档说明
-
-项目使用浏览器 `localStorage` 保存数据，典型包括：
-
-- 玩家设置（皮肤、难度、音效等）
-- 历史对局与上局结果
-- 各模式最佳分与无尽最高关
-- 成就、图鉴、肉鸽成长元数据
-
-> 换浏览器、无痕模式或清除站点数据后，历史记录可能丢失。
-
-如需完全重置，可在开发者工具中清除该站点 Local Storage。
-
-## 版本维护
-
-提供脚本同步页面可见版本与 `GAME_VERSION`：
-
-```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.30.0
-```
-
-建议每次发布前执行，避免“显示版本”和“代码版本”不一致。
+也可直接打开 `index.html`，但建议优先使用本地静态服务器。
 
 ## 开发自检
 
-### 1) 检查 `index.html` 内联脚本语法
+### 1) JavaScript 语法检查
 
 ```bash
-node -e "const fs=require('fs');const m=fs.readFileSync('index.html','utf8').match(/<script>([\s\S]*)<\/script>/);new Function(m[1]);console.log('js ok')"
+node --check game.js
 ```
 
-### 2) 检查空白错误与冲突标记
+### 2) HTML/CSS/JS 资源引用检查（快速）
+
+```bash
+rg -n "styles.css|game.js" index.html
+```
+
+### 3) Git 空白与冲突标记检查
 
 ```bash
 git diff --check
 ```
 
+## 版本维护
+
+同步页面可见版本与 `GAME_VERSION`：
+
+```bash
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.30.0
+```
+
 ## 后续发展方向
 
-- 移动端更细粒度触控（长按、双击、手势灵敏度）。
-- 自定义地图与障碍编辑器。
-- 每日挑战、种子局复现与排行榜（可选后端）。
-- 新手引导分步教学与道具效果可视化。
-
----
-
-欢迎继续提出“继续发展”的方向（如：肉鸽深度、无尽平衡、UI 主题、移动端体验）。
+- 继续拆分 `game.js`（输入、渲染、模式系统模块化）。
+- 提供地图/障碍编辑器。
+- 增加每日挑战与排行榜（可选后端）。
+- 优化移动端交互与新手引导。
