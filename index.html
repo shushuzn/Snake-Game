@@ -71,6 +71,8 @@
           <span>连击：<b id="combo">x1</b></span>
           <span>护盾：<b id="shield">0</b></span>
           <span>任务：<b id="mission">--</b></span>
+          <span>总局：<b id="plays">0</b></span>
+          <span>吃到：<b id="foods">0</b></span>
         </div>
       </section>
 
@@ -88,6 +90,7 @@
         <div class="controls-group">
           <button id="restart" type="button">重新开始</button>
           <button id="pause" type="button" class="secondary">暂停</button>
+          <button id="clearData" type="button" class="secondary">清空记录</button>
         </div>
         <div class="controls-group">
           <label class="label-inline" for="mode">模式：
@@ -101,7 +104,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。金色食物 +30 分，蓝色食物获得护盾；完成本局任务目标可额外获得 1 层护盾。</p>
+      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；金色食物 +30 分，蓝色食物获得护盾；可清空本地记录。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -123,9 +126,12 @@
       const comboEl = document.getElementById('combo');
       const shieldEl = document.getElementById('shield');
       const missionEl = document.getElementById('mission');
+      const playsEl = document.getElementById('plays');
+      const foodsEl = document.getElementById('foods');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
+      const clearDataBtn = document.getElementById('clearData');
       const difficultySelect = document.getElementById('difficulty');
       const modeSelect = document.getElementById('mode');
       const wrapModeInput = document.getElementById('wrapMode');
@@ -137,6 +143,7 @@
       const timedModeDuration = 60;
       const missionOptions = [120, 180, 240, 300];
       const settingsKey = 'snake-settings-v2';
+      const statsKey = 'snake-stats-v1';
 
       const dirMap = {
         ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
@@ -168,6 +175,8 @@
       let shields = 0;
       let missionTarget = 120;
       let missionAchieved = false;
+      let foodsEaten = 0;
+      let totalPlays = 0;
 
       bestEl.textContent = String(bestScore);
 
@@ -190,6 +199,24 @@
           wrapMode: wrapModeInput.checked,
           obstacleMode: obstacleModeInput.checked
         }));
+      }
+
+
+      function loadLifetimeStats() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(statsKey) || '{}');
+          foodsEaten = Number(parsed.foodsEaten || 0);
+          totalPlays = Number(parsed.totalPlays || 0);
+        } catch {
+          foodsEaten = 0;
+          totalPlays = 0;
+        }
+        foodsEl.textContent = String(foodsEaten);
+        playsEl.textContent = String(totalPlays);
+      }
+
+      function saveLifetimeStats() {
+        localStorage.setItem(statsKey, JSON.stringify({ foodsEaten, totalPlays }));
       }
 
       function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
@@ -217,6 +244,9 @@
         shields = 0;
         missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
         missionAchieved = false;
+        totalPlays += 1;
+        playsEl.textContent = String(totalPlays);
+        saveLifetimeStats();
         clearInterval(loopTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
@@ -281,9 +311,11 @@
         if (!running) {
           running = true;
           paused = false;
-          hideOverlay();
           pauseBtn.textContent = '暂停';
-          startLoop();
+          startCountdown(() => {
+            hideOverlay();
+            startLoop();
+          });
           return;
         }
         if (paused) {
@@ -292,6 +324,21 @@
           pauseBtn.textContent = '暂停';
           startLoop();
         }
+      }
+
+
+      function startCountdown(onDone) {
+        let count = 3;
+        showOverlay(`<p><strong>${count}</strong></p><p>准备开始</p>`);
+        const timer = setInterval(() => {
+          count -= 1;
+          if (count <= 0) {
+            clearInterval(timer);
+            onDone();
+            return;
+          }
+          showOverlay(`<p><strong>${count}</strong></p><p>准备开始</p>`);
+        }, 550);
       }
 
       function changeDirection(next) {
@@ -369,6 +416,9 @@
         if (head.x === food.x && head.y === food.y) {
           ate = true;
           score += 10;
+          foodsEaten += 1;
+          foodsEl.textContent = String(foodsEaten);
+          saveLifetimeStats();
           food = randomFoodPosition();
           maybeSpawnBonusFood(now);
           maybeSpawnShieldFood(now);
@@ -377,6 +427,9 @@
         if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
           ate = true;
           score += 30;
+          foodsEaten += 1;
+          foodsEl.textContent = String(foodsEaten);
+          saveLifetimeStats();
           bonusFood = null;
         }
 
@@ -519,6 +572,21 @@
         }
       });
 
+
+      clearDataBtn.addEventListener('click', () => {
+        localStorage.removeItem('snake-best');
+        localStorage.removeItem(settingsKey);
+        localStorage.removeItem(statsKey);
+        bestScore = 0;
+        bestEl.textContent = '0';
+        foodsEaten = 0;
+        totalPlays = 0;
+        foodsEl.textContent = '0';
+        playsEl.textContent = '0';
+        resetGame(true);
+      });
+
+      loadLifetimeStats();
       loadSettings();
       mode = modeSelect.value;
       baseSpeed = Number(difficultySelect.value);
