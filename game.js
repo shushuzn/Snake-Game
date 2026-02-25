@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.66.0';
+const GAME_VERSION = '0.67.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.67.0', notes: ['新增 loop_timers.js，主循环与倒计时计时器编排从 game.js 拆分', '路线图 P1 推进：主循环计时编排模块化落地，下一步拆分状态机决策层'] },
   { version: '0.66.0', notes: ['新增 item_spawn.js，道具生成与加石头规则编排从 game.js 拆分', '路线图 P1 推进：道具生成编排模块化落地，下一步拆分主循环状态机编排层'] },
   { version: '0.65.0', notes: ['新增 round_state.js，回合初始化状态与出生参数编排从 game.js 拆分', '路线图 P1 推进：战局状态编排模块化落地，下一步拆分道具生成编排层'] },
   { version: '0.64.0', notes: ['新增 mode_rules.js，限时模式与 DLC 时间/步进规则从 game.js 拆分', '路线图 P1 推进：模式规则编排模块化落地，下一步拆分战局状态编排层'] },
@@ -215,7 +216,6 @@ let bestScore = Number(storage.readText('snake-best', '0'));
 let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
 let paused = false;
-let loopTimer;
 let baseSpeed = Number(difficultySelect.value);
 let speed = baseSpeed;
 let mode = modeSelect.value;
@@ -233,7 +233,6 @@ let foodsEaten = 0;
 let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
-let countdownTimer = null;
 let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
@@ -551,6 +550,14 @@ const itemSpawnRuntime = window.SnakeItemSpawn.createItemSpawnModule({
     setMagnetFood: (pos, expireAt) => { magnetFood = pos; magnetExpireAt = expireAt; },
     setComboFood: (pos, expireAt) => { comboFood = pos; comboExpireAt = expireAt; }
   }
+});
+
+const loopTimersRuntime = window.SnakeLoopTimers.createLoopTimersModule({
+  showOverlay,
+  getEffectiveSpeed: effectiveSpeed,
+  onTick: update,
+  isPaused: () => paused,
+  isRunning: () => running
 });
 
 function getBonusStep() {
@@ -951,8 +958,7 @@ function resetGame(showStartOverlay = true) {
   phaseUntil = roundMeta.phaseUntil;
   magnetUntil = roundMeta.magnetUntil;
   comboGuardUntil = roundMeta.comboGuardUntil;
-  clearInterval(loopTimer);
-  clearInterval(countdownTimer);
+  loopTimersRuntime.stopAll();
   challengeRuntime.stopTicker();
   pauseBtn.textContent = '暂停';
   scoreEl.textContent = '0';
@@ -995,10 +1001,9 @@ function randomFreeCell() {
 function randomFoodPosition() { return randomFreeCell(); }
 
 function startLoop() {
-  clearInterval(loopTimer);
-  clearInterval(countdownTimer);
+  loopTimersRuntime.stopAll();
   lastTickMs = performance.now();
-  loopTimer = setInterval(update, effectiveSpeed());
+  loopTimersRuntime.startLoop();
 }
 
 function startGameIfNeeded() {
@@ -1030,22 +1035,7 @@ function startGameIfNeeded() {
 
 
 function startCountdown(onDone) {
-  clearInterval(countdownTimer);
-  let count = 3;
-  showOverlay(`<p><strong>${count}</strong></p><p>准备开始</p>`);
-  countdownTimer = setInterval(() => {
-    if (paused || !running) {
-      clearInterval(countdownTimer);
-      return;
-    }
-    count -= 1;
-    if (count <= 0) {
-      clearInterval(countdownTimer);
-      onDone();
-      return;
-    }
-    showOverlay(`<p><strong>${count}</strong></p><p>准备开始</p>`);
-  }, 550);
+  loopTimersRuntime.startCountdown(onDone);
 }
 
 function changeDirection(next) {
@@ -1058,8 +1048,7 @@ function togglePause() {
   if (!running) return;
   if (paused) return startGameIfNeeded();
   paused = true;
-  clearInterval(loopTimer);
-  clearInterval(countdownTimer);
+  loopTimersRuntime.stopAll();
   pauseBtn.textContent = '继续';
   showOverlay('<p><strong>已暂停</strong></p><p>按空格 / P 或“继续”恢复游戏</p>');
 }
@@ -1081,8 +1070,7 @@ function isCollision(head) {
 }
 
 function endGame(reasonText) {
-  clearInterval(loopTimer);
-  clearInterval(countdownTimer);
+  loopTimersRuntime.stopAll();
   running = false;
   paused = false;
 
