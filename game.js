@@ -72,7 +72,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.77.0';
+const GAME_VERSION = '0.78.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -138,6 +138,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.78.0', notes: ['创意工坊规则码新增 mapCode 字段，支持障碍地图随规则一键分享与应用', '路线图 P2 推进：工坊与地图码互通完成，下一步进入榜单面板首版'] },
   { version: '0.77.0', notes: ['障碍编辑器新增地图码（SNKMAP1）生成与应用，支持校验码验证', '路线图 P2 推进：地图码导入导出首版落地，进入工坊互通阶段'] },
   { version: '0.76.0', notes: ['挑战面板刷新改为复用 getDailyChallengeBundle，减少重复日期/挑战推导逻辑', '路线图 P1 推进：挑战展示链路完成一次去冗余优化，便于后续维护与扩展'] },
   { version: '0.75.0', notes: ['每日挑战跨天切换优化：进行中的对局维持当局挑战，结束后再应用新日期挑战', '挑战面板新增跨天切换提示，避免午夜期间规则突变造成体验割裂'] },
@@ -514,7 +515,15 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
     updateLevelText();
     refreshModeBestText();
   },
-  resetAndRefresh: () => resetGame(true)
+  resetAndRefresh: () => resetGame(true),
+  getMapCode: () => encodeMapCode(customRocks),
+  applyMapCode: (rawMapCode) => {
+    const parsed = parseMapCode(rawMapCode);
+    if (!parsed.ok) return { ok: false, reason: parsed.reason };
+    customRocks = parsed.rocks;
+    saveCustomRocks();
+    return { ok: true };
+  }
 });
 
 const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
@@ -541,7 +550,8 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
     getModeSettingValue,
     getObstacleModeSettingValue,
     setModePreference: (value) => { modePreference = value; },
-    setObstacleModePreference: (value) => { obstacleModePreference = value; }
+    setObstacleModePreference: (value) => { obstacleModePreference = value; },
+    getMapCode: () => encodeMapCode(customRocks)
   },
   ui: {
     showOverlay,

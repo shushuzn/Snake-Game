@@ -75,11 +75,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.77.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.78.0
 ```
 
 ## 最新进展
 
+- v0.78.0：创意工坊规则码新增 `mapCode` 字段，支持“规则 + 地图”一键分享与应用。
 - v0.77.0：障碍编辑器新增地图码（`SNKMAP1`）生成与应用，支持校验码验证与错误提示。
 - v0.76.0：挑战面板刷新改为复用 `getDailyChallengeBundle`，统一当前/明日挑战与日期推导，减少重复逻辑。
 - v0.75.0：优化每日挑战跨天切换：进行中的对局将保持当局挑战，避免午夜切日导致规则突变；并增加跨天切换提示。
@@ -120,6 +121,7 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.77.0
    - 范围：将坐标编辑器升级为“地图码”，并与创意工坊代码互通。
    - 已完成：
      - ✅ 地图码 `SNKMAP1` 首版（生成/应用/校验失败提示）。
+     - ✅ 工坊与地图码互通：工坊码可携带 `mapCode` 字段。
    - 交付：
      - 地图码导入/导出（带版本号与校验）；
      - 地图预览摘要（障碍数量、危险度、推荐模式）。
@@ -152,8 +154,8 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.77.0
 
 ### 路线图执行看板（滚动）
 
-- **Now（进行中）**：工坊与地图码互通（导入导出入口统一）。
-- **Next（下一步）**：榜单面板首版（本地模拟榜 + 离线提示）。
-- **Later（随后）**：赛季信息区与历史赛季入口。
+- **Now（进行中）**：榜单面板首版（本地模拟榜 + 离线提示）。
+- **Next（下一步）**：赛季信息区与历史赛季入口。
+- **Later（随后）**：移动端引导与手势自定义第一版。
 
 > 说明：看板用于周迭代跟踪，完成后会同步移动到“最新进展”。

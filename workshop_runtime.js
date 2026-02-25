@@ -16,7 +16,8 @@ window.SnakeWorkshopRuntime = (() => {
         hardcoreMode: controls.hardcoreModeInput.checked,
         contrastMode: controls.contrastModeInput.checked,
         miniHudMode: controls.miniHudModeInput.checked,
-        autoPauseMode: controls.autoPauseModeInput.checked
+        autoPauseMode: controls.autoPauseModeInput.checked,
+        mapCode: runtime.getMapCode ? runtime.getMapCode() : ''
       };
     }
 
@@ -61,7 +62,7 @@ window.SnakeWorkshopRuntime = (() => {
       controls.applyWorkshopBtn.addEventListener('click', () => {
         const ok = workshop.applyCode(controls.workshopCodeInput.value, applyControls, getStateSnapshot);
         if (!ok) {
-          ui.showOverlay('<p><strong>工坊代码无效</strong></p><p>请检查是否为 SWK1 格式</p>');
+          ui.showOverlay('<p><strong>工坊代码无效</strong></p><p>请检查 SWK1 格式或地图码字段</p>');
           setTimeout(() => { if (ui.isRunning() && !ui.isPaused()) ui.hideOverlay(); }, 900);
           return;
         }

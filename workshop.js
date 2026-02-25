@@ -25,7 +25,9 @@
       applyVisualModes,
       saveSettings,
       syncRuntime,
-      resetAndRefresh
+      resetAndRefresh,
+      getMapCode,
+      applyMapCode
     } = config;
 
     const presets = {
@@ -46,7 +48,8 @@
         hardcoreMode: state.hardcoreMode,
         contrastMode: state.contrastMode,
         miniHudMode: state.miniHudMode,
-        autoPauseMode: state.autoPauseMode
+        autoPauseMode: state.autoPauseMode,
+        mapCode: state.mapCode || ''
       };
     }
 
@@ -64,6 +67,11 @@
         miniHudMode: Boolean(parsed.miniHudMode),
         autoPauseMode: parsed.autoPauseMode !== false
       });
+
+      if (parsed.mapCode && applyMapCode) {
+        const applied = applyMapCode(parsed.mapCode);
+        if (!applied || !applied.ok) return false;
+      }
 
       applyVisualModes();
       saveSettings();
