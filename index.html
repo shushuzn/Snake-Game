@@ -161,6 +161,7 @@
           <span>最高分：<b id="best">0</b></span>
           <span>长度：<b id="length">3</b></span>
           <span>时间：<b id="time" class="warn">--</b></span>
+          <span>连击：<b id="combo">x1</b></span>
         </div>
       </section>
 
@@ -199,10 +200,14 @@
             <input id="wrapMode" type="checkbox" />
             穿墙
           </label>
+          <label class="label-inline" for="obstacleMode">
+            <input id="obstacleMode" type="checkbox" checked />
+            障碍
+          </label>
         </div>
       </section>
 
-      <p class="tips">提示：空格暂停/继续。金色食物是限时奖励（+30 分）。普通模式撞墙会失败。</p>
+      <p class="tips">提示：空格暂停/继续。金色食物是限时奖励（+30 分）；连续进食会有连击加分；障碍模式会随分数生成石块。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -221,12 +226,14 @@
       const bestEl = document.getElementById('best');
       const lengthEl = document.getElementById('length');
       const timeEl = document.getElementById('time');
+      const comboEl = document.getElementById('combo');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
       const difficultySelect = document.getElementById('difficulty');
       const modeSelect = document.getElementById('mode');
       const wrapModeInput = document.getElementById('wrapMode');
+      const obstacleModeInput = document.getElementById('obstacleMode');
       const mobilePad = document.querySelector('.mobile-pad');
 
       const gridSize = 20;
@@ -250,6 +257,7 @@
       let food;
       let bonusFood = null;
       let bonusExpireAt = 0;
+      let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
       let running = false;
@@ -261,6 +269,8 @@
       let mode = modeSelect.value;
       let remainingTime = timedModeDuration;
       let lastTickMs = 0;
+      let combo = 1;
+      let lastEatMs = 0;
 
       bestEl.textContent = String(bestScore);
 
@@ -288,6 +298,7 @@
         food = randomFoodPosition();
         bonusFood = null;
         bonusExpireAt = 0;
+        rocks = [];
         score = 0;
         running = false;
         paused = false;
@@ -298,6 +309,9 @@
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
         lengthEl.textContent = String(snake.length);
+        combo = 1;
+        lastEatMs = 0;
+        comboEl.textContent = 'x1';
         updateTimeText();
         if (showStartOverlay) {
           showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
@@ -319,7 +333,8 @@
         } while (
           isOnSnake(position) ||
           (food && food.x === position.x && food.y === position.y) ||
-          (bonusFood && bonusFood.x === position.x && bonusFood.y === position.y)
+          (bonusFood && bonusFood.x === position.x && bonusFood.y === position.y) ||
+          rocks.some(rock => rock.x === position.x && rock.y === position.y)
         );
         return position;
       }
@@ -333,6 +348,16 @@
         if (score % 50 !== 0) return;
         bonusFood = randomFreeCell();
         bonusExpireAt = now + 3200;
+      }
+
+
+
+      function maybeAddRock() {
+        if (!obstacleModeInput.checked) return;
+        if (score < 80) return;
+        if (score % 40 !== 0) return;
+        if (rocks.length >= 8) return;
+        rocks.push(randomFreeCell());
       }
 
       function startLoop() {
@@ -431,6 +456,19 @@
           bonusFood = null;
         }
 
+        if (ate) {
+          const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
+          combo = eatDelta <= 3000 ? Math.min(combo + 1, 9) : 1;
+          const comboBonus = (combo - 1) * 2;
+          score += comboBonus;
+          comboEl.textContent = `x${combo}`;
+          lastEatMs = now;
+          maybeAddRock();
+        } else {
+          combo = 1;
+          comboEl.textContent = "x1";
+        }
+
         if (!ate) {
           snake.pop();
         } else {
@@ -449,7 +487,8 @@
       function isCollision(head) {
         const hitWall = !wrapModeInput.checked && (head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount);
         const hitSelf = snake.some(seg => seg.x === head.x && seg.y === head.y);
-        return hitWall || hitSelf;
+        const hitRock = rocks.some(rock => rock.x === head.x && rock.y === head.y);
+        return hitWall || hitSelf || hitRock;
       }
 
       function endGame(reasonText) {
@@ -499,6 +538,9 @@
         if (bonusFood) {
           drawCell(bonusFood, '#facc15', 8);
         }
+        rocks.forEach((rock) => {
+          drawCell(rock, '#64748b', 5);
+        });
         snake.forEach((segment, index) => {
           drawCell(segment, index === 0 ? '#7dffa5' : '#22c55e');
         });
@@ -567,6 +609,10 @@
 
       modeSelect.addEventListener('change', () => {
         mode = modeSelect.value;
+        resetGame(true);
+      });
+
+      obstacleModeInput.addEventListener('change', () => {
         resetGame(true);
       });
 
