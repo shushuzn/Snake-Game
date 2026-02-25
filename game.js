@@ -48,7 +48,7 @@ const hardcoreModeInput = document.getElementById('hardcoreMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.31.0';
+const GAME_VERSION = '0.31.1';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -74,6 +74,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.31.1', notes: ['优化页面显示：统计栏改为网格，移动端布局更紧凑', '修复小屏下控件拥挤与信息可读性问题'] },
   { version: '0.31.0', notes: ['新增连击果：提供连击护航状态并奖励额外分数', '连击在短时间内不会因断档立即重置'] },
   { version: '0.30.0', notes: ['新增版本大事件面板，可查看历史更新重点', '帮助回顾玩法演进，便于老玩家快速上手'] },
   { version: '0.29.0', notes: ['新增帮助面板，集中说明模式、道具和成长建议'] },
