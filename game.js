@@ -47,10 +47,11 @@ const obstacleModeInput = document.getElementById('obstacleMode');
 const hardcoreModeInput = document.getElementById('hardcoreMode');
 const contrastModeInput = document.getElementById('contrastMode');
 const miniHudModeInput = document.getElementById('miniHudMode');
+const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.32.1';
+const GAME_VERSION = '0.32.2';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -76,6 +77,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.32.2', notes: ['新增失焦自动暂停开关，支持不中断后台运行偏好', '设置随本地账号快照一起保存'] },
   { version: '0.32.1', notes: ['新增精简HUD开关，移动端信息展示更聚焦', '显示偏好写入设置并随账号切换恢复'] },
   { version: '0.32.0', notes: ['重写前端布局：信息面板、控制区和记录区重新分层', '统一新视觉风格并保留原有玩法与存档兼容'] },
   { version: '0.31.2', notes: ['新增高对比显示开关，提升界面可读性', '设置会写入本地并跟随账号存档切换'] },
@@ -357,6 +359,7 @@ function loadSettings() {
     hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
     contrastModeInput.checked = Boolean(parsed.contrastMode);
     miniHudModeInput.checked = Boolean(parsed.miniHudMode);
+    autoPauseModeInput.checked = parsed.autoPauseMode !== false;
   } catch {
     // ignore malformed settings
   }
@@ -373,7 +376,8 @@ function saveSettings() {
     obstacleMode: obstacleModeInput.checked,
     hardcoreMode: hardcoreModeInput.checked,
     contrastMode: contrastModeInput.checked,
-    miniHudMode: miniHudModeInput.checked
+    miniHudMode: miniHudModeInput.checked,
+    autoPauseMode: autoPauseModeInput.checked
   }));
   saveActiveAccountSnapshot();
 }
@@ -1380,6 +1384,7 @@ hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(t
 wrapModeInput.addEventListener('change', saveSettings);
 contrastModeInput.addEventListener('change', () => { saveSettings(); applyContrastMode(); });
 miniHudModeInput.addEventListener('change', () => { saveSettings(); applyMiniHudMode(); });
+autoPauseModeInput.addEventListener('change', saveSettings);
 skinSelect.addEventListener('change', () => {
   saveSettings();
   currentSkin = skinSelect.value;
@@ -1388,9 +1393,9 @@ skinSelect.addEventListener('change', () => {
 
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && running && !paused) {
-    togglePause();
-  }
+  if (!document.hidden) return;
+  if (!autoPauseModeInput.checked) return;
+  if (running && !paused) togglePause();
 });
 
 
