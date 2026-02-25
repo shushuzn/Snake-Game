@@ -45,10 +45,11 @@ const modeSelect = document.getElementById('mode');
 const wrapModeInput = document.getElementById('wrapMode');
 const obstacleModeInput = document.getElementById('obstacleMode');
 const hardcoreModeInput = document.getElementById('hardcoreMode');
+const contrastModeInput = document.getElementById('contrastMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.31.1';
+const GAME_VERSION = '0.31.2';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -74,6 +75,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.31.2', notes: ['新增高对比显示开关，提升界面可读性', '设置会写入本地并跟随账号存档切换'] },
   { version: '0.31.1', notes: ['优化页面显示：统计栏改为网格，移动端布局更紧凑', '修复小屏下控件拥挤与信息可读性问题'] },
   { version: '0.31.0', notes: ['新增连击果：提供连击护航状态并奖励额外分数', '连击在短时间内不会因断档立即重置'] },
   { version: '0.30.0', notes: ['新增版本大事件面板，可查看历史更新重点', '帮助回顾玩法演进，便于老玩家快速上手'] },
@@ -264,6 +266,7 @@ function reloadAllFromStorage() {
   mode = modeSelect.value;
   updateLevelText();
   baseSpeed = Number(difficultySelect.value);
+  applyContrastMode();
   refreshModeBestText();
   resetGame(true);
 }
@@ -331,6 +334,10 @@ async function importSaveData(file) {
   }
 }
 
+function applyContrastMode() {
+  document.body.classList.toggle('high-contrast', Boolean(contrastModeInput?.checked));
+}
+
 function loadSettings() {
   try {
     const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
@@ -340,9 +347,11 @@ function loadSettings() {
     wrapModeInput.checked = Boolean(parsed.wrapMode);
     obstacleModeInput.checked = parsed.obstacleMode !== false;
     hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
+    contrastModeInput.checked = Boolean(parsed.contrastMode);
   } catch {
     // ignore malformed settings
   }
+  applyContrastMode();
 }
 
 function saveSettings() {
@@ -352,7 +361,8 @@ function saveSettings() {
     skin: skinSelect.value,
     wrapMode: wrapModeInput.checked,
     obstacleMode: obstacleModeInput.checked,
-    hardcoreMode: hardcoreModeInput.checked
+    hardcoreMode: hardcoreModeInput.checked,
+    contrastMode: contrastModeInput.checked
   }));
   saveActiveAccountSnapshot();
 }
@@ -1357,6 +1367,7 @@ modeSelect.addEventListener('change', () => {
 obstacleModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 wrapModeInput.addEventListener('change', saveSettings);
+contrastModeInput.addEventListener('change', () => { saveSettings(); applyContrastMode(); });
 skinSelect.addEventListener('change', () => {
   saveSettings();
   currentSkin = skinSelect.value;
@@ -1472,6 +1483,7 @@ loadAchievements();
 loadAudioSetting();
 loadBestByMode();
 loadSettings();
+applyContrastMode();
 currentSkin = skinSelect.value;
 mode = modeSelect.value;
 updateLevelText();

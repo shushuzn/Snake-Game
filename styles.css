@@ -68,3 +68,27 @@ select { background: #1e293b; color: #f8fafc; padding: 7px 10px; border: 1px sol
 
 @media (min-width: 700px) { .mobile-pad { display: none; } }
 
+
+
+body.high-contrast {
+  background: #020617;
+  color: #ffffff;
+}
+body.high-contrast .game-shell {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+body.high-contrast #board {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+body.high-contrast .stats span,
+body.high-contrast .history {
+  background: rgba(2, 6, 23, 0.9);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+body.high-contrast .tips {
+  color: #e2e8f0;
+}
+body.high-contrast button {
+  filter: saturate(1.2) contrast(1.1);
+}
