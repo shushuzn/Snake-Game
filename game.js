@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.65.0';
+const GAME_VERSION = '0.66.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.66.0', notes: ['新增 item_spawn.js，道具生成与加石头规则编排从 game.js 拆分', '路线图 P1 推进：道具生成编排模块化落地，下一步拆分主循环状态机编排层'] },
   { version: '0.65.0', notes: ['新增 round_state.js，回合初始化状态与出生参数编排从 game.js 拆分', '路线图 P1 推进：战局状态编排模块化落地，下一步拆分道具生成编排层'] },
   { version: '0.64.0', notes: ['新增 mode_rules.js，限时模式与 DLC 时间/步进规则从 game.js 拆分', '路线图 P1 推进：模式规则编排模块化落地，下一步拆分战局状态编排层'] },
   { version: '0.63.0', notes: ['新增 workshop_runtime.js，工坊状态快照与按钮交互编排从 game.js 拆分', '路线图 P1 推进：工坊编排模块化落地，下一步拆分模式规则编排层'] },
@@ -517,6 +518,40 @@ const modeRulesRuntime = window.SnakeModeRules.createModeRulesModule({
 });
 
 const roundStateRuntime = window.SnakeRoundState.createRoundStateModule();
+
+const itemSpawnRuntime = window.SnakeItemSpawn.createItemSpawnModule({
+  runtime: {
+    getScore: () => score,
+    getShields: () => shields,
+    getCombo: () => combo,
+    getBonusStep,
+    isHardcoreEnabled: () => hardcoreModeInput.checked,
+    isObstacleEnabled: () => obstacleModeInput.checked,
+    isChallengeNoRocks: () => Boolean(currentChallenge.noRocks),
+    hasCustomRocks: () => customRocks.length > 0,
+    getRocksCount: () => rocks.length,
+    addRock: (value) => { rocks.push(value); },
+    randomFreeCell,
+    hasBonusFood: () => Boolean(bonusFood),
+    hasShieldFood: () => Boolean(shieldFood),
+    hasBoostFood: () => Boolean(boostFood),
+    hasTimeFood: () => Boolean(timeFood),
+    hasFreezeFood: () => Boolean(freezeFood),
+    hasPhaseFood: () => Boolean(phaseFood),
+    hasCrownFood: () => Boolean(crownFood),
+    hasMagnetFood: () => Boolean(magnetFood),
+    hasComboFood: () => Boolean(comboFood),
+    setBonusFood: (pos, expireAt) => { bonusFood = pos; bonusExpireAt = expireAt; },
+    setShieldFood: (pos, expireAt) => { shieldFood = pos; shieldExpireAt = expireAt; },
+    setBoostFood: (pos, expireAt) => { boostFood = pos; boostExpireAt = expireAt; },
+    setTimeFood: (pos, expireAt) => { timeFood = pos; timeExpireAt = expireAt; },
+    setFreezeFood: (pos, expireAt) => { freezeFood = pos; freezeExpireAt = expireAt; },
+    setPhaseFood: (pos, expireAt) => { phaseFood = pos; phaseExpireAt = expireAt; },
+    setCrownFood: (pos, expireAt) => { crownFood = pos; crownExpireAt = expireAt; },
+    setMagnetFood: (pos, expireAt) => { magnetFood = pos; magnetExpireAt = expireAt; },
+    setComboFood: (pos, expireAt) => { comboFood = pos; comboExpireAt = expireAt; }
+  }
+});
 
 function getBonusStep() {
   return modeRulesRuntime.getBonusStep();
@@ -959,98 +994,6 @@ function randomFreeCell() {
 
 function randomFoodPosition() { return randomFreeCell(); }
 
-function maybeSpawnBonusFood(now) {
-  if (bonusFood || score === 0) return;
-  if (score % getBonusStep() !== 0) return;
-  bonusFood = randomFreeCell();
-  bonusExpireAt = now + 3200;
-}
-
-function maybeSpawnShieldFood(now) {
-  if (hardcoreModeInput.checked) return;
-  if (shieldFood || shields >= 2) return;
-  if (score < 60) return;
-  if (score % 70 !== 0) return;
-  shieldFood = randomFreeCell();
-  shieldExpireAt = now + 4500;
-}
-
-
-function maybeSpawnBoostFood(now) {
-  if (boostFood || score < 80) return;
-  if (score % 90 !== 0) return;
-  boostFood = randomFreeCell();
-  boostExpireAt = now + 4200;
-}
-
-
-function maybeSpawnTimeFood(now) {
-  if (timeFood || score < 50) return;
-  if (score % 75 !== 0) return;
-  timeFood = randomFreeCell();
-  timeExpireAt = now + 4600;
-}
-
-
-function maybeSpawnFreezeFood(now) {
-  if (freezeFood || score < 40) return;
-  if (score % 65 !== 0) return;
-  freezeFood = randomFreeCell();
-  freezeExpireAt = now + 4200;
-}
-
-function maybeSpawnPhaseFood(now) {
-  if (phaseFood || score < 70) return;
-  if (score % 85 !== 0) return;
-  phaseFood = randomFreeCell();
-  phaseExpireAt = now + 4500;
-}
-
-function maybeSpawnCrownFood(now) {
-  if (crownFood || score < 100) return;
-  if (score % 110 !== 0) return;
-  crownFood = randomFreeCell();
-  crownExpireAt = now + 5000;
-}
-
-function maybeSpawnMagnetFood(now) {
-  if (magnetFood || score < 90) return;
-  if (score % 95 !== 0) return;
-  magnetFood = randomFreeCell();
-  magnetExpireAt = now + 4300;
-}
-
-function maybeSpawnComboFood(now) {
-  if (comboFood || score < 70) return;
-  if (combo < 4) return;
-  if (score % 75 !== 0) return;
-  comboFood = randomFreeCell();
-  comboExpireAt = now + 4200;
-}
-
-function effectiveSpeed() {
-  const slowed = performance.now() < freezeUntil;
-  return speed + (slowed ? 40 : 0);
-}
-
-function refreshStateText(now = performance.now()) {
-  const states = [];
-  if (now < freezeUntil) states.push('减速');
-  if (now < phaseUntil) states.push('相位');
-  if (now < magnetUntil) states.push('磁吸');
-  if (now < comboGuardUntil) states.push('连击护航');
-  stateEl.textContent = states.join('+') || '正常';
-}
-
-function maybeAddRock() {
-  if (!obstacleModeInput.checked || currentChallenge.noRocks) return;
-  if (customRocks.length) return;
-  if (score < 80) return;
-  if (score % 40 !== 0) return;
-  if (rocks.length >= 8) return;
-  rocks.push(randomFreeCell());
-}
-
 function startLoop() {
   clearInterval(loopTimer);
   clearInterval(countdownTimer);
@@ -1253,15 +1196,7 @@ function update() {
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     food = randomFoodPosition();
-    maybeSpawnBonusFood(now);
-    maybeSpawnShieldFood(now);
-    maybeSpawnBoostFood(now);
-    maybeSpawnTimeFood(now);
-    maybeSpawnFreezeFood(now);
-    maybeSpawnPhaseFood(now);
-    maybeSpawnCrownFood(now);
-    maybeSpawnMagnetFood(now);
-    maybeSpawnComboFood(now);
+    itemSpawnRuntime.spawnOnFoodEat(now);
     discoverCodex('food', '基础果');
     beep('eat');
   }
@@ -1419,7 +1354,7 @@ function update() {
     addScore((combo - 1) * 2 * scoreMultiplier, 'comboChain');
     comboEl.textContent = `x${combo}`;
     lastEatMs = now;
-    maybeAddRock();
+    itemSpawnRuntime.maybeAddRock();
   } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000) && now > comboGuardUntil) {
     combo = 1;
     comboEl.textContent = 'x1';
