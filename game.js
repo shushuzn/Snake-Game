@@ -67,7 +67,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.48.0';
+const GAME_VERSION = '0.49.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -89,6 +89,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.49.0', notes: ['修复跨天切换时强制模式在对局中立即生效的问题', '重置时先应用挑战锁定再初始化倒计时，避免限时错位'] },
   { version: '0.48.0', notes: ['新增每日挑战“冲刺日”：可临时锁定为冲刺模式', '模式锁定期间保存设置将保留玩家原始模式偏好'] },
   { version: '0.47.0', notes: ['新增“冲刺 45 秒”模式，节奏更快更适合短局', '冲刺模式共享限时玩法并支持时间果/王冠加时奖励'] },
   { version: '0.46.0', notes: ['修复挑战锁定期间保存设置导致障碍偏好被覆盖的问题', '保存配置时会优先写入玩家偏好而非临时锁定值'] },
@@ -249,14 +250,18 @@ function applyChallengeControlLocks() {
   const forceMode = currentChallenge.forceMode;
   if (forceMode) {
     if (!modeSelect.disabled) modePreference = modeSelect.value;
+    modeSelect.disabled = true;
+    if (running) {
+      modeSelect.title = `今日挑战：下一局将锁定为${SnakeModes.getModeLabel(forceMode)}`;
+      return;
+    }
     modeSelect.value = forceMode;
     mode = forceMode;
-    modeSelect.disabled = true;
     modeSelect.title = `今日挑战：模式锁定为${SnakeModes.getModeLabel(forceMode)}`;
     return;
   }
 
-  if (modeSelect.disabled) {
+  if (modeSelect.disabled && !running) {
     modeSelect.value = modePreference;
     mode = modePreference;
   }
@@ -922,6 +927,7 @@ function resetGame(showStartOverlay = true) {
   score = 0;
   running = false;
   paused = false;
+  refreshChallengeHud();
   remainingTime = getModeTimeDuration();
   level = 1;
   levelTargetScore = 100;
@@ -954,7 +960,6 @@ function resetGame(showStartOverlay = true) {
   magnetUntil = 0;
   comboGuardUntil = 0;
   refreshStateText();
-  refreshChallengeHud();
   startChallengeRefreshTicker();
   updateTimeText();
   updateLevelText();

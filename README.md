@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.48.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.49.0
 ```
 
 ## 最新进展
 
+- v0.49.0：修复强制模式挑战在进行中对局的切换时机，并校正重置时的计时初始化顺序。
 - v0.48.0：新增“冲刺日”每日挑战，并在模式锁定期间保留玩家原始模式偏好。
 - v0.47.0：新增“冲刺 45 秒”模式，适合短局冲分。
 - v0.46.0：修复挑战锁定期间保存设置会覆盖障碍偏好的问题。
