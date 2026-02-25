@@ -63,7 +63,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.11.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.12.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -77,6 +77,7 @@
           <span>吃到：<b id="foods">0</b></span>
           <span>连胜：<b id="streak">0</b></span>
           <span>成就：<b id="achievements">0/3</b></span>
+          <span>挑战：<b id="challenge">--</b></span>
         </div>
       </section>
 
@@ -109,7 +110,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；新增成就系统（高分/连击/限时通关）。</p>
+      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；每日挑战会改变规则（速度/护盾/奖励/障碍）。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -136,6 +137,7 @@
       const foodsEl = document.getElementById('foods');
       const streakEl = document.getElementById('streak');
       const achievementsEl = document.getElementById('achievements');
+      const challengeEl = document.getElementById('challenge');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
@@ -148,7 +150,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.11.0';
+      const GAME_VERSION = '0.12.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -158,6 +160,13 @@
       const audioKey = 'snake-audio-v1';
       const bestByModeKey = 'snake-best-by-mode-v1';
       const achievementsKey = 'snake-achievements-v1';
+
+      const dailyChallengeOptions = [
+        { id: 'fast-start', label: '极速热身', speedDelta: -15 },
+        { id: 'bonus-rush', label: '多金模式', bonusStep: 30 },
+        { id: 'tough-skin', label: '坚韧模式', startShield: 1 },
+        { id: 'no-rocks', label: '净空模式', noRocks: true }
+      ];
 
       const dirMap = {
         ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
@@ -198,10 +207,22 @@
       let muted = false;
       let achievements = { score200: false, combo5: false, timedClear: false };
       let roundMaxCombo = 1;
+      let currentChallenge = dailyChallengeOptions[0];
 
       bestEl.textContent = String(bestScore);
       versionTag.textContent = `v${GAME_VERSION}`;
       versionTag.title = `Snake build ${GAME_VERSION}`;
+
+
+      function selectDailyChallenge() {
+        const dateSeed = Number(new Date().toISOString().slice(0, 10).replaceAll('-', ''));
+        currentChallenge = dailyChallengeOptions[dateSeed % dailyChallengeOptions.length];
+        challengeEl.textContent = currentChallenge.label;
+      }
+
+      function getBonusStep() {
+        return currentChallenge.bonusStep || 50;
+      }
 
       function loadSettings() {
         try {
@@ -349,11 +370,11 @@
         paused = false;
         remainingTime = timedModeDuration;
         lastTickMs = 0;
-        speed = baseSpeed;
+        speed = Math.max(55, baseSpeed + (currentChallenge.speedDelta || 0));
         combo = 1;
         roundMaxCombo = 1;
         lastEatMs = 0;
-        shields = 0;
+        shields = currentChallenge.startShield || 0;
         missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
         missionAchieved = false;
         playCountedThisRound = false;
@@ -363,8 +384,9 @@
         scoreEl.textContent = '0';
         lengthEl.textContent = String(snake.length);
         comboEl.textContent = 'x1';
-        shieldEl.textContent = '0';
+        shieldEl.textContent = String(shields);
         missionEl.textContent = `${missionTarget}分`;
+        challengeEl.textContent = currentChallenge.label;
         updateTimeText();
         if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
         draw();
@@ -390,7 +412,7 @@
 
       function maybeSpawnBonusFood(now) {
         if (bonusFood || score === 0) return;
-        if (score % 50 !== 0) return;
+        if (score % getBonusStep() !== 0) return;
         bonusFood = randomFreeCell();
         bonusExpireAt = now + 3200;
       }
@@ -404,7 +426,7 @@
       }
 
       function maybeAddRock() {
-        if (!obstacleModeInput.checked) return;
+        if (!obstacleModeInput.checked || currentChallenge.noRocks) return;
         if (score < 80) return;
         if (score % 40 !== 0) return;
         if (rocks.length >= 8) return;
@@ -531,7 +553,8 @@
 
         if (mode === 'timed') {
           remainingTime -= elapsed;
-          updateTimeText();
+          challengeEl.textContent = currentChallenge.label;
+        updateTimeText();
           if (remainingTime <= 0) return endGame('⏰ 时间到！');
         }
 
@@ -755,6 +778,7 @@
         saveAudioSetting();
       });
 
+      selectDailyChallenge();
       loadLifetimeStats();
       loadAchievements();
       loadAudioSetting();
