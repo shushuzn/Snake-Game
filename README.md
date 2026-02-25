@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.36.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.37.0
 ```
 
 ## 最新进展
 
+- v0.37.0：新增每日挑战效果展示与新手引导入口，帮助玩家更快理解当日规则。
 - v0.36.0：继续拆分 `game.js`，新增 `modes.js` / `input.js` / `render.js` 三个模块，主文件更聚焦。
 - v0.35.0：新增快捷键（R 重开 / M 静音 / H 帮助），并避免输入框聚焦时误触快捷键。
 - v0.34.0：创意工坊进一步文件模块化，拆分为独立 `workshop.js`。

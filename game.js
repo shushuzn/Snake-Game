@@ -17,6 +17,7 @@ const foodsEl = document.getElementById('foods');
 const streakEl = document.getElementById('streak');
 const achievementsEl = document.getElementById('achievements');
 const challengeEl = document.getElementById('challenge');
+const challengeDetailEl = document.getElementById('challengeDetail');
 const lastResultEl = document.getElementById('lastResult');
 const multiplierEl = document.getElementById('multiplier');
 const stateEl = document.getElementById('state');
@@ -27,6 +28,7 @@ const clearDataBtn = document.getElementById('clearData');
 const muteBtn = document.getElementById('mute');
 const shareBtn = document.getElementById('share');
 const helpBtn = document.getElementById('help');
+const tutorialBtn = document.getElementById('tutorial');
 const helpPanel = document.getElementById('helpPanel');
 const closeHelpBtn = document.getElementById('closeHelp');
 const accountNameEl = document.getElementById('accountName');
@@ -57,7 +59,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.36.0';
+const GAME_VERSION = '0.37.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -74,8 +76,10 @@ const endlessBestLevelKey = 'snake-endless-best-level-v1';
 const accountStoreKey = 'snake-accounts-v1';
 const currentAccountKey = 'snake-current-account-v1';
 const rogueMetaKey = 'snake-roguelike-meta-v1';
+const onboardingKey = 'snake-onboarding-v1';
 
 const versionEvents = [
+  { version: '0.37.0', notes: ['新增每日挑战效果文案展示，规则变化更直观', '新增“新手引导”按钮与首次启动提示，降低上手门槛'] },
   { version: '0.36.0', notes: ['继续拆分 game.js：输入、渲染、模式配置已模块化', '新增 input.js / render.js / modes.js，主文件职责更聚焦'] },
   { version: '0.35.0', notes: ['新增快捷键：R 快速重开、M 静音、H 帮助开关', '输入框聚焦时自动忽略快捷键，避免误触影响文本输入'] },
   { version: '0.34.0', notes: ['创意工坊拆分为独立文件模块，主逻辑更清晰', '为后续继续拆分渲染/输入模块打基础'] },
@@ -203,6 +207,8 @@ rogueMutatorEl.textContent = '--';
 function selectDailyChallenge() {
   currentChallenge = SnakeModes.pickDailyChallenge();
   challengeEl.textContent = currentChallenge.label;
+  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
 }
 
 function getBonusStep() {
@@ -717,6 +723,14 @@ function toggleHelp(show) {
   helpPanel.style.display = show ? 'block' : 'none';
 }
 
+function maybeShowOnboarding() {
+  if (localStorage.getItem(onboardingKey) === '1') return;
+  toggleHelp(true);
+  showOverlay('<p><strong>欢迎来到贪吃蛇</strong></p><p>先看帮助面板，再按方向键开局</p>');
+  setTimeout(() => { if (!running || paused) hideOverlay(); }, 1400);
+  localStorage.setItem(onboardingKey, '1');
+}
+
 function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
 function hideOverlay() { overlay.style.display = 'none'; }
 function updateTimeText() { timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
@@ -781,6 +795,7 @@ function resetGame(showStartOverlay = true) {
   comboGuardUntil = 0;
   refreshStateText();
   challengeEl.textContent = currentChallenge.label;
+  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
   updateTimeText();
   updateLevelText();
   if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
@@ -1472,6 +1487,11 @@ muteBtn.addEventListener('click', () => {
 });
 
 helpBtn.addEventListener('click', () => toggleHelp(helpPanel.style.display === 'none'));
+tutorialBtn.addEventListener('click', () => {
+  toggleHelp(true);
+  showOverlay('<p><strong>新手引导</strong></p><p>建议先用经典模式熟悉节奏，再尝试限时与肉鸽</p>');
+  setTimeout(() => { if (!running || paused) hideOverlay(); }, 1300);
+});
 closeHelpBtn.addEventListener('click', () => toggleHelp(false));
 
 loginAccountBtn.addEventListener('click', () => {
@@ -1554,5 +1574,6 @@ mode = modeSelect.value;
 updateLevelText();
 baseSpeed = Number(difficultySelect.value);
 refreshModeBestText();
+maybeShowOnboarding();
 resetGame(true);
 Workshop.generateCode(getWorkshopStateSnapshot);

@@ -13,6 +13,16 @@
     return dailyChallengeOptions[dateSeed % dailyChallengeOptions.length];
   }
 
+
+  function describeChallenge(challenge) {
+    if (!challenge || typeof challenge !== 'object') return '标准规则';
+    if (challenge.noRocks) return '本局不生成障碍';
+    if (challenge.startShield) return `开局护盾 +${challenge.startShield}`;
+    if (challenge.bonusStep) return `奖励果刷新更频繁（每 ${challenge.bonusStep} 分）`;
+    if (challenge.speedDelta) return challenge.speedDelta < 0 ? `初始速度提升 ${Math.abs(challenge.speedDelta)}` : `初始速度降低 ${challenge.speedDelta}`;
+    return '标准规则';
+  }
+
   function getModeLabel(mode) {
     if (mode === 'timed') return '限时模式';
     if (mode === 'endless') return '无尽模式';
@@ -24,6 +34,7 @@
     missionOptions,
     dailyChallengeOptions,
     pickDailyChallenge,
+    describeChallenge,
     getModeLabel
   };
 })(window);
