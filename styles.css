@@ -170,6 +170,21 @@ input[type="text"] { min-width: 140px; }
 
 .panel li { margin: 2px 0; }
 
+
+.workshop-code {
+  width: 100%;
+  resize: vertical;
+  min-height: 74px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  margin: 4px 0 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
 .mobile-pad {
   margin: 0 auto;
   width: 180px;

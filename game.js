@@ -35,6 +35,10 @@ const loginAccountBtn = document.getElementById('loginAccount');
 const logoutAccountBtn = document.getElementById('logoutAccount');
 const exportSaveBtn = document.getElementById('exportSave');
 const importSaveInput = document.getElementById('importSave');
+const workshopCodeInput = document.getElementById('workshopCode');
+const genWorkshopBtn = document.getElementById('genWorkshop');
+const copyWorkshopBtn = document.getElementById('copyWorkshop');
+const applyWorkshopBtn = document.getElementById('applyWorkshop');
 const historyListEl = document.getElementById('historyList');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
@@ -51,7 +55,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.32.2';
+const GAME_VERSION = '0.33.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -77,6 +81,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.33.0', notes: ['新增创意工坊：可生成/复制/应用规则代码', '支持快速分享模式、难度、皮肤与开关配置'] },
   { version: '0.32.2', notes: ['新增失焦自动暂停开关，支持不中断后台运行偏好', '设置随本地账号快照一起保存'] },
   { version: '0.32.1', notes: ['新增精简HUD开关，移动端信息展示更聚焦', '显示偏好写入设置并随账号切换恢复'] },
   { version: '0.32.0', notes: ['重写前端布局：信息面板、控制区和记录区重新分层', '统一新视觉风格并保留原有玩法与存档兼容'] },
@@ -337,6 +342,62 @@ async function importSaveData(file) {
     setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
   } finally {
     importSaveInput.value = '';
+  }
+}
+
+function buildWorkshopPayload() {
+  return {
+    v: GAME_VERSION,
+    mode: modeSelect.value,
+    difficulty: difficultySelect.value,
+    skin: skinSelect.value,
+    wrapMode: wrapModeInput.checked,
+    obstacleMode: obstacleModeInput.checked,
+    hardcoreMode: hardcoreModeInput.checked,
+    contrastMode: contrastModeInput.checked,
+    miniHudMode: miniHudModeInput.checked,
+    autoPauseMode: autoPauseModeInput.checked
+  };
+}
+
+function generateWorkshopCode() {
+  try {
+    const payload = buildWorkshopPayload();
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    workshopCodeInput.value = `SWK1:${encoded}`;
+    return workshopCodeInput.value;
+  } catch {
+    return '';
+  }
+}
+
+function applyWorkshopCode(raw) {
+  const text = String(raw || '').trim();
+  if (!text.startsWith('SWK1:')) return false;
+  try {
+    const decoded = decodeURIComponent(escape(atob(text.slice(5))));
+    const parsed = JSON.parse(decoded);
+    if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
+    if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
+    if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
+    wrapModeInput.checked = Boolean(parsed.wrapMode);
+    obstacleModeInput.checked = parsed.obstacleMode !== false;
+    hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
+    contrastModeInput.checked = Boolean(parsed.contrastMode);
+    miniHudModeInput.checked = Boolean(parsed.miniHudMode);
+    autoPauseModeInput.checked = parsed.autoPauseMode !== false;
+    applyContrastMode();
+    applyMiniHudMode();
+    saveSettings();
+    currentSkin = skinSelect.value;
+    mode = modeSelect.value;
+    baseSpeed = Number(difficultySelect.value);
+    updateLevelText();
+    refreshModeBestText();
+    resetGame(true);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -1481,6 +1542,35 @@ accountInput.addEventListener('keydown', (event) => {
   accountInput.value = '';
 });
 
+genWorkshopBtn.addEventListener('click', () => {
+  const code = generateWorkshopCode();
+  if (!code) return;
+  showOverlay('<p><strong>创意工坊代码已生成</strong></p><p>可复制后分享给好友</p>');
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 700);
+});
+copyWorkshopBtn.addEventListener('click', async () => {
+  const code = workshopCodeInput.value.trim() || generateWorkshopCode();
+  if (!code) return;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(code);
+    showOverlay('<p><strong>已复制工坊代码</strong></p><p>可直接发送给好友</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 700);
+  } catch {
+    showOverlay('<p><strong>复制失败</strong></p><p>请手动复制文本框内容</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+  }
+});
+applyWorkshopBtn.addEventListener('click', () => {
+  const ok = applyWorkshopCode(workshopCodeInput.value);
+  if (!ok) {
+    showOverlay('<p><strong>工坊代码无效</strong></p><p>请检查是否为 SWK1 格式</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+    return;
+  }
+  showOverlay('<p><strong>已应用工坊规则</strong></p><p>已重置并按新规则开始</p>');
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+});
+
 loadAccountStore();
 activeAccount = (localStorage.getItem(currentAccountKey) || '').trim();
 if (activeAccount && accountStore[activeAccount]) {
@@ -1508,3 +1598,4 @@ updateLevelText();
 baseSpeed = Number(difficultySelect.value);
 refreshModeBestText();
 resetGame(true);
+generateWorkshopCode();

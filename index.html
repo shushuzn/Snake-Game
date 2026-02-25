@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.32.2</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.33.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -86,6 +86,18 @@
           <button id="exportSave" type="button" class="secondary">导出存档</button>
           <label class="file-btn" for="importSave">导入存档</label>
           <input id="importSave" type="file" accept="application/json" />
+        </div>
+      </section>
+
+
+      <section class="panel" aria-label="创意工坊">
+        <h2>创意工坊（规则分享）</h2>
+        <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
+        <textarea id="workshopCode" class="workshop-code" rows="3" placeholder="粘贴创意工坊代码"></textarea>
+        <div class="controls-group">
+          <button id="genWorkshop" type="button" class="secondary">生成代码</button>
+          <button id="copyWorkshop" type="button" class="secondary">复制代码</button>
+          <button id="applyWorkshop" type="button">应用代码</button>
         </div>
       </section>
 
