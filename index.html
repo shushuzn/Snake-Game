@@ -74,6 +74,7 @@
           <span>任务：<b id="mission">--</b></span>
           <span>总局：<b id="plays">0</b></span>
           <span>吃到：<b id="foods">0</b></span>
+          <span>连胜：<b id="streak">0</b></span>
         </div>
       </section>
 
@@ -92,6 +93,7 @@
           <button id="restart" type="button">重新开始</button>
           <button id="pause" type="button" class="secondary">暂停</button>
           <button id="clearData" type="button" class="secondary">清空记录</button>
+          <button id="mute" type="button" class="secondary">🔊 音效开</button>
         </div>
         <div class="controls-group">
           <label class="label-inline" for="mode">模式：
@@ -105,7 +107,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；分模式记录最高分（经典/限时）；可清空本地记录。</p>
+      <p class="tips">提示：空格/P 暂停或继续。开局有 3 秒倒计时；新增连胜记录与可关闭音效。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -130,10 +132,12 @@
       const missionEl = document.getElementById('mission');
       const playsEl = document.getElementById('plays');
       const foodsEl = document.getElementById('foods');
+      const streakEl = document.getElementById('streak');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
       const clearDataBtn = document.getElementById('clearData');
+      const muteBtn = document.getElementById('mute');
       const difficultySelect = document.getElementById('difficulty');
       const modeSelect = document.getElementById('mode');
       const wrapModeInput = document.getElementById('wrapMode');
@@ -146,6 +150,7 @@
       const missionOptions = [120, 180, 240, 300];
       const settingsKey = 'snake-settings-v2';
       const statsKey = 'snake-stats-v1';
+      const audioKey = 'snake-audio-v1';
       const bestByModeKey = 'snake-best-by-mode-v1';
 
       const dirMap = {
@@ -181,7 +186,10 @@
       let missionAchieved = false;
       let foodsEaten = 0;
       let totalPlays = 0;
+      let streakWins = 0;
       let playCountedThisRound = false;
+      let countdownTimer = null;
+      let muted = false;
 
       bestEl.textContent = String(bestScore);
 
@@ -208,6 +216,37 @@
 
 
 
+
+      function loadAudioSetting() {
+        muted = localStorage.getItem(audioKey) === '1';
+        muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
+      }
+
+      function saveAudioSetting() {
+        localStorage.setItem(audioKey, muted ? '1' : '0');
+        muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
+      }
+
+      function beep(type = 'eat') {
+        if (muted) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!beep.ctx) beep.ctx = new AudioCtx();
+        const ctx = beep.ctx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        const map = { eat: [620, 0.06], bonus: [820, 0.09], hit: [180, 0.14], mission: [980, 0.12] };
+        const [freq, dur] = map[type] || map.eat;
+        osc.frequency.value = freq;
+        gain.gain.value = 0.0001;
+        const t = ctx.currentTime;
+        gain.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        osc.start(t);
+        osc.stop(t + dur + 0.01);
+      }
+
       function loadBestByMode() {
         try {
           const parsed = JSON.parse(localStorage.getItem(bestByModeKey) || '{}');
@@ -231,16 +270,19 @@
           const parsed = JSON.parse(localStorage.getItem(statsKey) || '{}');
           foodsEaten = Number(parsed.foodsEaten || 0);
           totalPlays = Number(parsed.totalPlays || 0);
+          streakWins = Number(parsed.streakWins || 0);
         } catch {
           foodsEaten = 0;
           totalPlays = 0;
+          streakWins = 0;
         }
         foodsEl.textContent = String(foodsEaten);
         playsEl.textContent = String(totalPlays);
+        streakEl.textContent = String(streakWins);
       }
 
       function saveLifetimeStats() {
-        localStorage.setItem(statsKey, JSON.stringify({ foodsEaten, totalPlays }));
+        localStorage.setItem(statsKey, JSON.stringify({ foodsEaten, totalPlays, streakWins }));
       }
 
       function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
@@ -270,6 +312,7 @@
         missionAchieved = false;
         playCountedThisRound = false;
         clearInterval(loopTimer);
+        clearInterval(countdownTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
         lengthEl.textContent = String(snake.length);
@@ -324,6 +367,7 @@
 
       function startLoop() {
         clearInterval(loopTimer);
+        clearInterval(countdownTimer);
         lastTickMs = performance.now();
         loopTimer = setInterval(update, speed);
       }
@@ -341,6 +385,7 @@
           }
           pauseBtn.textContent = '暂停';
           startCountdown(() => {
+            if (paused || !running) return;
             hideOverlay();
             startLoop();
           });
@@ -356,12 +401,17 @@
 
 
       function startCountdown(onDone) {
+        clearInterval(countdownTimer);
         let count = 3;
         showOverlay(`<p><strong>${count}</strong></p><p>准备开始</p>`);
-        const timer = setInterval(() => {
+        countdownTimer = setInterval(() => {
+          if (paused || !running) {
+            clearInterval(countdownTimer);
+            return;
+          }
           count -= 1;
           if (count <= 0) {
-            clearInterval(timer);
+            clearInterval(countdownTimer);
             onDone();
             return;
           }
@@ -380,6 +430,7 @@
         if (paused) return startGameIfNeeded();
         paused = true;
         clearInterval(loopTimer);
+        clearInterval(countdownTimer);
         pauseBtn.textContent = '继续';
         showOverlay('<p><strong>已暂停</strong></p><p>按空格 / P 或“继续”恢复游戏</p>');
       }
@@ -393,8 +444,17 @@
 
       function endGame(reasonText) {
         clearInterval(loopTimer);
+        clearInterval(countdownTimer);
         running = false;
         paused = false;
+
+        if (mode === 'timed' && reasonText.includes('时间到')) {
+          streakWins += 1;
+        } else {
+          streakWins = 0;
+        }
+        streakEl.textContent = String(streakWins);
+        saveLifetimeStats();
 
         if (score > bestScore) {
           bestScore = score;
@@ -408,6 +468,7 @@
           refreshModeBestText();
         }
 
+        beep('hit');
         showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
       }
 
@@ -456,6 +517,7 @@
           food = randomFoodPosition();
           maybeSpawnBonusFood(now);
           maybeSpawnShieldFood(now);
+          beep('eat');
         }
 
         if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
@@ -465,6 +527,7 @@
           foodsEl.textContent = String(foodsEaten);
           saveLifetimeStats();
           bonusFood = null;
+          beep('bonus');
         }
 
         if (shieldFood && head.x === shieldFood.x && head.y === shieldFood.y) {
@@ -472,6 +535,7 @@
           shields = Math.min(2, shields + 1);
           shieldEl.textContent = String(shields);
           shieldFood = null;
+          beep('bonus');
         }
 
         if (ate) {
@@ -503,6 +567,7 @@
           shieldEl.textContent = String(shields);
           missionEl.textContent = `完成✔`;
           if (running && !paused) {
+            beep('mission');
             showOverlay('<p><strong>任务达成！</strong></p><p>奖励：护盾 +1</p>');
             setTimeout(() => {
               if (running && !paused) hideOverlay();
@@ -613,18 +678,29 @@
         localStorage.removeItem(settingsKey);
         localStorage.removeItem(statsKey);
         localStorage.removeItem(bestByModeKey);
+        localStorage.removeItem(audioKey);
         bestScore = 0;
         bestEl.textContent = '0';
         bestByMode = { classic: 0, timed: 0 };
         refreshModeBestText();
         foodsEaten = 0;
         totalPlays = 0;
+        streakWins = 0;
+        muted = false;
+        saveAudioSetting();
         foodsEl.textContent = '0';
         playsEl.textContent = '0';
+        streakEl.textContent = '0';
         resetGame(true);
       });
 
+      muteBtn.addEventListener('click', () => {
+        muted = !muted;
+        saveAudioSetting();
+      });
+
       loadLifetimeStats();
+      loadAudioSetting();
       loadBestByMode();
       loadSettings();
       mode = modeSelect.value;
