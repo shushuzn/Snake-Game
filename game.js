@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.72.0';
+const GAME_VERSION = '0.73.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -136,6 +136,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.73.0', notes: ['每日挑战新增“周循环主题”：工作日稳态 / 周末双倍率，挑战节奏更有区分度', '路线图 P1 推进：周循环主题已落地，挑战系统进入细化平衡阶段'] },
   { version: '0.72.0', notes: ['DLC 状态栏支持“风险/收益”规则摘要提示，便于开局前决策', '路线图 P1 推进：完成 DLC 风险收益可视化，进入每周挑战主题设计阶段'] },
   { version: '0.71.0', notes: ['新增 reset_prepare.js，重置前置（spawn + roundMeta 组装）从 game.js 拆分', '路线图 P1 推进：重置编排层完成前后拆分，主流程模块化进一步收敛'] },
   { version: '0.70.0', notes: ['新增 reset_flow.js，重置收尾（计时器停止/HUD复位/开局提示）从 game.js 拆分', '路线图 P1 推进：完成重置收尾编排层拆分，下一步拆分重置前置编排层'] },
@@ -334,8 +335,11 @@ function refreshDlcHud() {
 function addScore(points, source = '') {
   const delta = Number(points || 0);
   if (!delta) return;
-  score += delta;
-  settlement.addScore(source, delta);
+  const challengeFactor = Number(currentChallenge?.scoreFactor || 1);
+  const finalDelta = Math.max(1, Math.round(delta * challengeFactor));
+  score += finalDelta;
+  const sourceLabel = challengeFactor > 1 && source ? `${source}（周主题x${challengeFactor}）` : source;
+  settlement.addScore(sourceLabel, finalDelta);
 }
 
 function refreshSettlementPanel(extra = {}) {
