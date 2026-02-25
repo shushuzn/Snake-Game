@@ -70,6 +70,7 @@
           <span>时间：<b id="time" class="warn">--</b></span>
           <span>连击：<b id="combo">x1</b></span>
           <span>护盾：<b id="shield">0</b></span>
+          <span>任务：<b id="mission">--</b></span>
         </div>
       </section>
 
@@ -100,7 +101,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。金色食物 +30 分，蓝色食物获得护盾；连击和障碍会随分数进化。</p>
+      <p class="tips">提示：空格/P 暂停或继续。金色食物 +30 分，蓝色食物获得护盾；完成本局任务目标可额外获得 1 层护盾。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -121,6 +122,7 @@
       const timeEl = document.getElementById('time');
       const comboEl = document.getElementById('combo');
       const shieldEl = document.getElementById('shield');
+      const missionEl = document.getElementById('mission');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
@@ -133,6 +135,7 @@
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
+      const missionOptions = [120, 180, 240, 300];
       const settingsKey = 'snake-settings-v2';
 
       const dirMap = {
@@ -163,6 +166,8 @@
       let combo = 1;
       let lastEatMs = 0;
       let shields = 0;
+      let missionTarget = 120;
+      let missionAchieved = false;
 
       bestEl.textContent = String(bestScore);
 
@@ -210,12 +215,15 @@
         combo = 1;
         lastEatMs = 0;
         shields = 0;
+        missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
+        missionAchieved = false;
         clearInterval(loopTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
         lengthEl.textContent = String(snake.length);
         comboEl.textContent = 'x1';
         shieldEl.textContent = '0';
+        missionEl.textContent = `${missionTarget}分`;
         updateTimeText();
         if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
         draw();
@@ -401,6 +409,20 @@
 
         scoreEl.textContent = String(score);
         lengthEl.textContent = String(snake.length);
+
+        if (!missionAchieved && score >= missionTarget) {
+          missionAchieved = true;
+          shields = Math.min(2, shields + 1);
+          shieldEl.textContent = String(shields);
+          missionEl.textContent = `完成✔`;
+          if (running && !paused) {
+            showOverlay('<p><strong>任务达成！</strong></p><p>奖励：护盾 +1</p>');
+            setTimeout(() => {
+              if (running && !paused) hideOverlay();
+            }, 700);
+          }
+        }
+
         draw();
       }
 
@@ -489,6 +511,13 @@
 
       obstacleModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
       wrapModeInput.addEventListener('change', saveSettings);
+
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && running && !paused) {
+          togglePause();
+        }
+      });
 
       loadSettings();
       mode = modeSelect.value;
