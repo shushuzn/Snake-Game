@@ -28,6 +28,7 @@
       }
       .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; }
       .header h1 { margin: 0; font-size: 1.4rem; }
+      .header h1 small { font-size: 0.78rem; color: #93c5fd; font-weight: 600; }
       .stats { display: flex; gap: 12px; font-size: 0.9rem; flex-wrap: wrap; justify-content: end; }
       .stats b { color: #7dffa5; }
       .stats b.warn { color: #fbbf24; }
@@ -62,7 +63,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇</h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.11.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -145,7 +146,9 @@
       const wrapModeInput = document.getElementById('wrapMode');
       const obstacleModeInput = document.getElementById('obstacleMode');
       const mobilePad = document.querySelector('.mobile-pad');
+      const versionTag = document.getElementById('versionTag');
 
+      const GAME_VERSION = '0.11.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -197,6 +200,8 @@
       let roundMaxCombo = 1;
 
       bestEl.textContent = String(bestScore);
+      versionTag.textContent = `v${GAME_VERSION}`;
+      versionTag.title = `Snake build ${GAME_VERSION}`;
 
       function loadSettings() {
         try {
@@ -500,6 +505,8 @@
         if (score > bestScore) {
           bestScore = score;
           bestEl.textContent = String(bestScore);
+      versionTag.textContent = `v${GAME_VERSION}`;
+      versionTag.title = `Snake build ${GAME_VERSION}`;
           localStorage.setItem('snake-best', String(bestScore));
         }
 
