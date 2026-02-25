@@ -10,7 +10,7 @@
 
 - **4 种模式**：经典、限时 60 秒、无尽关卡、肉鸽模式。
 - **多输入支持**：方向键、W/A/S/D、触屏方向键、滑动。
-- **道具与成长**：基础果、奖励果、护盾果、倍率果、时间果、冰冻果、相位果、王冠果。
+- **道具与成长**：基础果、奖励果、护盾果、倍率果、时间果、冰冻果、相位果、王冠果、连击果。
 - **系统机制**：障碍、硬核模式、连击、任务、成就、图鉴。
 - **局外成长**：肉鸽词条 + 肉鸽点成长。
 - **本地持久化**：设置、战绩、最佳分、模式记录、成就等数据保存在 `localStorage`。
@@ -63,7 +63,7 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.30.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.31.0
 ```
 
 ## 后续发展方向

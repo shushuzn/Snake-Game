@@ -48,7 +48,7 @@ const hardcoreModeInput = document.getElementById('hardcoreMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.30.0';
+const GAME_VERSION = '0.31.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -74,6 +74,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.31.0', notes: ['新增连击果：提供连击护航状态并奖励额外分数', '连击在短时间内不会因断档立即重置'] },
   { version: '0.30.0', notes: ['新增版本大事件面板，可查看历史更新重点', '帮助回顾玩法演进，便于老玩家快速上手'] },
   { version: '0.29.0', notes: ['新增帮助面板，集中说明模式、道具和成长建议'] },
   { version: '0.28.0', notes: ['加入肉鸽模式，随机词条与肉鸽点成长'] },
@@ -96,7 +97,8 @@ const codexCatalog = [
   { id: 'freeze', label: '冰冻果', hint: '暂时减速，便于走位。' },
   { id: 'phase', label: '相位果', hint: '短时间穿越障碍石。' },
   { id: 'crown', label: '王冠果', hint: '触发随机奖励：加分/护盾/增益时间。' },
-  { id: 'magnet', label: '磁力果', hint: '短时间吸附附近道具。' }
+  { id: 'magnet', label: '磁力果', hint: '短时间吸附附近道具。' },
+  { id: 'combo', label: '连击果', hint: '提供连击护航，短时不断连。' }
 ];
 
 const skinThemes = {
@@ -131,6 +133,8 @@ let crownFood = null;
 let crownExpireAt = 0;
 let magnetFood = null;
 let magnetExpireAt = 0;
+let comboFood = null;
+let comboExpireAt = 0;
 let rocks = [];
 let score;
 let bestScore = Number(localStorage.getItem('snake-best') || '0');
@@ -165,6 +169,7 @@ let multiplierExpireAt = 0;
 let freezeUntil = 0;
 let phaseUntil = 0;
 let magnetUntil = 0;
+let comboGuardUntil = 0;
 let currentChallenge = dailyChallengeOptions[0];
 let lastResult = { score: 0, mode: 'classic', ts: 0 };
 let history = [];
@@ -666,6 +671,8 @@ function resetGame(showStartOverlay = true) {
   crownExpireAt = 0;
   magnetFood = null;
   magnetExpireAt = 0;
+  comboFood = null;
+  comboExpireAt = 0;
   rocks = [];
   score = 0;
   running = false;
@@ -699,6 +706,7 @@ function resetGame(showStartOverlay = true) {
   freezeUntil = 0;
   phaseUntil = 0;
   magnetUntil = 0;
+  comboGuardUntil = 0;
   refreshStateText();
   challengeEl.textContent = currentChallenge.label;
   updateTimeText();
@@ -724,6 +732,7 @@ function randomFreeCell() {
     (phaseFood && phaseFood.x === position.x && phaseFood.y === position.y) ||
     (crownFood && crownFood.x === position.x && crownFood.y === position.y) ||
     (magnetFood && magnetFood.x === position.x && magnetFood.y === position.y) ||
+    (comboFood && comboFood.x === position.x && comboFood.y === position.y) ||
     rocks.some(rock => rock.x === position.x && rock.y === position.y)
   );
   return position;
@@ -792,6 +801,14 @@ function maybeSpawnMagnetFood(now) {
   magnetExpireAt = now + 4300;
 }
 
+function maybeSpawnComboFood(now) {
+  if (comboFood || score < 70) return;
+  if (combo < 4) return;
+  if (score % 75 !== 0) return;
+  comboFood = randomFreeCell();
+  comboExpireAt = now + 4200;
+}
+
 function effectiveSpeed() {
   const slowed = performance.now() < freezeUntil;
   return speed + (slowed ? 40 : 0);
@@ -802,6 +819,7 @@ function refreshStateText(now = performance.now()) {
   if (now < freezeUntil) states.push('减速');
   if (now < phaseUntil) states.push('相位');
   if (now < magnetUntil) states.push('磁吸');
+  if (now < comboGuardUntil) states.push('连击护航');
   stateEl.textContent = states.join('+') || '正常';
 }
 
@@ -966,6 +984,7 @@ function update() {
   if (phaseFood && now > phaseExpireAt) phaseFood = null;
   if (crownFood && now > crownExpireAt) crownFood = null;
   if (magnetFood && now > magnetExpireAt) magnetFood = null;
+  if (comboFood && now > comboExpireAt) comboFood = null;
   if (scoreMultiplier > 1 && now > multiplierExpireAt) {
     scoreMultiplier = 1;
     multiplierEl.textContent = 'x1';
@@ -973,6 +992,7 @@ function update() {
   if (now > freezeUntil) freezeUntil = 0;
   if (now > phaseUntil) phaseUntil = 0;
   if (now > magnetUntil) magnetUntil = 0;
+  if (now > comboGuardUntil) comboGuardUntil = 0;
   refreshStateText(now);
 
   direction = pendingDirection;
@@ -1012,6 +1032,7 @@ function update() {
     maybeSpawnPhaseFood(now);
     maybeSpawnCrownFood(now);
     maybeSpawnMagnetFood(now);
+    maybeSpawnComboFood(now);
     discoverCodex('food', '基础果');
     beep('eat');
   }
@@ -1140,6 +1161,22 @@ function update() {
     }
   }
 
+  if (comboFood && ((head.x === comboFood.x && head.y === comboFood.y) || canMagnetCollect(head, comboFood, now, 2))) {
+    ate = true;
+    comboFood = null;
+    comboGuardUntil = now + 6000;
+    score += 20 * scoreMultiplier;
+    refreshStateText(now);
+    discoverCodex('combo', '连击果');
+    beep('bonus');
+    if (running && !paused) {
+      showOverlay('<p><strong>🔥 连击护航</strong></p><p>6 秒内连击不重置，并奖励 +20 分</p>');
+      setTimeout(() => {
+        if (running && !paused) hideOverlay();
+      }, 700);
+    }
+  }
+
   if (ate) {
     const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
     const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
@@ -1149,7 +1186,7 @@ function update() {
     comboEl.textContent = `x${combo}`;
     lastEatMs = now;
     maybeAddRock();
-  } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000)) {
+  } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000) && now > comboGuardUntil) {
     combo = 1;
     comboEl.textContent = 'x1';
   }
@@ -1253,6 +1290,7 @@ function draw() {
   if (phaseFood) drawCell(phaseFood, '#c084fc', 8);
   if (crownFood) drawCell(crownFood, '#fde047', 8);
   if (magnetFood) drawCell(magnetFood, '#60a5fa', 8);
+  if (comboFood) drawCell(comboFood, '#fb7185', 8);
   rocks.forEach(rock => drawCell(rock, '#64748b', 5));
   const headColor = performance.now() < phaseUntil ? skinThemes[currentSkin].phaseHead : skinThemes[currentSkin].head;
   snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skinThemes[currentSkin].body));
@@ -1439,4 +1477,3 @@ updateLevelText();
 baseSpeed = Number(difficultySelect.value);
 refreshModeBestText();
 resetGame(true);
-
