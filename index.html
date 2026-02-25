@@ -67,13 +67,14 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.23.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.24.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
           <span>模式最高：<b id="modeBest">0</b></span>
           <span>长度：<b id="length">3</b></span>
           <span>时间：<b id="time" class="warn">--</b></span>
+          <span>关卡：<b id="level">--</b></span>
           <span>连击：<b id="combo">x1</b></span>
           <span>护盾：<b id="shield">0</b></span>
           <span>任务：<b id="mission">--</b></span>
@@ -108,7 +109,7 @@
         </div>
         <div class="controls-group">
           <label class="label-inline" for="mode">模式：
-            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option></select>
+            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="endless">无尽关卡</option></select>
           </label>
           <label class="label-inline" for="difficulty">难度：
             <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option></select>
@@ -122,7 +123,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增磁力果：短时间自动吸附附近道具。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增关卡无尽模式：分数提升会自动升级关卡。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -153,6 +154,7 @@
       const modeBestEl = document.getElementById('modeBest');
       const lengthEl = document.getElementById('length');
       const timeEl = document.getElementById('time');
+      const levelEl = document.getElementById('level');
       const comboEl = document.getElementById('combo');
       const shieldEl = document.getElementById('shield');
       const missionEl = document.getElementById('mission');
@@ -182,7 +184,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.23.0';
+      const GAME_VERSION = '0.24.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -251,7 +253,7 @@
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
-      let bestByMode = { classic: 0, timed: 0 };
+      let bestByMode = { classic: 0, timed: 0, endless: 0 };
       let running = false;
       let paused = false;
       let loopTimer;
@@ -260,6 +262,8 @@
       let touchStart = null;
       let mode = modeSelect.value;
       let remainingTime = timedModeDuration;
+      let level = 1;
+      let levelTargetScore = 100;
       let lastTickMs = 0;
       let combo = 1;
       let lastEatMs = 0;
@@ -303,7 +307,7 @@
       function loadSettings() {
         try {
           const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
-          if (parsed.mode === 'classic' || parsed.mode === 'timed') modeSelect.value = parsed.mode;
+          if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless') modeSelect.value = parsed.mode;
           if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
           if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
           wrapModeInput.checked = Boolean(parsed.wrapMode);
@@ -401,7 +405,7 @@
         }
         historyListEl.innerHTML = history
           .map(item => {
-            const modeLabel = item.mode === 'timed' ? '限时' : '经典';
+            const modeLabel = item.mode === 'timed' ? '限时' : (item.mode === 'endless' ? '无尽' : '经典');
             const d = new Date(item.ts || Date.now());
             const hh = String(d.getHours()).padStart(2, '0');
             const mm = String(d.getMinutes()).padStart(2, '0');
@@ -414,7 +418,7 @@
         try {
           const parsed = JSON.parse(localStorage.getItem(lastResultKey) || '{}');
           lastResult.score = Number(parsed.score || 0);
-          lastResult.mode = parsed.mode === 'timed' ? 'timed' : 'classic';
+          lastResult.mode = (parsed.mode === 'timed' || parsed.mode === 'endless') ? parsed.mode : 'classic';
           lastResult.ts = Number(parsed.ts || 0);
         } catch {
           lastResult = { score: 0, mode: 'classic', ts: 0 };
@@ -431,7 +435,7 @@
           lastResultEl.textContent = '--';
           return;
         }
-        const modeLabel = lastResult.mode === 'timed' ? '限时' : '经典';
+        const modeLabel = lastResult.mode === 'timed' ? '限时' : (lastResult.mode === 'endless' ? '无尽' : '经典');
         lastResultEl.textContent = `${modeLabel} ${lastResult.score}分`;
       }
 
@@ -504,8 +508,9 @@
           const parsed = JSON.parse(localStorage.getItem(bestByModeKey) || '{}');
           bestByMode.classic = Number(parsed.classic || 0);
           bestByMode.timed = Number(parsed.timed || 0);
+          bestByMode.endless = Number(parsed.endless || 0);
         } catch {
-          bestByMode = { classic: 0, timed: 0 };
+          bestByMode = { classic: 0, timed: 0, endless: 0 };
         }
       }
 
@@ -540,6 +545,7 @@
       function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
       function hideOverlay() { overlay.style.display = 'none'; }
       function updateTimeText() { timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
+      function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
 
       function resetGame(showStartOverlay = true) {
         snake = [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }];
@@ -567,6 +573,8 @@
         running = false;
         paused = false;
         remainingTime = timedModeDuration;
+        level = 1;
+        levelTargetScore = 100;
         lastTickMs = 0;
         const hardcoreDelta = hardcoreModeInput.checked ? -20 : 0;
         speed = Math.max(45, baseSpeed + (currentChallenge.speedDelta || 0) + hardcoreDelta);
@@ -594,6 +602,7 @@
         refreshStateText();
         challengeEl.textContent = currentChallenge.label;
         updateTimeText();
+        updateLevelText();
         if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
         draw();
       }
@@ -1046,6 +1055,21 @@
         scoreEl.textContent = String(score);
         lengthEl.textContent = String(snake.length);
 
+        if (mode === 'endless') {
+          while (score >= levelTargetScore) {
+            level += 1;
+            levelTargetScore += 100 + (level - 1) * 20;
+            speed = Math.max(40, speed - 4);
+            updateLevelText();
+            if (running && !paused) {
+              showOverlay(`<p><strong>⬆️ 升级！</strong></p><p>进入第 ${level} 关</p>`);
+              setTimeout(() => {
+                if (running && !paused) hideOverlay();
+              }, 650);
+            }
+          }
+        }
+
         if (!missionAchieved && score >= missionTarget) {
           missionAchieved = true;
           if (!hardcoreModeInput.checked) {
@@ -1156,6 +1180,7 @@
       modeSelect.addEventListener('change', () => {
         saveSettings();
         mode = modeSelect.value;
+        updateLevelText();
         refreshModeBestText();
         resetGame(true);
       });
@@ -1189,7 +1214,7 @@
         localStorage.removeItem(codexKey);
         bestScore = 0;
         bestEl.textContent = '0';
-        bestByMode = { classic: 0, timed: 0 };
+        bestByMode = { classic: 0, timed: 0, endless: 0 };
         refreshModeBestText();
         foodsEaten = 0;
         totalPlays = 0;
@@ -1212,7 +1237,7 @@
 
 
       shareBtn.addEventListener('click', async () => {
-        const modeLabel = mode === 'timed' ? '限时模式' : '经典模式';
+        const modeLabel = mode === 'timed' ? '限时模式' : (mode === 'endless' ? '无尽模式' : '经典模式');
         const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
         const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
         try {
@@ -1243,6 +1268,7 @@
       loadSettings();
       currentSkin = skinSelect.value;
       mode = modeSelect.value;
+      updateLevelText();
       baseSpeed = Number(difficultySelect.value);
       refreshModeBestText();
       resetGame(true);
