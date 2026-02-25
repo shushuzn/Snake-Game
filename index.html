@@ -89,6 +89,15 @@
         gap: 6px;
         font-size: 0.9rem;
       }
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+      }
+      .switch input {
+        accent-color: #34d399;
+      }
       select {
         background: #1e293b;
         color: #f8fafc;
@@ -174,9 +183,13 @@
             <option value="80">极速</option>
           </select>
         </label>
+        <label class="switch" for="wrapMode">
+          <input id="wrapMode" type="checkbox" />
+          穿墙模式
+        </label>
       </section>
 
-      <p class="tips">提示：空格可暂停/继续；撞墙或咬到自己会失败。</p>
+      <p class="tips">提示：空格可暂停/继续；支持滑动操控；普通模式撞墙会失败。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -198,6 +211,7 @@
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
       const difficultySelect = document.getElementById('difficulty');
+      const wrapModeInput = document.getElementById('wrapMode');
       const mobilePad = document.querySelector('.mobile-pad');
 
       const gridSize = 20;
@@ -223,7 +237,9 @@
       let running = false;
       let paused = false;
       let loopTimer;
-      let speed = Number(difficultySelect.value);
+      let baseSpeed = Number(difficultySelect.value);
+      let speed = baseSpeed;
+      let touchStart = null;
 
       bestEl.textContent = bestScore;
 
@@ -248,6 +264,7 @@
         score = 0;
         running = false;
         paused = false;
+        speed = baseSpeed;
         clearInterval(loopTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
@@ -319,6 +336,13 @@
           y: snake[0].y + direction.y
         };
 
+        if (wrapModeInput.checked) {
+          if (head.x < 0) head.x = tileCount - 1;
+          if (head.x >= tileCount) head.x = 0;
+          if (head.y < 0) head.y = tileCount - 1;
+          if (head.y >= tileCount) head.y = 0;
+        }
+
         if (isCollision(head)) {
           endGame();
           return;
@@ -330,6 +354,11 @@
           score += 10;
           scoreEl.textContent = String(score);
           food = randomFoodPosition();
+          const speedBoost = Math.floor(score / 50) * 5;
+          speed = Math.max(55, baseSpeed - speedBoost);
+          if (running && !paused) {
+            startLoop();
+          }
         } else {
           snake.pop();
         }
@@ -339,7 +368,7 @@
       }
 
       function isCollision(head) {
-        const hitWall = head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount;
+        const hitWall = !wrapModeInput.checked && (head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount);
         const hitSelf = snake.some(seg => seg.x === head.x && seg.y === head.y);
         return hitWall || hitSelf;
       }
@@ -415,11 +444,41 @@
         changeDirection(next);
       });
 
+      canvas.addEventListener('touchstart', (event) => {
+        const touch = event.changedTouches[0];
+        touchStart = { x: touch.clientX, y: touch.clientY };
+      }, { passive: true });
+
+      canvas.addEventListener('touchend', (event) => {
+        if (!touchStart) return;
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - touchStart.x;
+        const dy = touch.clientY - touchStart.y;
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+        const minSwipeDistance = 18;
+
+        if (absX < minSwipeDistance && absY < minSwipeDistance) {
+          touchStart = null;
+          return;
+        }
+
+        if (absX > absY) {
+          changeDirection(dx > 0 ? dirMap.ArrowRight : dirMap.ArrowLeft);
+        } else {
+          changeDirection(dy > 0 ? dirMap.ArrowDown : dirMap.ArrowUp);
+        }
+
+        touchStart = null;
+      }, { passive: true });
+
       restartBtn.addEventListener('click', () => resetGame(true));
       pauseBtn.addEventListener('click', togglePause);
 
       difficultySelect.addEventListener('change', () => {
-        speed = Number(difficultySelect.value);
+        baseSpeed = Number(difficultySelect.value);
+        const speedBoost = Math.floor(score / 50) * 5;
+        speed = Math.max(55, baseSpeed - speedBoost);
         if (running && !paused) {
           startLoop();
         }
