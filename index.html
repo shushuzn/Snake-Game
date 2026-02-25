@@ -5,12 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>贪吃蛇游戏</title>
     <style>
-      :root {
-        color-scheme: dark;
-      }
-      * {
-        box-sizing: border-box;
-      }
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -30,126 +26,37 @@
         backdrop-filter: blur(6px);
         box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
       }
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-        gap: 12px;
-      }
-      .header h1 {
-        margin: 0;
-        font-size: 1.4rem;
-      }
-      .stats {
-        display: flex;
-        gap: 12px;
-        font-size: 0.9rem;
-        flex-wrap: wrap;
-        justify-content: end;
-      }
-      .stats b {
-        color: #7dffa5;
-      }
-      .stats b.warn {
-        color: #fbbf24;
-      }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; }
+      .header h1 { margin: 0; font-size: 1.4rem; }
+      .stats { display: flex; gap: 12px; font-size: 0.9rem; flex-wrap: wrap; justify-content: end; }
+      .stats b { color: #7dffa5; }
+      .stats b.warn { color: #fbbf24; }
       #board {
-        width: 100%;
-        aspect-ratio: 1 / 1;
-        border-radius: 12px;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        background: #0f1322;
-        display: block;
+        width: 100%; aspect-ratio: 1 / 1; border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.2); background: #0f1322; display: block;
       }
-      .controls-row {
-        margin-top: 12px;
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .controls-group {
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-      }
-      button,
-      select {
-        border: 0;
-        border-radius: 10px;
-        font-weight: 700;
-      }
-      button {
-        background: linear-gradient(135deg, #34d399, #10b981);
-        color: #052014;
-        padding: 9px 14px;
-        cursor: pointer;
-      }
-      button.secondary {
-        background: linear-gradient(135deg, #93c5fd, #60a5fa);
-        color: #081426;
-      }
-      .label-inline {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.88rem;
-      }
-      .label-inline input {
-        accent-color: #34d399;
-      }
-      select {
-        background: #1e293b;
-        color: #f8fafc;
-        padding: 7px 10px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-      }
-      .tips {
-        margin-top: 10px;
-        color: #d3d3e7;
-        font-size: 0.88rem;
-      }
+      .controls-row { margin-top: 12px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .controls-group { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      button, select { border: 0; border-radius: 10px; font-weight: 700; }
+      button { background: linear-gradient(135deg, #34d399, #10b981); color: #052014; padding: 9px 14px; cursor: pointer; }
+      button.secondary { background: linear-gradient(135deg, #93c5fd, #60a5fa); color: #081426; }
+      .label-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; }
+      .label-inline input { accent-color: #34d399; }
+      select { background: #1e293b; color: #f8fafc; padding: 7px 10px; border: 1px solid rgba(255, 255, 255, 0.18); }
+      .tips { margin-top: 10px; color: #d3d3e7; font-size: 0.88rem; }
       .overlay {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        text-align: center;
-        padding: 12px;
-        color: #fff;
-        pointer-events: none;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+        padding: 12px; color: #fff; pointer-events: none; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
       }
-      .board-wrap {
-        position: relative;
-      }
-      .overlay p {
-        margin: 4px 0;
-      }
+      .board-wrap { position: relative; }
+      .overlay p { margin: 4px 0; }
       .mobile-pad {
-        margin: 14px auto 2px;
-        width: 170px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-        user-select: none;
+        margin: 14px auto 2px; width: 170px; display: grid;
+        grid-template-columns: repeat(3, 1fr); gap: 6px; user-select: none;
       }
-      .mobile-pad button {
-        padding: 10px 0;
-        border-radius: 8px;
-        font-size: 18px;
-      }
-      .mobile-pad .empty {
-        visibility: hidden;
-      }
-      @media (min-width: 700px) {
-        .mobile-pad {
-          display: none;
-        }
-      }
+      .mobile-pad button { padding: 10px 0; border-radius: 8px; font-size: 18px; }
+      .mobile-pad .empty { visibility: hidden; }
+      @media (min-width: 700px) { .mobile-pad { display: none; } }
     </style>
   </head>
   <body>
@@ -162,6 +69,7 @@
           <span>长度：<b id="length">3</b></span>
           <span>时间：<b id="time" class="warn">--</b></span>
           <span>连击：<b id="combo">x1</b></span>
+          <span>护盾：<b id="shield">0</b></span>
         </div>
       </section>
 
@@ -181,33 +89,18 @@
           <button id="pause" type="button" class="secondary">暂停</button>
         </div>
         <div class="controls-group">
-          <label class="label-inline" for="mode">
-            模式：
-            <select id="mode">
-              <option value="classic" selected>经典</option>
-              <option value="timed">限时 60 秒</option>
-            </select>
+          <label class="label-inline" for="mode">模式：
+            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option></select>
           </label>
-          <label class="label-inline" for="difficulty">
-            难度：
-            <select id="difficulty">
-              <option value="140">悠闲</option>
-              <option value="110" selected>标准</option>
-              <option value="80">极速</option>
-            </select>
+          <label class="label-inline" for="difficulty">难度：
+            <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option></select>
           </label>
-          <label class="label-inline" for="wrapMode">
-            <input id="wrapMode" type="checkbox" />
-            穿墙
-          </label>
-          <label class="label-inline" for="obstacleMode">
-            <input id="obstacleMode" type="checkbox" checked />
-            障碍
-          </label>
+          <label class="label-inline" for="wrapMode"><input id="wrapMode" type="checkbox" />穿墙</label>
+          <label class="label-inline" for="obstacleMode"><input id="obstacleMode" type="checkbox" checked />障碍</label>
         </div>
       </section>
 
-      <p class="tips">提示：空格暂停/继续。金色食物是限时奖励（+30 分）；连续进食会有连击加分；障碍模式会随分数生成石块。</p>
+      <p class="tips">提示：空格/P 暂停或继续。金色食物 +30 分，蓝色食物获得护盾；连击和障碍会随分数进化。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -227,6 +120,7 @@
       const lengthEl = document.getElementById('length');
       const timeEl = document.getElementById('time');
       const comboEl = document.getElementById('combo');
+      const shieldEl = document.getElementById('shield');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
@@ -239,16 +133,11 @@
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
+      const settingsKey = 'snake-settings-v2';
 
       const dirMap = {
-        ArrowUp: { x: 0, y: -1 },
-        ArrowDown: { x: 0, y: 1 },
-        ArrowLeft: { x: -1, y: 0 },
-        ArrowRight: { x: 1, y: 0 },
-        w: { x: 0, y: -1 },
-        s: { x: 0, y: 1 },
-        a: { x: -1, y: 0 },
-        d: { x: 1, y: 0 }
+        ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+        w: { x: 0, y: -1 }, s: { x: 0, y: 1 }, a: { x: -1, y: 0 }, d: { x: 1, y: 0 }
       };
 
       let snake;
@@ -257,6 +146,8 @@
       let food;
       let bonusFood = null;
       let bonusExpireAt = 0;
+      let shieldFood = null;
+      let shieldExpireAt = 0;
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
@@ -271,33 +162,44 @@
       let lastTickMs = 0;
       let combo = 1;
       let lastEatMs = 0;
+      let shields = 0;
 
       bestEl.textContent = String(bestScore);
 
-      function showOverlay(message) {
-        overlay.innerHTML = `<div>${message}</div>`;
-        overlay.style.display = 'grid';
+      function loadSettings() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+          if (parsed.mode === 'classic' || parsed.mode === 'timed') modeSelect.value = parsed.mode;
+          if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
+          wrapModeInput.checked = Boolean(parsed.wrapMode);
+          obstacleModeInput.checked = parsed.obstacleMode !== false;
+        } catch {
+          // ignore malformed settings
+        }
       }
 
-      function hideOverlay() {
-        overlay.style.display = 'none';
+      function saveSettings() {
+        localStorage.setItem(settingsKey, JSON.stringify({
+          mode: modeSelect.value,
+          difficulty: difficultySelect.value,
+          wrapMode: wrapModeInput.checked,
+          obstacleMode: obstacleModeInput.checked
+        }));
       }
 
-      function updateTimeText() {
-        timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--';
-      }
+      function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
+      function hideOverlay() { overlay.style.display = 'none'; }
+      function updateTimeText() { timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 
       function resetGame(showStartOverlay = true) {
-        snake = [
-          { x: 8, y: 12 },
-          { x: 7, y: 12 },
-          { x: 6, y: 12 }
-        ];
+        snake = [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }];
         direction = { x: 1, y: 0 };
         pendingDirection = direction;
         food = randomFoodPosition();
         bonusFood = null;
         bonusExpireAt = 0;
+        shieldFood = null;
+        shieldExpireAt = 0;
         rocks = [];
         score = 0;
         running = false;
@@ -305,43 +207,37 @@
         remainingTime = timedModeDuration;
         lastTickMs = 0;
         speed = baseSpeed;
+        combo = 1;
+        lastEatMs = 0;
+        shields = 0;
         clearInterval(loopTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
         lengthEl.textContent = String(snake.length);
-        combo = 1;
-        lastEatMs = 0;
         comboEl.textContent = 'x1';
+        shieldEl.textContent = '0';
         updateTimeText();
-        if (showStartOverlay) {
-          showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
-        }
+        if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
         draw();
       }
 
-      function isOnSnake(cell) {
-        return snake.some(seg => seg.x === cell.x && seg.y === cell.y);
-      }
+      function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
 
       function randomFreeCell() {
         let position;
         do {
-          position = {
-            x: Math.floor(Math.random() * tileCount),
-            y: Math.floor(Math.random() * tileCount)
-          };
+          position = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
         } while (
           isOnSnake(position) ||
           (food && food.x === position.x && food.y === position.y) ||
           (bonusFood && bonusFood.x === position.x && bonusFood.y === position.y) ||
+          (shieldFood && shieldFood.x === position.x && shieldFood.y === position.y) ||
           rocks.some(rock => rock.x === position.x && rock.y === position.y)
         );
         return position;
       }
 
-      function randomFoodPosition() {
-        return randomFreeCell();
-      }
+      function randomFoodPosition() { return randomFreeCell(); }
 
       function maybeSpawnBonusFood(now) {
         if (bonusFood || score === 0) return;
@@ -350,7 +246,13 @@
         bonusExpireAt = now + 3200;
       }
 
-
+      function maybeSpawnShieldFood(now) {
+        if (shieldFood || shields >= 2) return;
+        if (score < 60) return;
+        if (score % 70 !== 0) return;
+        shieldFood = randomFreeCell();
+        shieldExpireAt = now + 4500;
+      }
 
       function maybeAddRock() {
         if (!obstacleModeInput.checked) return;
@@ -386,102 +288,17 @@
 
       function changeDirection(next) {
         const isReverse = next.x === -direction.x && next.y === -direction.y;
-        if (!isReverse) {
-          pendingDirection = next;
-        }
+        if (!isReverse) pendingDirection = next;
         startGameIfNeeded();
       }
 
       function togglePause() {
         if (!running) return;
-        if (paused) {
-          startGameIfNeeded();
-          return;
-        }
+        if (paused) return startGameIfNeeded();
         paused = true;
         clearInterval(loopTimer);
         pauseBtn.textContent = '继续';
-        showOverlay('<p><strong>已暂停</strong></p><p>按空格或“继续”恢复游戏</p>');
-      }
-
-      function update() {
-        const now = performance.now();
-        const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
-        lastTickMs = now;
-
-        if (mode === 'timed') {
-          remainingTime -= elapsed;
-          updateTimeText();
-          if (remainingTime <= 0) {
-            endGame('⏰ 时间到！');
-            return;
-          }
-        }
-
-        if (bonusFood && now > bonusExpireAt) {
-          bonusFood = null;
-        }
-
-        direction = pendingDirection;
-        const head = {
-          x: snake[0].x + direction.x,
-          y: snake[0].y + direction.y
-        };
-
-        if (wrapModeInput.checked) {
-          if (head.x < 0) head.x = tileCount - 1;
-          if (head.x >= tileCount) head.x = 0;
-          if (head.y < 0) head.y = tileCount - 1;
-          if (head.y >= tileCount) head.y = 0;
-        }
-
-        if (isCollision(head)) {
-          endGame('💥 撞到了！');
-          return;
-        }
-
-        snake.unshift(head);
-
-        let ate = false;
-        if (head.x === food.x && head.y === food.y) {
-          ate = true;
-          score += 10;
-          food = randomFoodPosition();
-          maybeSpawnBonusFood(now);
-        }
-
-        if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-          ate = true;
-          score += 30;
-          bonusFood = null;
-        }
-
-        if (ate) {
-          const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
-          combo = eatDelta <= 3000 ? Math.min(combo + 1, 9) : 1;
-          const comboBonus = (combo - 1) * 2;
-          score += comboBonus;
-          comboEl.textContent = `x${combo}`;
-          lastEatMs = now;
-          maybeAddRock();
-        } else {
-          combo = 1;
-          comboEl.textContent = "x1";
-        }
-
-        if (!ate) {
-          snake.pop();
-        } else {
-          const speedBoost = Math.floor(score / 50) * 5;
-          speed = Math.max(55, baseSpeed - speedBoost);
-          if (running && !paused) {
-            startLoop();
-          }
-        }
-
-        scoreEl.textContent = String(score);
-        lengthEl.textContent = String(snake.length);
-        draw();
+        showOverlay('<p><strong>已暂停</strong></p><p>按空格 / P 或“继续”恢复游戏</p>');
       }
 
       function isCollision(head) {
@@ -505,20 +322,95 @@
         showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
       }
 
+      function update() {
+        const now = performance.now();
+        const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
+        lastTickMs = now;
+
+        if (mode === 'timed') {
+          remainingTime -= elapsed;
+          updateTimeText();
+          if (remainingTime <= 0) return endGame('⏰ 时间到！');
+        }
+
+        if (bonusFood && now > bonusExpireAt) bonusFood = null;
+        if (shieldFood && now > shieldExpireAt) shieldFood = null;
+
+        direction = pendingDirection;
+        const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+        if (wrapModeInput.checked) {
+          if (head.x < 0) head.x = tileCount - 1;
+          if (head.x >= tileCount) head.x = 0;
+          if (head.y < 0) head.y = tileCount - 1;
+          if (head.y >= tileCount) head.y = 0;
+        }
+
+        if (isCollision(head)) {
+          if (shields > 0) {
+            shields -= 1;
+            shieldEl.textContent = String(shields);
+          } else {
+            return endGame('💥 撞到了！');
+          }
+        }
+
+        snake.unshift(head);
+
+        let ate = false;
+        if (head.x === food.x && head.y === food.y) {
+          ate = true;
+          score += 10;
+          food = randomFoodPosition();
+          maybeSpawnBonusFood(now);
+          maybeSpawnShieldFood(now);
+        }
+
+        if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+          ate = true;
+          score += 30;
+          bonusFood = null;
+        }
+
+        if (shieldFood && head.x === shieldFood.x && head.y === shieldFood.y) {
+          ate = true;
+          shields = Math.min(2, shields + 1);
+          shieldEl.textContent = String(shields);
+          shieldFood = null;
+        }
+
+        if (ate) {
+          const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
+          combo = eatDelta <= 3000 ? Math.min(combo + 1, 9) : 1;
+          score += (combo - 1) * 2;
+          comboEl.textContent = `x${combo}`;
+          lastEatMs = now;
+          maybeAddRock();
+        } else if (lastEatMs && now - lastEatMs > 3000) {
+          combo = 1;
+          comboEl.textContent = 'x1';
+        }
+
+        if (!ate) {
+          snake.pop();
+        } else {
+          const speedBoost = Math.floor(score / 50) * 5;
+          speed = Math.max(55, baseSpeed - speedBoost);
+          if (running && !paused) startLoop();
+        }
+
+        scoreEl.textContent = String(score);
+        lengthEl.textContent = String(snake.length);
+        draw();
+      }
+
       function drawGrid() {
         ctx.strokeStyle = 'rgba(255,255,255,0.07)';
         ctx.lineWidth = 1;
         for (let i = 0; i <= tileCount; i++) {
           const line = i * gridSize;
-          ctx.beginPath();
-          ctx.moveTo(line, 0);
-          ctx.lineTo(line, canvas.height);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.moveTo(0, line);
-          ctx.lineTo(canvas.width, line);
-          ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(line, 0); ctx.lineTo(line, canvas.height); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, line); ctx.lineTo(canvas.width, line); ctx.stroke();
         }
       }
 
@@ -535,28 +427,21 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawGrid();
         drawCell(food, '#f472b6', 6);
-        if (bonusFood) {
-          drawCell(bonusFood, '#facc15', 8);
-        }
-        rocks.forEach((rock) => {
-          drawCell(rock, '#64748b', 5);
-        });
-        snake.forEach((segment, index) => {
-          drawCell(segment, index === 0 ? '#7dffa5' : '#22c55e');
-        });
+        if (bonusFood) drawCell(bonusFood, '#facc15', 8);
+        if (shieldFood) drawCell(shieldFood, '#38bdf8', 8);
+        rocks.forEach(rock => drawCell(rock, '#64748b', 5));
+        snake.forEach((segment, index) => drawCell(segment, index === 0 ? '#7dffa5' : '#22c55e'));
       }
 
       document.addEventListener('keydown', (event) => {
-        if (event.code === 'Space') {
+        if (event.code === 'Space' || event.key.toLowerCase() === 'p') {
           event.preventDefault();
           togglePause();
           return;
         }
-
         const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
         const next = dirMap[key];
         if (!next) return;
-
         event.preventDefault();
         changeDirection(next);
       });
@@ -564,8 +449,7 @@
       mobilePad.addEventListener('click', (event) => {
         const button = event.target.closest('button[data-dir]');
         if (!button) return;
-        const next = dirMap[button.dataset.dir];
-        changeDirection(next);
+        changeDirection(dirMap[button.dataset.dir]);
       });
 
       canvas.addEventListener('touchstart', (event) => {
@@ -580,18 +464,9 @@
         const dy = touch.clientY - touchStart.y;
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
-
-        if (absX < 18 && absY < 18) {
-          touchStart = null;
-          return;
-        }
-
-        if (absX > absY) {
-          changeDirection(dx > 0 ? dirMap.ArrowRight : dirMap.ArrowLeft);
-        } else {
-          changeDirection(dy > 0 ? dirMap.ArrowDown : dirMap.ArrowUp);
-        }
-
+        if (absX < 18 && absY < 18) { touchStart = null; return; }
+        if (absX > absY) changeDirection(dx > 0 ? dirMap.ArrowRight : dirMap.ArrowLeft);
+        else changeDirection(dy > 0 ? dirMap.ArrowDown : dirMap.ArrowUp);
         touchStart = null;
       }, { passive: true });
 
@@ -599,23 +474,25 @@
       pauseBtn.addEventListener('click', togglePause);
 
       difficultySelect.addEventListener('change', () => {
+        saveSettings();
         baseSpeed = Number(difficultySelect.value);
         const speedBoost = Math.floor(score / 50) * 5;
         speed = Math.max(55, baseSpeed - speedBoost);
-        if (running && !paused) {
-          startLoop();
-        }
+        if (running && !paused) startLoop();
       });
 
       modeSelect.addEventListener('change', () => {
+        saveSettings();
         mode = modeSelect.value;
         resetGame(true);
       });
 
-      obstacleModeInput.addEventListener('change', () => {
-        resetGame(true);
-      });
+      obstacleModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
+      wrapModeInput.addEventListener('change', saveSettings);
 
+      loadSettings();
+      mode = modeSelect.value;
+      baseSpeed = Number(difficultySelect.value);
       resetGame(true);
     </script>
   </body>
