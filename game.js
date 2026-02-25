@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.69.0';
+const GAME_VERSION = '0.69.1';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -685,6 +685,10 @@ function getModeTimeDuration() {
 }
 
 
+function effectiveSpeed() {
+  return speed;
+}
+
 function defaultCodexState() {
   return Object.fromEntries(codexCatalog.map(item => [item.id, false]));
 }
@@ -923,6 +927,38 @@ function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; ove
 function hideOverlay() { overlay.style.display = 'none'; }
 function updateTimeText() { timeEl.textContent = isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
+
+function refreshStateText(now = performance.now()) {
+  if (!running) {
+    stateEl.textContent = '待机';
+    return;
+  }
+  if (paused) {
+    stateEl.textContent = '暂停';
+    return;
+  }
+  if (now < freezeUntil) {
+    stateEl.textContent = '冰冻减速';
+    return;
+  }
+  if (now < phaseUntil) {
+    stateEl.textContent = '相位穿越';
+    return;
+  }
+  if (now < magnetUntil) {
+    stateEl.textContent = '磁力吸附';
+    return;
+  }
+  if (now < comboGuardUntil) {
+    stateEl.textContent = '连击护航';
+    return;
+  }
+  if (now < multiplierExpireAt) {
+    stateEl.textContent = '倍率加成';
+    return;
+  }
+  stateEl.textContent = '正常';
+}
 
 function normalizeRockList(list) {
   const used = new Set();

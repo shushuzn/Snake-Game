@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.69.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.69.1
 ```
 
 ## 最新进展
 
+- v0.69.1：修复 `effectiveSpeed` 与 `refreshStateText` 缺失导致无法开局/运行的阻塞问题。
 - v0.69.0：新增 `endgame_flow.js`，拆分结算触发（连胜/最佳/成就/肉鸽收益/结束弹层）编排逻辑。
 - v0.69.0：新增 `records.js`，拆分上局结果与最近战绩写入/渲染编排逻辑。
 - v0.68.0：新增 `play_state.js`，拆分开局/继续/暂停状态机决策编排逻辑。
@@ -79,7 +80,6 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.69.0
 - v0.66.0：新增 `item_spawn.js`，拆分道具生成与加石头规则编排逻辑。
 - v0.65.0：新增 `round_state.js`，拆分回合初始化状态与出生参数编排逻辑。
 - v0.64.0：新增 `mode_rules.js`，拆分限时模式与 DLC 时间/步进规则编排逻辑。
-- v0.63.0：新增 `workshop_runtime.js`，拆分工坊快照与按钮交互编排逻辑。
 
 ## 工作路线图
 
