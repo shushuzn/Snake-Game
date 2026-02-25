@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.60.0';
+const GAME_VERSION = '0.61.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.61.0', notes: ['新增 account.js，账号登录/导入导出与快照恢复编排从 game.js 拆分', '路线图 P1 推进：账号编排模块化落地，下一步拆分设置编排层'] },
   { version: '0.60.0', notes: ['新增 storage.js 统一文本/JSON存储与账号快照操作，进一步减少主文件存储样板代码', '路线图 P1 推进：存档能力模块化落地，下一步拆分账号/设置编排层'] },
   { version: '0.59.0', notes: ['挑战 HUD/锁定与跨天刷新逻辑拆分至 challenge.js，主文件进一步瘦身', '路线图 P1 推进：挑战系统模块化落地，下一步拆分独立存档模块'] },
   { version: '0.58.0', notes: ['存档读写统一为 read/writeStorageJson，减少重复 try/catch 解析代码', '路线图 P1 推进：先完成存档层去冗余，再拆分独立存档模块'] },
@@ -332,24 +333,6 @@ function applyProfileSnapshot(snapshot) {
   storage.applySnapshot(getStorageKeysForProfile(), snapshot);
 }
 
-function refreshAccountUI() {
-  accountNameEl.textContent = activeAccount || '游客';
-}
-
-function saveAccountStore() {
-  storage.writeJson(accountStoreKey, accountStore);
-}
-
-function loadAccountStore() {
-  accountStore = storage.readJson(accountStoreKey, {}) || {};
-}
-
-function saveActiveAccountSnapshot() {
-  if (!activeAccount) return;
-  accountStore[activeAccount] = captureProfileSnapshot();
-  saveAccountStore();
-}
-
 function reloadAllFromStorage() {
   loadLifetimeStats();
   loadHistory();
@@ -373,67 +356,47 @@ function reloadAllFromStorage() {
   resetGame(true);
 }
 
+const accountRuntime = window.SnakeAccount.createAccountModule({
+  storage,
+  keys: { accountStoreKey, currentAccountKey },
+  state: {
+    getActiveAccount: () => activeAccount,
+    setActiveAccount: (value) => { activeAccount = value; },
+    getAccountStore: () => accountStore,
+    setAccountStore: (value) => { accountStore = value; }
+  },
+  callbacks: {
+    captureProfileSnapshot,
+    applyProfileSnapshot,
+    reloadAllFromStorage
+  },
+  elements: { accountNameEl, importSaveInput },
+  ui: {
+    showOverlay,
+    hideOverlay,
+    isRunning: () => running,
+    isPaused: () => paused
+  }
+});
+
+function saveActiveAccountSnapshot() {
+  accountRuntime.saveActiveSnapshot();
+}
+
 function loginAccount(name) {
-  const username = name.trim();
-  if (!username) return;
-  saveActiveAccountSnapshot();
-  activeAccount = username;
-  storage.writeText(currentAccountKey, activeAccount);
-  applyProfileSnapshot(accountStore[activeAccount] || {});
-  refreshAccountUI();
-  reloadAllFromStorage();
+  accountRuntime.login(name);
 }
 
 function logoutAccount() {
-  saveActiveAccountSnapshot();
-  activeAccount = '';
-  storage.remove(currentAccountKey);
-  applyProfileSnapshot({});
-  refreshAccountUI();
-  reloadAllFromStorage();
+  accountRuntime.logout();
 }
 
 function exportSaveData() {
-  saveActiveAccountSnapshot();
-  const payload = {
-    version: GAME_VERSION,
-    exportedAt: new Date().toISOString(),
-    currentAccount: activeAccount,
-    accounts: accountStore,
-    guest: captureProfileSnapshot()
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `snake-save-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  accountRuntime.exportSaveData(GAME_VERSION);
 }
 
 async function importSaveData(file) {
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    if (!parsed || typeof parsed !== 'object') throw new Error('bad format');
-    accountStore = (parsed.accounts && typeof parsed.accounts === 'object') ? parsed.accounts : {};
-    saveAccountStore();
-    activeAccount = typeof parsed.currentAccount === 'string' ? parsed.currentAccount.trim() : '';
-    if (activeAccount) storage.writeText(currentAccountKey, activeAccount);
-    else storage.remove(currentAccountKey);
-    if (activeAccount && accountStore[activeAccount]) applyProfileSnapshot(accountStore[activeAccount]);
-    else applyProfileSnapshot((parsed.guest && typeof parsed.guest === 'object') ? parsed.guest : {});
-    refreshAccountUI();
-    reloadAllFromStorage();
-    showOverlay('<p><strong>✅ 导入成功</strong></p><p>存档已恢复</p>');
-    setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
-  } catch {
-    showOverlay('<p><strong>导入失败</strong></p><p>存档文件无效</p>');
-    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
-  } finally {
-    importSaveInput.value = '';
-  }
+  await accountRuntime.importSaveData(file);
 }
 
 const Workshop = window.SnakeWorkshop.createWorkshopModule({
@@ -1632,10 +1595,7 @@ clearDataBtn.addEventListener('click', () => {
   saveRogueMeta();
   customRocks = [];
   saveCustomRocks();
-  if (activeAccount) {
-    accountStore[activeAccount] = captureProfileSnapshot();
-    saveAccountStore();
-  }
+  saveActiveAccountSnapshot();
   resetGame(true);
 });
 
@@ -1754,12 +1714,7 @@ clearRocksBtn.addEventListener('click', () => {
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
 });
 
-loadAccountStore();
-activeAccount = storage.readText(currentAccountKey, '').trim();
-if (activeAccount && accountStore[activeAccount]) {
-  applyProfileSnapshot(accountStore[activeAccount]);
-}
-refreshAccountUI();
+accountRuntime.loadFromStorage();
 
 challengeRuntime.selectDailyChallenge();
 renderVersionEvents();
