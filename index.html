@@ -43,13 +43,16 @@
       }
       .stats {
         display: flex;
-        gap: 14px;
-        font-size: 0.95rem;
+        gap: 12px;
+        font-size: 0.9rem;
         flex-wrap: wrap;
         justify-content: end;
       }
       .stats b {
         color: #7dffa5;
+      }
+      .stats b.warn {
+        color: #fbbf24;
       }
       #board {
         width: 100%;
@@ -65,6 +68,12 @@
         justify-content: space-between;
         gap: 10px;
         flex-wrap: wrap;
+        align-items: center;
+      }
+      .controls-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
         align-items: center;
       }
       button,
@@ -83,19 +92,13 @@
         background: linear-gradient(135deg, #93c5fd, #60a5fa);
         color: #081426;
       }
-      .difficulty {
+      .label-inline {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
       }
-      .switch {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.9rem;
-      }
-      .switch input {
+      .label-inline input {
         accent-color: #34d399;
       }
       select {
@@ -107,7 +110,7 @@
       .tips {
         margin-top: 10px;
         color: #d3d3e7;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
       }
       .overlay {
         position: absolute;
@@ -157,6 +160,7 @@
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
           <span>长度：<b id="length">3</b></span>
+          <span>时间：<b id="time" class="warn">--</b></span>
         </div>
       </section>
 
@@ -165,31 +169,40 @@
         <div class="overlay" id="overlay">
           <div>
             <p><strong>按方向键开始游戏</strong></p>
-            <p>W/A/S/D 或手机方向键都可控制</p>
+            <p>W/A/S/D、触屏方向键或滑动都可控制</p>
           </div>
         </div>
       </div>
 
       <section class="controls-row">
-        <div>
+        <div class="controls-group">
           <button id="restart" type="button">重新开始</button>
           <button id="pause" type="button" class="secondary">暂停</button>
         </div>
-        <label class="difficulty" for="difficulty">
-          难度：
-          <select id="difficulty">
-            <option value="140">悠闲</option>
-            <option value="110" selected>标准</option>
-            <option value="80">极速</option>
-          </select>
-        </label>
-        <label class="switch" for="wrapMode">
-          <input id="wrapMode" type="checkbox" />
-          穿墙模式
-        </label>
+        <div class="controls-group">
+          <label class="label-inline" for="mode">
+            模式：
+            <select id="mode">
+              <option value="classic" selected>经典</option>
+              <option value="timed">限时 60 秒</option>
+            </select>
+          </label>
+          <label class="label-inline" for="difficulty">
+            难度：
+            <select id="difficulty">
+              <option value="140">悠闲</option>
+              <option value="110" selected>标准</option>
+              <option value="80">极速</option>
+            </select>
+          </label>
+          <label class="label-inline" for="wrapMode">
+            <input id="wrapMode" type="checkbox" />
+            穿墙
+          </label>
+        </div>
       </section>
 
-      <p class="tips">提示：空格可暂停/继续；支持滑动操控；普通模式撞墙会失败。</p>
+      <p class="tips">提示：空格暂停/继续。金色食物是限时奖励（+30 分）。普通模式撞墙会失败。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -207,15 +220,18 @@
       const scoreEl = document.getElementById('score');
       const bestEl = document.getElementById('best');
       const lengthEl = document.getElementById('length');
+      const timeEl = document.getElementById('time');
       const overlay = document.getElementById('overlay');
       const restartBtn = document.getElementById('restart');
       const pauseBtn = document.getElementById('pause');
       const difficultySelect = document.getElementById('difficulty');
+      const modeSelect = document.getElementById('mode');
       const wrapModeInput = document.getElementById('wrapMode');
       const mobilePad = document.querySelector('.mobile-pad');
 
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
+      const timedModeDuration = 60;
 
       const dirMap = {
         ArrowUp: { x: 0, y: -1 },
@@ -232,6 +248,8 @@
       let direction;
       let pendingDirection;
       let food;
+      let bonusFood = null;
+      let bonusExpireAt = 0;
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
       let running = false;
@@ -240,8 +258,11 @@
       let baseSpeed = Number(difficultySelect.value);
       let speed = baseSpeed;
       let touchStart = null;
+      let mode = modeSelect.value;
+      let remainingTime = timedModeDuration;
+      let lastTickMs = 0;
 
-      bestEl.textContent = bestScore;
+      bestEl.textContent = String(bestScore);
 
       function showOverlay(message) {
         overlay.innerHTML = `<div>${message}</div>`;
@@ -250,6 +271,10 @@
 
       function hideOverlay() {
         overlay.style.display = 'none';
+      }
+
+      function updateTimeText() {
+        timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--';
       }
 
       function resetGame(showStartOverlay = true) {
@@ -261,33 +286,58 @@
         direction = { x: 1, y: 0 };
         pendingDirection = direction;
         food = randomFoodPosition();
+        bonusFood = null;
+        bonusExpireAt = 0;
         score = 0;
         running = false;
         paused = false;
+        remainingTime = timedModeDuration;
+        lastTickMs = 0;
         speed = baseSpeed;
         clearInterval(loopTimer);
         pauseBtn.textContent = '暂停';
         scoreEl.textContent = '0';
         lengthEl.textContent = String(snake.length);
+        updateTimeText();
         if (showStartOverlay) {
-          showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D 或手机方向键都可控制</p>');
+          showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
         }
         draw();
       }
 
-      function randomFoodPosition() {
+      function isOnSnake(cell) {
+        return snake.some(seg => seg.x === cell.x && seg.y === cell.y);
+      }
+
+      function randomFreeCell() {
         let position;
         do {
           position = {
             x: Math.floor(Math.random() * tileCount),
             y: Math.floor(Math.random() * tileCount)
           };
-        } while (snake.some(seg => seg.x === position.x && seg.y === position.y));
+        } while (
+          isOnSnake(position) ||
+          (food && food.x === position.x && food.y === position.y) ||
+          (bonusFood && bonusFood.x === position.x && bonusFood.y === position.y)
+        );
         return position;
+      }
+
+      function randomFoodPosition() {
+        return randomFreeCell();
+      }
+
+      function maybeSpawnBonusFood(now) {
+        if (bonusFood || score === 0) return;
+        if (score % 50 !== 0) return;
+        bonusFood = randomFreeCell();
+        bonusExpireAt = now + 3200;
       }
 
       function startLoop() {
         clearInterval(loopTimer);
+        lastTickMs = performance.now();
         loopTimer = setInterval(update, speed);
       }
 
@@ -330,6 +380,23 @@
       }
 
       function update() {
+        const now = performance.now();
+        const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
+        lastTickMs = now;
+
+        if (mode === 'timed') {
+          remainingTime -= elapsed;
+          updateTimeText();
+          if (remainingTime <= 0) {
+            endGame('⏰ 时间到！');
+            return;
+          }
+        }
+
+        if (bonusFood && now > bonusExpireAt) {
+          bonusFood = null;
+        }
+
         direction = pendingDirection;
         const head = {
           x: snake[0].x + direction.x,
@@ -344,25 +411,37 @@
         }
 
         if (isCollision(head)) {
-          endGame();
+          endGame('💥 撞到了！');
           return;
         }
 
         snake.unshift(head);
 
+        let ate = false;
         if (head.x === food.x && head.y === food.y) {
+          ate = true;
           score += 10;
-          scoreEl.textContent = String(score);
           food = randomFoodPosition();
+          maybeSpawnBonusFood(now);
+        }
+
+        if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+          ate = true;
+          score += 30;
+          bonusFood = null;
+        }
+
+        if (!ate) {
+          snake.pop();
+        } else {
           const speedBoost = Math.floor(score / 50) * 5;
           speed = Math.max(55, baseSpeed - speedBoost);
           if (running && !paused) {
             startLoop();
           }
-        } else {
-          snake.pop();
         }
 
+        scoreEl.textContent = String(score);
         lengthEl.textContent = String(snake.length);
         draw();
       }
@@ -373,7 +452,7 @@
         return hitWall || hitSelf;
       }
 
-      function endGame() {
+      function endGame(reasonText) {
         clearInterval(loopTimer);
         running = false;
         paused = false;
@@ -384,7 +463,7 @@
           localStorage.setItem('snake-best', String(bestScore));
         }
 
-        showOverlay(`<p><strong>游戏结束！得分 ${score}</strong></p><p>按方向键或点击“重新开始”再来一局</p>`);
+        showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
       }
 
       function drawGrid() {
@@ -417,6 +496,9 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawGrid();
         drawCell(food, '#f472b6', 6);
+        if (bonusFood) {
+          drawCell(bonusFood, '#facc15', 8);
+        }
         snake.forEach((segment, index) => {
           drawCell(segment, index === 0 ? '#7dffa5' : '#22c55e');
         });
@@ -456,9 +538,8 @@
         const dy = touch.clientY - touchStart.y;
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
-        const minSwipeDistance = 18;
 
-        if (absX < minSwipeDistance && absY < minSwipeDistance) {
+        if (absX < 18 && absY < 18) {
           touchStart = null;
           return;
         }
@@ -482,6 +563,11 @@
         if (running && !paused) {
           startLoop();
         }
+      });
+
+      modeSelect.addEventListener('change', () => {
+        mode = modeSelect.value;
+        resetGame(true);
       });
 
       resetGame(true);
