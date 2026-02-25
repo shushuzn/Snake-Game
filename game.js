@@ -70,13 +70,14 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.54.0';
+const GAME_VERSION = '0.55.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
 const blitzModeDuration = 45;
 const missionOptions = SnakeModes.missionOptions;
 const settingsKey = 'snake-settings-v2';
+const settingsSchemaVersion = 2;
 const statsKey = 'snake-stats-v1';
 const audioKey = 'snake-audio-v1';
 const bestByModeKey = 'snake-best-by-mode-v1';
@@ -92,6 +93,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.55.0', notes: ['新增设置迁移流程与 schema 版本标记，兼容历史本地配置', '路线图 P0 补齐配置字段演进策略并落地首版实现'] },
   { version: '0.54.0', notes: ['结算面板新增得分来源拆分（基础果/奖励果/王冠/连击等）', '路线图更新为阶段进度视图并标注当前聚焦项'] },
   { version: '0.53.0', notes: ['新增最近一局结算明细面板，便于复盘限时与冲刺对局', '展示开局加时/时间果/王冠加时等关键时间来源'] },
   { version: '0.52.0', notes: ['HUD 新增 DLC 状态展示，当前规则一眼可见', '不同 DLC 的核心收益会同步显示在状态栏'] },
@@ -581,14 +583,34 @@ function applyMiniHudMode() {
   document.body.classList.toggle('compact-hud', Boolean(miniHudModeInput?.checked));
 }
 
+function normalizeSettingsPayload(raw = {}) {
+  const normalized = { ...(raw || {}) };
+  if (!('schemaVersion' in normalized)) normalized.schemaVersion = 1;
+  if (normalized.schemaVersion < 2) {
+    if (!('dlcPack' in normalized)) normalized.dlcPack = 'none';
+    normalized.schemaVersion = 2;
+  }
+  if (!['none', 'frenzy', 'guardian', 'chrono'].includes(String(normalized.dlcPack))) {
+    normalized.dlcPack = 'none';
+  }
+  return normalized;
+}
+
+function maybePersistSettingsMigration(normalized, raw) {
+  if (!normalized || !raw || normalized.schemaVersion === raw.schemaVersion) return;
+  localStorage.setItem(settingsKey, JSON.stringify(normalized));
+}
+
 function loadSettings() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+    const raw = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+    const parsed = normalizeSettingsPayload(raw);
+    maybePersistSettingsMigration(parsed, raw);
     if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'blitz' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
     modePreference = modeSelect.value;
     if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
     if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
-    if (parsed.dlcPack === 'none' || parsed.dlcPack === 'frenzy' || parsed.dlcPack === 'guardian' || parsed.dlcPack === 'chrono') dlcPackSelect.value = parsed.dlcPack;
+    dlcPackSelect.value = parsed.dlcPack;
     wrapModeInput.checked = Boolean(parsed.wrapMode);
     obstacleModeInput.checked = parsed.obstacleMode !== false;
     obstacleModePreference = obstacleModeInput.checked;
@@ -605,6 +627,7 @@ function loadSettings() {
 
 function saveSettings() {
   localStorage.setItem(settingsKey, JSON.stringify({
+    schemaVersion: settingsSchemaVersion,
     mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
     skin: skinSelect.value,
