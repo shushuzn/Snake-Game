@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.68.0';
+const GAME_VERSION = '0.69.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.69.0', notes: ['新增 endgame_flow.js 与 records.js，拆分结算触发与战绩写入编排逻辑', '路线图 P1 推进：完成结算触发层 + 战绩编排层拆分，下一步拆分重置收尾编排层'] },
   { version: '0.68.0', notes: ['新增 play_state.js，开局/继续/暂停状态机决策从 game.js 拆分', '路线图 P1 推进：状态机决策层模块化落地，下一步拆分结算触发编排层'] },
   { version: '0.67.0', notes: ['新增 loop_timers.js，主循环与倒计时计时器编排从 game.js 拆分', '路线图 P1 推进：主循环计时编排模块化落地，下一步拆分状态机决策层'] },
   { version: '0.66.0', notes: ['新增 item_spawn.js，道具生成与加石头规则编排从 game.js 拆分', '路线图 P1 推进：道具生成编排模块化落地，下一步拆分主循环状态机编排层'] },
@@ -264,8 +265,6 @@ const challengeRuntime = window.SnakeChallenge.createChallengeModule({
 });
 
 
-let lastResult = { score: 0, mode: 'classic', ts: 0 };
-let history = [];
 let discoveredCodex = {};
 let currentSkin = 'classic';
 let dlcPack = 'none';
@@ -558,6 +557,15 @@ const loopTimersRuntime = window.SnakeLoopTimers.createLoopTimersModule({
   isRunning: () => running
 });
 
+const recordsRuntime = window.SnakeRecords.createRecordsModule({
+  storage,
+  keys: { historyKey, lastResultKey },
+  ui: { historyListEl, lastResultEl },
+  getModeLabel: SnakeModes.getModeLabel,
+  isValidModeValue,
+  onPersist: saveActiveAccountSnapshot
+});
+
 const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   runtime: {
     isRunning: () => running,
@@ -583,6 +591,73 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   },
   onCountdownDone: startLoop,
   onResume: startLoop
+});
+
+const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
+  runtime: {
+    stopLoop: () => loopTimersRuntime.stopAll(),
+    setRunning: (value) => { running = value; },
+    setPaused: (value) => { paused = value; },
+    isTimerMode,
+    getScore: () => score,
+    getMode: () => mode,
+    getLevel: () => level,
+    getRemainingTime: () => remainingTime,
+    getRoundMaxCombo: () => roundMaxCombo
+  },
+  stats: {
+    getStreak: () => streakWins,
+    setStreak: (value) => {
+      streakWins = value;
+      streakEl.textContent = String(streakWins);
+    },
+    persist: saveLifetimeStats
+  },
+  bests: {
+    getBestScore: () => bestScore,
+    setBestScore: (value) => {
+      bestScore = value;
+      bestEl.textContent = String(bestScore);
+      storage.writeText('snake-best', String(bestScore));
+      saveActiveAccountSnapshot();
+    },
+    getModeBest: (modeName) => bestByMode[modeName] || 0,
+    setModeBest: (modeName, value) => {
+      bestByMode[modeName] = value;
+      saveBestByMode();
+      refreshModeBestText();
+    },
+    getEndlessBestLevel: () => endlessBestLevel,
+    setEndlessBestLevel: (value) => {
+      endlessBestLevel = value;
+      saveEndlessBestLevel();
+    }
+  },
+  settlement: {
+    refresh: refreshSettlementPanel
+  },
+  records: {
+    recordRound: (nextScore, modeName) => {
+      recordsRuntime.recordRound(nextScore, modeName);
+    }
+  },
+  achievements: {
+    unlock: unlockAchievement
+  },
+  roguelike: {
+    addPerks: (gain) => {
+      roguePerks += gain;
+      saveRogueMeta();
+    }
+  },
+  ui: {
+    showEndOverlay: (reasonText, nextScore) => {
+      showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${nextScore}</p><p>按方向键或点击“重新开始”再来一局</p>`);
+    }
+  },
+  audio: {
+    hit: () => beep('hit')
+  }
 });
 
 function getBonusStep() {
@@ -657,59 +732,31 @@ function renderVersionEvents() {
 }
 
 function loadHistory() {
-  const parsed = storage.readJson(historyKey, []);
-  history = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
-  renderHistory();
+  recordsRuntime.loadHistory();
 }
 
 function saveHistory() {
-  storage.writeJson(historyKey, history.slice(0, 5));
-  saveActiveAccountSnapshot();
+  recordsRuntime.saveHistory();
 }
 
 function addHistoryEntry(score, modeName) {
-  history.unshift({ score, mode: modeName, ts: Date.now() });
-  history = history.slice(0, 5);
-  saveHistory();
-  renderHistory();
+  recordsRuntime.addHistoryEntry(score, modeName);
 }
 
 function renderHistory() {
-  if (!history.length) {
-    historyListEl.innerHTML = '<li>暂无记录</li>';
-    return;
-  }
-  historyListEl.innerHTML = history
-    .map(item => {
-      const modeLabel = SnakeModes.getModeLabel(item.mode).replace('模式', '');
-      const d = new Date(item.ts || Date.now());
-      const hh = String(d.getHours()).padStart(2, '0');
-      const mm = String(d.getMinutes()).padStart(2, '0');
-      return `<li>${modeLabel}：${item.score} 分 <small>(${hh}:${mm})</small></li>`;
-    })
-    .join('');
+  recordsRuntime.renderHistory();
 }
 
 function loadLastResult() {
-  const parsed = storage.readJson(lastResultKey, {});
-  lastResult.score = Number(parsed.score || 0);
-  lastResult.mode = isValidModeValue(parsed.mode) && parsed.mode !== 'classic' ? parsed.mode : 'classic';
-  lastResult.ts = Number(parsed.ts || 0);
-  refreshLastResultText();
+  recordsRuntime.loadLastResult();
 }
 
 function saveLastResult() {
-  storage.writeJson(lastResultKey, lastResult);
-  saveActiveAccountSnapshot();
+  recordsRuntime.saveLastResult();
 }
 
 function refreshLastResultText() {
-  if (!lastResult.ts) {
-    lastResultEl.textContent = '--';
-    return;
-  }
-  const modeLabel = SnakeModes.getModeLabel(lastResult.mode).replace('模式', '');
-  lastResultEl.textContent = `${modeLabel} ${lastResult.score}分`;
+  recordsRuntime.refreshLastResultText();
 }
 
 function loadAchievements() {
@@ -1067,53 +1114,7 @@ function isCollision(head) {
 }
 
 function endGame(reasonText) {
-  loopTimersRuntime.stopAll();
-  running = false;
-  paused = false;
-
-  if (isTimerMode() && reasonText.includes('时间到')) {
-    streakWins += 1;
-  } else {
-    streakWins = 0;
-  }
-  streakEl.textContent = String(streakWins);
-  saveLifetimeStats();
-
-  if (score > bestScore) {
-    bestScore = score;
-    bestEl.textContent = String(bestScore);
-    storage.writeText('snake-best', String(bestScore));
-    saveActiveAccountSnapshot();
-  }
-
-  if (score > (bestByMode[mode] || 0)) {
-    bestByMode[mode] = score;
-    saveBestByMode();
-    refreshModeBestText();
-  }
-
-  if (mode === 'endless' && level > endlessBestLevel) {
-    endlessBestLevel = level;
-    saveEndlessBestLevel();
-  }
-
-  refreshSettlementPanel({ remainingTime });
-  lastResult = { score, mode, ts: Date.now() };
-  saveLastResult();
-  refreshLastResultText();
-  addHistoryEntry(score, mode);
-
-  if (score >= 200) unlockAchievement('score200', '高分达人（单局 200 分）');
-  if (roundMaxCombo >= 5) unlockAchievement('combo5', '连击高手（连击达到 x5）');
-  if (isTimerMode() && reasonText.includes('时间到') && score >= 120) unlockAchievement('timedClear', '限时挑战者（限时类模式 120+）');
-  if (mode === 'roguelike') {
-    const gain = Math.max(1, Math.floor(score / 120));
-    roguePerks += gain;
-    saveRogueMeta();
-  }
-
-  beep('hit');
-  showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
+  endgameFlowRuntime.finalize(reasonText);
 }
 
 function canMagnetCollect(head, pickup, now, range = 2) {
@@ -1506,10 +1507,8 @@ clearDataBtn.addEventListener('click', () => {
   streakEl.textContent = '0';
   achievements = { score200: false, combo5: false, timedClear: false };
   refreshAchievementsText();
-  lastResult = { score: 0, mode: 'classic', ts: 0 };
-  refreshLastResultText();
-  history = [];
-  renderHistory();
+  recordsRuntime.clearLastResult();
+  recordsRuntime.clearHistory();
   discoveredCodex = defaultCodexState();
   refreshCodex();
   endlessBestLevel = 0;
