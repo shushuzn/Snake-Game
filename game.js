@@ -18,6 +18,10 @@ const streakEl = document.getElementById('streak');
 const achievementsEl = document.getElementById('achievements');
 const challengeEl = document.getElementById('challenge');
 const challengeDetailEl = document.getElementById('challengeDetail');
+const challengeNextEl = document.getElementById('challengeNext');
+const challengeNextDateEl = document.getElementById('challengeNextDate');
+const challengeRefreshEl = document.getElementById('challengeRefresh');
+const challengeDateEl = document.getElementById('challengeDate');
 const lastResultEl = document.getElementById('lastResult');
 const multiplierEl = document.getElementById('multiplier');
 const stateEl = document.getElementById('state');
@@ -63,10 +67,11 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.38.0';
+const GAME_VERSION = '0.48.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
+const blitzModeDuration = 45;
 const missionOptions = SnakeModes.missionOptions;
 const settingsKey = 'snake-settings-v2';
 const statsKey = 'snake-stats-v1';
@@ -84,6 +89,16 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.48.0', notes: ['新增每日挑战“冲刺日”：可临时锁定为冲刺模式', '模式锁定期间保存设置将保留玩家原始模式偏好'] },
+  { version: '0.47.0', notes: ['新增“冲刺 45 秒”模式，节奏更快更适合短局', '冲刺模式共享限时玩法并支持时间果/王冠加时奖励'] },
+  { version: '0.46.0', notes: ['修复挑战锁定期间保存设置导致障碍偏好被覆盖的问题', '保存配置时会优先写入玩家偏好而非临时锁定值'] },
+  { version: '0.45.0', notes: ['净空挑战锁定障碍时会记住玩家原始开关偏好', '挑战结束后自动恢复障碍开关状态，避免设置被意外改写'] },
+  { version: '0.44.0', notes: ['每日挑战会同步锁定冲突开关，规则与 HUD 表现一致', '净空挑战下障碍开关自动禁用并显示原因提示'] },
+  { version: '0.43.0', notes: ['挑战倒计时改为差异更新，减少不必要的 DOM 刷新', '挑战刷新定时器统一封装，重置与跨天切换更稳定'] },
+  { version: '0.42.0', notes: ['HUD 新增明日日期展示，预告信息更完整', '挑战日期文案升级为日期+星期，便于快速识别日历'] },
+  { version: '0.41.0', notes: ['跨天后每日挑战自动刷新，无需手动重开', 'HUD 新增挑战日期显示，便于核对本地日历'] },
+  { version: '0.40.0', notes: ['每日挑战改用本地日期计算，避免跨时区显示错位', 'HUD 新增挑战刷新倒计时，明确信息切换时间点'] },
+  { version: '0.39.0', notes: ['新增“明日挑战”HUD预告，方便提前规划玩法', '补全每日挑战选择逻辑并清理重复赋值代码'] },
   { version: '0.38.0', notes: ['新增障碍编辑器：支持坐标导入/导出/清空', '可保存自定义障碍布局并在新局自动应用'] },
   { version: '0.37.0', notes: ['新增每日挑战效果文案展示，规则变化更直观', '新增“新手引导”按钮与首次启动提示，降低上手门槛'] },
   { version: '0.36.0', notes: ['继续拆分 game.js：输入、渲染、模式配置已模块化', '新增 input.js / render.js / modes.js，主文件职责更聚焦'] },
@@ -157,7 +172,7 @@ let comboExpireAt = 0;
 let rocks = [];
 let score;
 let bestScore = Number(localStorage.getItem('snake-best') || '0');
-let bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
+let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
 let paused = false;
 let loopTimer;
@@ -179,6 +194,7 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let countdownTimer = null;
+let challengeRefreshTimer = null;
 let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
@@ -189,6 +205,12 @@ let phaseUntil = 0;
 let magnetUntil = 0;
 let comboGuardUntil = 0;
 let currentChallenge = SnakeModes.dailyChallengeOptions[0];
+let currentChallengeSeed = 0;
+let lastChallengeCountdownText = '';
+let obstacleModePreference = obstacleModeInput.checked;
+let modePreference = modeSelect.value;
+
+
 let lastResult = { score: 0, mode: 'classic', ts: 0 };
 let history = [];
 let discoveredCodex = {};
@@ -211,11 +233,76 @@ roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
 
 
-function selectDailyChallenge() {
-  currentChallenge = SnakeModes.pickDailyChallenge();
+function applyChallengeControlLocks() {
+  const lockRocks = Boolean(currentChallenge.noRocks);
+  if (lockRocks) {
+    if (!obstacleModeInput.disabled) obstacleModePreference = obstacleModeInput.checked;
+    obstacleModeInput.checked = false;
+    obstacleModeInput.disabled = true;
+    obstacleModeInput.title = '今日挑战：净空模式（障碍规则已锁定为关闭）';
+  } else {
+    obstacleModeInput.disabled = false;
+    obstacleModeInput.title = '';
+    obstacleModeInput.checked = obstacleModePreference;
+  }
+
+  const forceMode = currentChallenge.forceMode;
+  if (forceMode) {
+    if (!modeSelect.disabled) modePreference = modeSelect.value;
+    modeSelect.value = forceMode;
+    mode = forceMode;
+    modeSelect.disabled = true;
+    modeSelect.title = `今日挑战：模式锁定为${SnakeModes.getModeLabel(forceMode)}`;
+    return;
+  }
+
+  if (modeSelect.disabled) {
+    modeSelect.value = modePreference;
+    mode = modePreference;
+  }
+  modeSelect.disabled = false;
+  modeSelect.title = '';
+}
+
+function updateChallengeCountdownOnly() {
+  const text = SnakeModes.getChallengeRefreshCountdown();
+  if (text === lastChallengeCountdownText) return;
+  lastChallengeCountdownText = text;
+  challengeRefreshEl.textContent = text;
+}
+
+function refreshChallengeHud() {
   challengeEl.textContent = currentChallenge.label;
   challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  const nextChallenge = SnakeModes.pickDailyChallengeByOffset(1);
+  challengeNextEl.textContent = nextChallenge.label;
+  challengeNextEl.title = SnakeModes.describeChallenge(nextChallenge);
+  challengeNextDateEl.textContent = SnakeModes.formatRelativeLocalDateLabel(1);
+  challengeDateEl.textContent = SnakeModes.formatLocalDateLabel();
+  applyChallengeControlLocks();
+  lastChallengeCountdownText = '';
+  updateChallengeCountdownOnly();
+}
+
+function selectDailyChallenge() {
+  currentChallenge = SnakeModes.pickDailyChallenge();
+  currentChallengeSeed = SnakeModes.getLocalDateSeed();
+  refreshChallengeHud();
+}
+
+function refreshChallengeByDateIfNeeded() {
+  const latestSeed = SnakeModes.getLocalDateSeed();
+  if (latestSeed === currentChallengeSeed) {
+    updateChallengeCountdownOnly();
+    return;
+  }
+  selectDailyChallenge();
+}
+
+function startChallengeRefreshTicker() {
+  clearInterval(challengeRefreshTimer);
+  refreshChallengeByDateIfNeeded();
+  challengeRefreshTimer = setInterval(refreshChallengeByDateIfNeeded, 1000);
 }
 
 function getBonusStep() {
@@ -356,7 +443,7 @@ async function importSaveData(file) {
 const Workshop = window.SnakeWorkshop.createWorkshopModule({
   version: GAME_VERSION,
   inputEl: workshopCodeInput,
-  isValidMode: (value) => value === 'classic' || value === 'timed' || value === 'endless' || value === 'roguelike',
+  isValidMode: (value) => value === 'classic' || value === 'timed' || value === 'blitz' || value === 'endless' || value === 'roguelike',
   isValidDifficulty: (value) => ['140', '110', '80'].includes(String(value)),
   isValidSkin: (value) => Object.hasOwn(skinThemes, value),
   applyVisualModes: () => {
@@ -374,13 +461,23 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
   resetAndRefresh: () => resetGame(true)
 });
 
+function getModeSettingValue() {
+  if (modeSelect.disabled) return modePreference;
+  return modeSelect.value;
+}
+
+function getObstacleModeSettingValue() {
+  if (obstacleModeInput.disabled) return obstacleModePreference;
+  return obstacleModeInput.checked;
+}
+
 function getWorkshopStateSnapshot() {
   return {
-    mode: modeSelect.value,
+    mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
     skin: skinSelect.value,
     wrapMode: wrapModeInput.checked,
-    obstacleMode: obstacleModeInput.checked,
+    obstacleMode: getObstacleModeSettingValue(),
     hardcoreMode: hardcoreModeInput.checked,
     contrastMode: contrastModeInput.checked,
     miniHudMode: miniHudModeInput.checked,
@@ -390,10 +487,12 @@ function getWorkshopStateSnapshot() {
 
 function applyWorkshopControls(next) {
   if (next.mode !== undefined) modeSelect.value = next.mode;
+  modePreference = modeSelect.value;
   if (next.difficulty !== undefined) difficultySelect.value = next.difficulty;
   if (next.skin !== undefined) skinSelect.value = next.skin;
   wrapModeInput.checked = Boolean(next.wrapMode);
   obstacleModeInput.checked = next.obstacleMode !== false;
+  obstacleModePreference = obstacleModeInput.checked;
   hardcoreModeInput.checked = Boolean(next.hardcoreMode);
   contrastModeInput.checked = Boolean(next.contrastMode);
   miniHudModeInput.checked = Boolean(next.miniHudMode);
@@ -411,11 +510,13 @@ function applyMiniHudMode() {
 function loadSettings() {
   try {
     const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
-    if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
+    if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'blitz' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
+    modePreference = modeSelect.value;
     if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
     if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
     wrapModeInput.checked = Boolean(parsed.wrapMode);
     obstacleModeInput.checked = parsed.obstacleMode !== false;
+    obstacleModePreference = obstacleModeInput.checked;
     hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
     contrastModeInput.checked = Boolean(parsed.contrastMode);
     miniHudModeInput.checked = Boolean(parsed.miniHudMode);
@@ -429,11 +530,11 @@ function loadSettings() {
 
 function saveSettings() {
   localStorage.setItem(settingsKey, JSON.stringify({
-    mode: modeSelect.value,
+    mode: getModeSettingValue(),
     difficulty: difficultySelect.value,
     skin: skinSelect.value,
     wrapMode: wrapModeInput.checked,
-    obstacleMode: obstacleModeInput.checked,
+    obstacleMode: getObstacleModeSettingValue(),
     hardcoreMode: hardcoreModeInput.checked,
     contrastMode: contrastModeInput.checked,
     miniHudMode: miniHudModeInput.checked,
@@ -541,7 +642,7 @@ function loadLastResult() {
   try {
     const parsed = JSON.parse(localStorage.getItem(lastResultKey) || '{}');
     lastResult.score = Number(parsed.score || 0);
-    lastResult.mode = (parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') ? parsed.mode : 'classic';
+    lastResult.mode = (parsed.mode === 'timed' || parsed.mode === 'blitz' || parsed.mode === 'endless' || parsed.mode === 'roguelike') ? parsed.mode : 'classic';
     lastResult.ts = Number(parsed.ts || 0);
   } catch {
     lastResult = { score: 0, mode: 'classic', ts: 0 };
@@ -634,10 +735,11 @@ function loadBestByMode() {
     const parsed = JSON.parse(localStorage.getItem(bestByModeKey) || '{}');
     bestByMode.classic = Number(parsed.classic || 0);
     bestByMode.timed = Number(parsed.timed || 0);
+    bestByMode.blitz = Number(parsed.blitz || 0);
     bestByMode.endless = Number(parsed.endless || 0);
     bestByMode.roguelike = Number(parsed.roguelike || 0);
   } catch {
-    bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
+    bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
   }
 }
 
@@ -741,7 +843,9 @@ function maybeShowOnboarding() {
 
 function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
 function hideOverlay() { overlay.style.display = 'none'; }
-function updateTimeText() { timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
+function isTimerMode() { return mode === 'timed' || mode === 'blitz'; }
+function getModeTimeDuration() { return mode === 'blitz' ? blitzModeDuration : timedModeDuration; }
+function updateTimeText() { timeEl.textContent = isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
 
 function normalizeRockList(list) {
@@ -818,7 +922,7 @@ function resetGame(showStartOverlay = true) {
   score = 0;
   running = false;
   paused = false;
-  remainingTime = timedModeDuration;
+  remainingTime = getModeTimeDuration();
   level = 1;
   levelTargetScore = 100;
   lastTickMs = 0;
@@ -835,6 +939,7 @@ function resetGame(showStartOverlay = true) {
   playCountedThisRound = false;
   clearInterval(loopTimer);
   clearInterval(countdownTimer);
+  clearInterval(challengeRefreshTimer);
   pauseBtn.textContent = '暂停';
   scoreEl.textContent = '0';
   lengthEl.textContent = String(snake.length);
@@ -849,8 +954,8 @@ function resetGame(showStartOverlay = true) {
   magnetUntil = 0;
   comboGuardUntil = 0;
   refreshStateText();
-  challengeEl.textContent = currentChallenge.label;
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
+  refreshChallengeHud();
+  startChallengeRefreshTicker();
   updateTimeText();
   updateLevelText();
   if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
@@ -1066,7 +1171,7 @@ function endGame(reasonText) {
   running = false;
   paused = false;
 
-  if (mode === 'timed' && reasonText.includes('时间到')) {
+  if (isTimerMode() && reasonText.includes('时间到')) {
     streakWins += 1;
   } else {
     streakWins = 0;
@@ -1099,7 +1204,7 @@ function endGame(reasonText) {
 
   if (score >= 200) unlockAchievement('score200', '高分达人（单局 200 分）');
   if (roundMaxCombo >= 5) unlockAchievement('combo5', '连击高手（连击达到 x5）');
-  if (mode === 'timed' && reasonText.includes('时间到') && score >= 120) unlockAchievement('timedClear', '限时挑战者（限时模式 120+）');
+  if (isTimerMode() && reasonText.includes('时间到') && score >= 120) unlockAchievement('timedClear', '限时挑战者（限时类模式 120+）');
   if (mode === 'roguelike') {
     const gain = Math.max(1, Math.floor(score / 120));
     roguePerks += gain;
@@ -1121,7 +1226,7 @@ function update() {
   const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
   lastTickMs = now;
 
-  if (mode === 'timed') {
+  if (isTimerMode()) {
     remainingTime -= elapsed;
     updateTimeText();
     if (remainingTime <= 0) return endGame('⏰ 时间到！');
@@ -1222,7 +1327,7 @@ function update() {
 
   if (timeFood && ((head.x === timeFood.x && head.y === timeFood.y) || canMagnetCollect(head, timeFood, now))) {
     ate = true;
-    if (mode === 'timed') {
+    if (isTimerMode()) {
       remainingTime += 5;
       updateTimeText();
     } else {
@@ -1277,7 +1382,7 @@ function update() {
       multiplierEl.textContent = 'x2';
       rewardText = '奖励 倍率 x2';
     } else {
-      if (mode === 'timed') {
+      if (isTimerMode()) {
         remainingTime += 7;
         updateTimeText();
         rewardText = '奖励 +7 秒';
@@ -1449,6 +1554,7 @@ difficultySelect.addEventListener('change', () => {
 });
 
 modeSelect.addEventListener('change', () => {
+  modePreference = modeSelect.value;
   saveSettings();
   mode = modeSelect.value;
   updateLevelText();
@@ -1456,7 +1562,7 @@ modeSelect.addEventListener('change', () => {
   resetGame(true);
 });
 
-obstacleModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
+obstacleModeInput.addEventListener('change', () => { obstacleModePreference = obstacleModeInput.checked; saveSettings(); resetGame(true); });
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 wrapModeInput.addEventListener('change', saveSettings);
 contrastModeInput.addEventListener('change', () => { saveSettings(); applyContrastMode(); });
@@ -1470,9 +1576,12 @@ skinSelect.addEventListener('change', () => {
 
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) return;
-  if (!autoPauseModeInput.checked) return;
-  if (running && !paused) togglePause();
+  if (document.hidden) {
+    if (!autoPauseModeInput.checked) return;
+    if (running && !paused) togglePause();
+    return;
+  }
+  refreshChallengeByDateIfNeeded();
 });
 
 
@@ -1491,7 +1600,7 @@ clearDataBtn.addEventListener('click', () => {
   localStorage.removeItem(customRocksKey);
   bestScore = 0;
   bestEl.textContent = '0';
-  bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
+  bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
   refreshModeBestText();
   foodsEaten = 0;
   totalPlays = 0;
