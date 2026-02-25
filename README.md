@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.58.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.59.0
 ```
 
 ## 最新进展
 
+- v0.59.0：挑战 HUD 与锁定/跨天刷新逻辑拆分到 `challenge.js`，进一步瘦身 `game.js`。
 - v0.58.0：统一存档 JSON 读写入口，减少重复解析与异常分支。
 - v0.57.0：设置校验逻辑常量化，减少重复分支并提升可维护性。
 - v0.56.0：结算统计逻辑拆分到 `settlement.js`，并启动路线图 P1 模块化工作。
@@ -111,7 +112,7 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.58.0
 - ✅ 统一创意工坊与本地设置字段演进策略：已新增 `schemaVersion` 与迁移逻辑，兼容旧配置并自动补齐关键字段。
 
 ### P1（中期，2-4 周）
-- ⏳ 继续拆分 `game.js`：已拆出结算系统、配置校验去冗余、存档读写去冗余；下一步拆分挑战系统与独立存档模块。
+- ⏳ 继续拆分 `game.js`：已拆出结算系统、挑战系统，并完成配置校验/存档读写去冗余；下一步拆分独立存档模块。
 - DLC 体系扩展：新增“风险收益型”DLC，并提供可视化规则摘要。
 - 增加每日挑战“周循环主题”（例如周末双倍率、工作日稳态挑战）。
 

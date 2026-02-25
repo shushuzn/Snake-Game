@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.58.0';
+const GAME_VERSION = '0.59.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -125,6 +125,7 @@ function writeStorageJson(key, value) {
 
 
 const versionEvents = [
+  { version: '0.59.0', notes: ['挑战 HUD/锁定与跨天刷新逻辑拆分至 challenge.js，主文件进一步瘦身', '路线图 P1 推进：挑战系统模块化落地，下一步拆分独立存档模块'] },
   { version: '0.58.0', notes: ['存档读写统一为 read/writeStorageJson，减少重复 try/catch 解析代码', '路线图 P1 推进：先完成存档层去冗余，再拆分独立存档模块'] },
   { version: '0.57.0', notes: ['设置校验规则改为常量化，减少重复判断分支', '路线图 P1 持续推进：先完成配置层去冗余重构'] },
   { version: '0.56.0', notes: ['结算统计逻辑拆分到 settlement.js，主循环职责更聚焦', '路线图 P1 启动：结算模块已从 game.js 抽离为独立模块'] },
@@ -240,7 +241,6 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let countdownTimer = null;
-let challengeRefreshTimer = null;
 let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
@@ -251,10 +251,24 @@ let phaseUntil = 0;
 let magnetUntil = 0;
 let comboGuardUntil = 0;
 let currentChallenge = SnakeModes.dailyChallengeOptions[0];
-let currentChallengeSeed = 0;
-let lastChallengeCountdownText = '';
 let obstacleModePreference = obstacleModeInput.checked;
 let modePreference = modeSelect.value;
+
+const challengeRuntime = window.SnakeChallenge.createChallengeModule({
+  snakeModes: SnakeModes,
+  elements: { challengeEl, challengeDetailEl, challengeNextEl, challengeNextDateEl, challengeRefreshEl, challengeDateEl },
+  controls: { modeSelect, obstacleModeInput },
+  runtime: {
+    isRunning: () => running,
+    getCurrentChallenge: () => currentChallenge,
+    getModePreference: () => modePreference,
+    setModePreference: (value) => { modePreference = value; },
+    syncMode: (value) => { mode = value; },
+    getObstacleModePreference: () => obstacleModePreference,
+    setObstacleModePreference: (value) => { obstacleModePreference = value; }
+  },
+  setCurrentChallenge: (value) => { currentChallenge = value; }
+});
 
 
 let lastResult = { score: 0, mode: 'classic', ts: 0 };
@@ -281,82 +295,6 @@ roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
 refreshDlcHud();
 
-
-function applyChallengeControlLocks() {
-  const lockRocks = Boolean(currentChallenge.noRocks);
-  if (lockRocks) {
-    if (!obstacleModeInput.disabled) obstacleModePreference = obstacleModeInput.checked;
-    obstacleModeInput.checked = false;
-    obstacleModeInput.disabled = true;
-    obstacleModeInput.title = '今日挑战：净空模式（障碍规则已锁定为关闭）';
-  } else {
-    obstacleModeInput.disabled = false;
-    obstacleModeInput.title = '';
-    obstacleModeInput.checked = obstacleModePreference;
-  }
-
-  const forceMode = currentChallenge.forceMode;
-  if (forceMode) {
-    if (!modeSelect.disabled) modePreference = modeSelect.value;
-    modeSelect.disabled = true;
-    if (running) {
-      modeSelect.title = `今日挑战：下一局将锁定为${SnakeModes.getModeLabel(forceMode)}`;
-      return;
-    }
-    modeSelect.value = forceMode;
-    mode = forceMode;
-    modeSelect.title = `今日挑战：模式锁定为${SnakeModes.getModeLabel(forceMode)}`;
-    return;
-  }
-
-  if (modeSelect.disabled && !running) {
-    modeSelect.value = modePreference;
-    mode = modePreference;
-  }
-  modeSelect.disabled = false;
-  modeSelect.title = '';
-}
-
-function updateChallengeCountdownOnly() {
-  const text = SnakeModes.getChallengeRefreshCountdown();
-  if (text === lastChallengeCountdownText) return;
-  lastChallengeCountdownText = text;
-  challengeRefreshEl.textContent = text;
-}
-
-function refreshChallengeHud() {
-  challengeEl.textContent = currentChallenge.label;
-  challengeDetailEl.textContent = SnakeModes.describeChallenge(currentChallenge);
-  const nextChallenge = SnakeModes.pickDailyChallengeByOffset(1);
-  challengeNextEl.textContent = nextChallenge.label;
-  challengeNextEl.title = SnakeModes.describeChallenge(nextChallenge);
-  challengeNextDateEl.textContent = SnakeModes.formatRelativeLocalDateLabel(1);
-  challengeDateEl.textContent = SnakeModes.formatLocalDateLabel();
-  applyChallengeControlLocks();
-  lastChallengeCountdownText = '';
-  updateChallengeCountdownOnly();
-}
-
-function selectDailyChallenge() {
-  currentChallenge = SnakeModes.pickDailyChallenge();
-  currentChallengeSeed = SnakeModes.getLocalDateSeed();
-  refreshChallengeHud();
-}
-
-function refreshChallengeByDateIfNeeded() {
-  const latestSeed = SnakeModes.getLocalDateSeed();
-  if (latestSeed === currentChallengeSeed) {
-    updateChallengeCountdownOnly();
-    return;
-  }
-  selectDailyChallenge();
-}
-
-function startChallengeRefreshTicker() {
-  clearInterval(challengeRefreshTimer);
-  refreshChallengeByDateIfNeeded();
-  challengeRefreshTimer = setInterval(refreshChallengeByDateIfNeeded, 1000);
-}
 
 function getDlcStatusText() {
   if (dlcPack === 'frenzy') return '狂热（奖励果+10，刷新更频繁）';
@@ -1006,7 +944,7 @@ function resetGame(showStartOverlay = true) {
   score = 0;
   running = false;
   paused = false;
-  refreshChallengeHud();
+  challengeRuntime.refreshHud();
   refreshDlcHud();
   const startBonusSeconds = isTimerMode() ? getTimerStartBonusSeconds() : 0;
   settlement.resetRound(startBonusSeconds);
@@ -1030,7 +968,7 @@ function resetGame(showStartOverlay = true) {
   playCountedThisRound = false;
   clearInterval(loopTimer);
   clearInterval(countdownTimer);
-  clearInterval(challengeRefreshTimer);
+  challengeRuntime.stopTicker();
   pauseBtn.textContent = '暂停';
   scoreEl.textContent = '0';
   lengthEl.textContent = String(snake.length);
@@ -1045,7 +983,7 @@ function resetGame(showStartOverlay = true) {
   magnetUntil = 0;
   comboGuardUntil = 0;
   refreshStateText();
-  startChallengeRefreshTicker();
+  challengeRuntime.startTicker();
   updateTimeText();
   updateLevelText();
   if (showStartOverlay) showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>');
@@ -1684,7 +1622,7 @@ document.addEventListener('visibilitychange', () => {
     if (running && !paused) togglePause();
     return;
   }
-  refreshChallengeByDateIfNeeded();
+  challengeRuntime.refreshByDateIfNeeded();
 });
 
 
@@ -1856,7 +1794,7 @@ if (activeAccount && accountStore[activeAccount]) {
 }
 refreshAccountUI();
 
-selectDailyChallenge();
+challengeRuntime.selectDailyChallenge();
 renderVersionEvents();
 loadLifetimeStats();
 loadHistory();
