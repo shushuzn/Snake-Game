@@ -114,6 +114,20 @@
         </div>
       </section>
 
+      <section class="panel" aria-label="障碍编辑器">
+        <h2>障碍编辑器（实验）</h2>
+        <p class="tips">每行一个坐标：<code>x,y</code>（范围 0-24），可导出当前障碍布局。</p>
+        <textarea id="rockEditor" class="workshop-code" rows="4" placeholder="例如：
+12,8
+13,8
+14,8"></textarea>
+        <div class="controls-group">
+          <button id="applyRocks" type="button" class="secondary">应用障碍</button>
+          <button id="exportRocks" type="button" class="secondary">导出当前障碍</button>
+          <button id="clearRocks" type="button">清空自定义障碍</button>
+        </div>
+      </section>
+
       <section class="panel" id="helpPanel" aria-label="玩法帮助" style="display:none;">
         <h2>玩法帮助</h2>
         <ol>

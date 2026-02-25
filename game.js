@@ -43,6 +43,10 @@ const copyWorkshopBtn = document.getElementById('copyWorkshop');
 const applyWorkshopBtn = document.getElementById('applyWorkshop');
 const workshopPresetSelect = document.getElementById('workshopPreset');
 const applyWorkshopPresetBtn = document.getElementById('applyWorkshopPreset');
+const rockEditorInput = document.getElementById('rockEditor');
+const applyRocksBtn = document.getElementById('applyRocks');
+const exportRocksBtn = document.getElementById('exportRocks');
+const clearRocksBtn = document.getElementById('clearRocks');
 const historyListEl = document.getElementById('historyList');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
@@ -59,7 +63,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.37.0';
+const GAME_VERSION = '0.38.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -77,8 +81,10 @@ const accountStoreKey = 'snake-accounts-v1';
 const currentAccountKey = 'snake-current-account-v1';
 const rogueMetaKey = 'snake-roguelike-meta-v1';
 const onboardingKey = 'snake-onboarding-v1';
+const customRocksKey = 'snake-custom-rocks-v1';
 
 const versionEvents = [
+  { version: '0.38.0', notes: ['新增障碍编辑器：支持坐标导入/导出/清空', '可保存自定义障碍布局并在新局自动应用'] },
   { version: '0.37.0', notes: ['新增每日挑战效果文案展示，规则变化更直观', '新增“新手引导”按钮与首次启动提示，降低上手门槛'] },
   { version: '0.36.0', notes: ['继续拆分 game.js：输入、渲染、模式配置已模块化', '新增 input.js / render.js / modes.js，主文件职责更聚焦'] },
   { version: '0.35.0', notes: ['新增快捷键：R 快速重开、M 静音、H 帮助开关', '输入框聚焦时自动忽略快捷键，避免误触影响文本输入'] },
@@ -195,6 +201,7 @@ let rogueSpeedDelta = 0;
 let rogueScoreBonus = 0;
 let rogueComboWindowBonus = 0;
 let rogueStartShield = 0;
+let customRocks = [];
 
 bestEl.textContent = String(bestScore);
 versionTag.textContent = `v${GAME_VERSION}`;
@@ -218,7 +225,7 @@ function getBonusStep() {
 function getStorageKeysForProfile() {
   return [
     'snake-best', settingsKey, statsKey, audioKey, bestByModeKey,
-    achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey
+    achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey
   ];
 }
 
@@ -272,6 +279,7 @@ function reloadAllFromStorage() {
   loadAudioSetting();
   loadBestByMode();
   loadSettings();
+  loadCustomRocks();
   currentSkin = skinSelect.value;
   mode = modeSelect.value;
   updateLevelText();
@@ -736,10 +744,58 @@ function hideOverlay() { overlay.style.display = 'none'; }
 function updateTimeText() { timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
 
+function normalizeRockList(list) {
+  const used = new Set();
+  const blocked = new Set(['8,12', '7,12', '6,12']);
+  const normalized = [];
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
+    const x = Number(item.x);
+    const y = Number(item.y);
+    if (!Number.isInteger(x) || !Number.isInteger(y)) continue;
+    if (x < 0 || y < 0 || x >= tileCount || y >= tileCount) continue;
+    const key = `${x},${y}`;
+    if (used.has(key) || blocked.has(key)) continue;
+    used.add(key);
+    normalized.push({ x, y });
+  }
+  return normalized.slice(0, 20);
+}
+
+function parseRockEditorText(raw) {
+  const rows = String(raw || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
+  const parsed = rows.map((line) => {
+    const parts = line.split(',').map(v => v.trim());
+    if (parts.length !== 2) return null;
+    return { x: Number(parts[0]), y: Number(parts[1]) };
+  });
+  return normalizeRockList(parsed);
+}
+
+function encodeRocks(rockList) {
+  return rockList.map(item => `${item.x},${item.y}`).join('\n');
+}
+
+function saveCustomRocks() {
+  localStorage.setItem(customRocksKey, JSON.stringify(customRocks));
+  if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
+}
+
+function loadCustomRocks() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(customRocksKey) || '[]');
+    customRocks = normalizeRockList(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    customRocks = [];
+  }
+  if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
+}
+
 function resetGame(showStartOverlay = true) {
   snake = [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }];
   direction = { x: 1, y: 0 };
   pendingDirection = direction;
+  rocks = customRocks.map(item => ({ ...item }));
   food = randomFoodPosition();
   bonusFood = null;
   bonusExpireAt = 0;
@@ -759,7 +815,6 @@ function resetGame(showStartOverlay = true) {
   magnetExpireAt = 0;
   comboFood = null;
   comboExpireAt = 0;
-  rocks = [];
   score = 0;
   running = false;
   paused = false;
@@ -912,6 +967,7 @@ function refreshStateText(now = performance.now()) {
 
 function maybeAddRock() {
   if (!obstacleModeInput.checked || currentChallenge.noRocks) return;
+  if (customRocks.length) return;
   if (score < 80) return;
   if (score % 40 !== 0) return;
   if (rocks.length >= 8) return;
@@ -1432,6 +1488,7 @@ clearDataBtn.addEventListener('click', () => {
   localStorage.removeItem(codexKey);
   localStorage.removeItem(endlessBestLevelKey);
   localStorage.removeItem(rogueMetaKey);
+  localStorage.removeItem(customRocksKey);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
@@ -1456,6 +1513,8 @@ clearDataBtn.addEventListener('click', () => {
   saveEndlessBestLevel();
   roguePerks = 0;
   saveRogueMeta();
+  customRocks = [];
+  saveCustomRocks();
   if (activeAccount) {
     accountStore[activeAccount] = captureProfileSnapshot();
     saveAccountStore();
@@ -1548,6 +1607,36 @@ applyWorkshopPresetBtn.addEventListener('click', () => {
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
 });
 
+
+applyRocksBtn.addEventListener('click', () => {
+  const parsed = parseRockEditorText(rockEditorInput.value);
+  customRocks = parsed;
+  saveCustomRocks();
+  resetGame(true);
+  showOverlay(`<p><strong>障碍已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+});
+
+exportRocksBtn.addEventListener('click', async () => {
+  const text = encodeRocks(rocks);
+  rockEditorInput.value = text;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    showOverlay('<p><strong>已导出当前障碍</strong></p><p>坐标已写入文本框并复制</p>');
+  } catch {
+    showOverlay('<p><strong>已导出当前障碍</strong></p><p>坐标已写入文本框，可手动复制</p>');
+  }
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+});
+
+clearRocksBtn.addEventListener('click', () => {
+  customRocks = [];
+  saveCustomRocks();
+  resetGame(true);
+  showOverlay('<p><strong>已清空自定义障碍</strong></p><p>后续局将恢复默认障碍生成</p>');
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+});
+
 loadAccountStore();
 activeAccount = (localStorage.getItem(currentAccountKey) || '').trim();
 if (activeAccount && accountStore[activeAccount]) {
@@ -1567,6 +1656,7 @@ loadAchievements();
 loadAudioSetting();
 loadBestByMode();
 loadSettings();
+loadCustomRocks();
 applyContrastMode();
 applyMiniHudMode();
 currentSkin = skinSelect.value;
