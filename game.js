@@ -70,7 +70,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.62.0';
+const GAME_VERSION = '0.63.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -110,6 +110,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.63.0', notes: ['新增 workshop_runtime.js，工坊状态快照与按钮交互编排从 game.js 拆分', '路线图 P1 推进：工坊编排模块化落地，下一步拆分模式规则编排层'] },
   { version: '0.62.0', notes: ['新增 settings.js，设置加载/保存与视觉模式应用从 game.js 拆分', '路线图 P1 推进：设置编排模块化落地，下一步拆分工坊编排层'] },
   { version: '0.61.0', notes: ['新增 account.js，账号登录/导入导出与快照恢复编排从 game.js 拆分', '路线图 P1 推进：账号编排模块化落地，下一步拆分设置编排层'] },
   { version: '0.60.0', notes: ['新增 storage.js 统一文本/JSON存储与账号快照操作，进一步减少主文件存储样板代码', '路线图 P1 推进：存档能力模块化落地，下一步拆分账号/设置编排层'] },
@@ -470,6 +471,43 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
     refreshModeBestText();
   },
   resetAndRefresh: () => resetGame(true)
+});
+
+const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
+  workshop: Workshop,
+  controls: {
+    workshopCodeInput,
+    workshopPresetSelect,
+    genWorkshopBtn,
+    copyWorkshopBtn,
+    applyWorkshopBtn,
+    applyWorkshopPresetBtn,
+    modeSelect,
+    difficultySelect,
+    skinSelect,
+    dlcPackSelect,
+    wrapModeInput,
+    obstacleModeInput,
+    hardcoreModeInput,
+    contrastModeInput,
+    miniHudModeInput,
+    autoPauseModeInput
+  },
+  runtime: {
+    getModeSettingValue,
+    getObstacleModeSettingValue,
+    setModePreference: (value) => { modePreference = value; },
+    setObstacleModePreference: (value) => { obstacleModePreference = value; }
+  },
+  ui: {
+    showOverlay,
+    hideOverlay,
+    isRunning: () => running,
+    isPaused: () => paused
+  },
+  saveSettings,
+  applyContrastMode,
+  applyMiniHudMode
 });
 
 
@@ -1585,47 +1623,7 @@ accountInput.addEventListener('keydown', (event) => {
   accountInput.value = '';
 });
 
-genWorkshopBtn.addEventListener('click', () => {
-  const code = Workshop.generateCode(getWorkshopStateSnapshot);
-  if (!code) return;
-  showOverlay('<p><strong>创意工坊代码已生成</strong></p><p>可复制后分享给好友</p>');
-  setTimeout(() => { if (running && !paused) hideOverlay(); }, 700);
-});
-copyWorkshopBtn.addEventListener('click', async () => {
-  const code = workshopCodeInput.value.trim() || Workshop.generateCode(getWorkshopStateSnapshot);
-  if (!code) return;
-  try {
-    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(code);
-    showOverlay('<p><strong>已复制工坊代码</strong></p><p>可直接发送给好友</p>');
-    setTimeout(() => { if (running && !paused) hideOverlay(); }, 700);
-  } catch {
-    showOverlay('<p><strong>复制失败</strong></p><p>请手动复制文本框内容</p>');
-    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
-  }
-});
-applyWorkshopBtn.addEventListener('click', () => {
-  const ok = Workshop.applyCode(workshopCodeInput.value, applyWorkshopControls, getWorkshopStateSnapshot);
-  if (!ok) {
-    showOverlay('<p><strong>工坊代码无效</strong></p><p>请检查是否为 SWK1 格式</p>');
-    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
-    return;
-  }
-  showOverlay('<p><strong>已应用工坊规则</strong></p><p>已重置并按新规则开始</p>');
-  setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
-});
-applyWorkshopPresetBtn.addEventListener('click', () => {
-  const key = workshopPresetSelect.value;
-  const ok = Workshop.applyPreset(key, applyWorkshopControls, getWorkshopStateSnapshot);
-  if (!ok) {
-    showOverlay('<p><strong>请选择预设</strong></p><p>可先选择一个创意工坊模板</p>');
-    setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
-    return;
-  }
-  Workshop.generateCode(getWorkshopStateSnapshot);
-  showOverlay('<p><strong>预设已应用</strong></p><p>规则已切换并生成对应分享码</p>');
-  setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
-});
-
+workshopRuntime.bindEvents();
 
 applyRocksBtn.addEventListener('click', () => {
   const parsed = parseRockEditorText(rockEditorInput.value);
@@ -1678,4 +1676,4 @@ baseSpeed = Number(difficultySelect.value);
 refreshModeBestText();
 maybeShowOnboarding();
 resetGame(true);
-Workshop.generateCode(getWorkshopStateSnapshot);
+workshopRuntime.generateInitialCode();

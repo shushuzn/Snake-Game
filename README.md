@@ -67,11 +67,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.62.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.63.0
 ```
 
 ## 最新进展
 
+- v0.63.0：新增 `workshop_runtime.js`，拆分工坊快照与按钮交互编排逻辑。
 - v0.62.0：新增 `settings.js`，拆分设置加载/保存与视觉模式应用编排逻辑。
 - v0.61.0：新增 `account.js`，拆分账号登录/导入导出与快照恢复编排逻辑。
 - v0.60.0：新增 `storage.js`，统一文本/JSON 存储与账号快照应用逻辑。
@@ -115,7 +116,7 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.62.0
 - ✅ 统一创意工坊与本地设置字段演进策略：已新增 `schemaVersion` 与迁移逻辑，兼容旧配置并自动补齐关键字段。
 
 ### P1（中期，2-4 周）
-- ⏳ 继续拆分 `game.js`：已拆出结算系统、挑战系统、存档能力、账号与设置编排模块，并完成配置校验去冗余；下一步拆分工坊编排层。
+- ⏳ 继续拆分 `game.js`：已拆出结算系统、挑战系统、存档能力、账号/设置/工坊编排模块，并完成配置校验去冗余；下一步拆分模式规则编排层。
 - DLC 体系扩展：新增“风险收益型”DLC，并提供可视化规则摘要。
 - 增加每日挑战“周循环主题”（例如周末双倍率、工作日稳态挑战）。
 
