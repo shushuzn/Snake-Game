@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.27.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.28.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -76,6 +76,8 @@
           <span>时间：<b id="time" class="warn">--</b></span>
           <span>关卡：<b id="level">--</b></span>
           <span>最高关：<b id="bestLevel">0</b></span>
+          <span>肉鸽点：<b id="roguePerks">0</b></span>
+          <span>词条：<b id="rogueMutator">--</b></span>
           <span>连击：<b id="combo">x1</b></span>
           <span>护盾：<b id="shield">0</b></span>
           <span>任务：<b id="mission">--</b></span>
@@ -110,7 +112,7 @@
         </div>
         <div class="controls-group">
           <label class="label-inline" for="mode">模式：
-            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="endless">无尽关卡</option></select>
+            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="endless">无尽关卡</option><option value="roguelike">肉鸽模式</option></select>
           </label>
           <label class="label-inline" for="difficulty">难度：
             <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option></select>
@@ -139,7 +141,7 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。新增存档导出/导入，可备份账号进度。</p>
+      <p class="tips">提示：空格/P 暂停或继续。新增肉鸽模式：每局随机词条并累积肉鸽点。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -172,6 +174,8 @@
       const timeEl = document.getElementById('time');
       const levelEl = document.getElementById('level');
       const bestLevelEl = document.getElementById('bestLevel');
+      const roguePerksEl = document.getElementById('roguePerks');
+      const rogueMutatorEl = document.getElementById('rogueMutator');
       const comboEl = document.getElementById('combo');
       const shieldEl = document.getElementById('shield');
       const missionEl = document.getElementById('mission');
@@ -207,7 +211,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.27.0';
+      const GAME_VERSION = '0.28.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -223,6 +227,7 @@
       const endlessBestLevelKey = 'snake-endless-best-level-v1';
       const accountStoreKey = 'snake-accounts-v1';
       const currentAccountKey = 'snake-current-account-v1';
+      const rogueMetaKey = 'snake-roguelike-meta-v1';
 
       const dailyChallengeOptions = [
         { id: 'fast-start', label: '极速热身', speedDelta: -15 },
@@ -279,7 +284,7 @@
       let rocks = [];
       let score;
       let bestScore = Number(localStorage.getItem('snake-best') || '0');
-      let bestByMode = { classic: 0, timed: 0, endless: 0 };
+      let bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
       let running = false;
       let paused = false;
       let loopTimer;
@@ -317,11 +322,19 @@
       let currentSkin = 'classic';
       let activeAccount = '';
       let accountStore = {};
+      let roguePerks = 0;
+      let rogueMutatorLabel = '--';
+      let rogueSpeedDelta = 0;
+      let rogueScoreBonus = 0;
+      let rogueComboWindowBonus = 0;
+      let rogueStartShield = 0;
 
       bestEl.textContent = String(bestScore);
       versionTag.textContent = `v${GAME_VERSION}`;
       versionTag.title = `Snake build ${GAME_VERSION}`;
       bestLevelEl.textContent = '0';
+      roguePerksEl.textContent = '0';
+      rogueMutatorEl.textContent = '--';
 
 
       function selectDailyChallenge() {
@@ -337,7 +350,7 @@
       function getStorageKeysForProfile() {
         return [
           'snake-best', settingsKey, statsKey, audioKey, bestByModeKey,
-          achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey
+          achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey
         ];
       }
 
@@ -385,6 +398,7 @@
         loadHistory();
         loadCodex();
         loadEndlessBestLevel();
+        loadRogueMeta();
         loadLastResult();
         loadAchievements();
         loadAudioSetting();
@@ -464,7 +478,7 @@
       function loadSettings() {
         try {
           const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
-          if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless') modeSelect.value = parsed.mode;
+          if (parsed.mode === 'classic' || parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') modeSelect.value = parsed.mode;
           if (['140', '110', '80'].includes(String(parsed.difficulty))) difficultySelect.value = String(parsed.difficulty);
           if (Object.hasOwn(skinThemes, parsed.skin)) skinSelect.value = parsed.skin;
           wrapModeInput.checked = Boolean(parsed.wrapMode);
@@ -564,7 +578,7 @@
         }
         historyListEl.innerHTML = history
           .map(item => {
-            const modeLabel = item.mode === 'timed' ? '限时' : (item.mode === 'endless' ? '无尽' : '经典');
+            const modeLabel = item.mode === 'timed' ? '限时' : (item.mode === 'endless' ? '无尽' : (item.mode === 'roguelike' ? '肉鸽' : '经典'));
             const d = new Date(item.ts || Date.now());
             const hh = String(d.getHours()).padStart(2, '0');
             const mm = String(d.getMinutes()).padStart(2, '0');
@@ -577,7 +591,7 @@
         try {
           const parsed = JSON.parse(localStorage.getItem(lastResultKey) || '{}');
           lastResult.score = Number(parsed.score || 0);
-          lastResult.mode = (parsed.mode === 'timed' || parsed.mode === 'endless') ? parsed.mode : 'classic';
+          lastResult.mode = (parsed.mode === 'timed' || parsed.mode === 'endless' || parsed.mode === 'roguelike') ? parsed.mode : 'classic';
           lastResult.ts = Number(parsed.ts || 0);
         } catch {
           lastResult = { score: 0, mode: 'classic', ts: 0 };
@@ -595,7 +609,7 @@
           lastResultEl.textContent = '--';
           return;
         }
-        const modeLabel = lastResult.mode === 'timed' ? '限时' : (lastResult.mode === 'endless' ? '无尽' : '经典');
+        const modeLabel = lastResult.mode === 'timed' ? '限时' : (lastResult.mode === 'endless' ? '无尽' : (lastResult.mode === 'roguelike' ? '肉鸽' : '经典'));
         lastResultEl.textContent = `${modeLabel} ${lastResult.score}分`;
       }
 
@@ -671,8 +685,9 @@
           bestByMode.classic = Number(parsed.classic || 0);
           bestByMode.timed = Number(parsed.timed || 0);
           bestByMode.endless = Number(parsed.endless || 0);
+          bestByMode.roguelike = Number(parsed.roguelike || 0);
         } catch {
-          bestByMode = { classic: 0, timed: 0, endless: 0 };
+          bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
         }
       }
 
@@ -717,6 +732,50 @@
         saveActiveAccountSnapshot();
       }
 
+      function loadRogueMeta() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(rogueMetaKey) || '{}');
+          roguePerks = Number(parsed.perks || 0);
+        } catch {
+          roguePerks = 0;
+        }
+        roguePerksEl.textContent = String(roguePerks);
+      }
+
+      function saveRogueMeta() {
+        localStorage.setItem(rogueMetaKey, JSON.stringify({ perks: roguePerks }));
+        roguePerksEl.textContent = String(roguePerks);
+        saveActiveAccountSnapshot();
+      }
+
+      function applyRoguelikeMutator() {
+        rogueSpeedDelta = 0;
+        rogueScoreBonus = 0;
+        rogueComboWindowBonus = 0;
+        rogueStartShield = 0;
+        rogueMutatorLabel = '--';
+
+        if (mode !== 'roguelike') {
+          rogueMutatorEl.textContent = '--';
+          return;
+        }
+
+        const pool = [
+          { label: '疾风', speedDelta: -10, comboWindowBonus: -200 },
+          { label: '丰收', scoreBonus: 2 },
+          { label: '稳健', startShield: 1 },
+          { label: '连击', comboWindowBonus: 350 }
+        ];
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        const perkBoost = Math.min(roguePerks, 10);
+        rogueMutatorLabel = pick.label;
+        rogueSpeedDelta = (pick.speedDelta || 0) - Math.floor(perkBoost / 4);
+        rogueScoreBonus = (pick.scoreBonus || 0) + Math.floor(perkBoost / 3);
+        rogueComboWindowBonus = (pick.comboWindowBonus || 0) + Math.floor(perkBoost / 2) * 20;
+        rogueStartShield = pick.startShield ? 1 : 0;
+        rogueMutatorEl.textContent = rogueMutatorLabel;
+      }
+
       function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
       function hideOverlay() { overlay.style.display = 'none'; }
       function updateTimeText() { timeEl.textContent = mode === 'timed' ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
@@ -752,11 +811,13 @@
         levelTargetScore = 100;
         lastTickMs = 0;
         const hardcoreDelta = hardcoreModeInput.checked ? -20 : 0;
-        speed = Math.max(45, baseSpeed + (currentChallenge.speedDelta || 0) + hardcoreDelta);
+        applyRoguelikeMutator();
+        speed = Math.max(45, baseSpeed + (currentChallenge.speedDelta || 0) + hardcoreDelta + rogueSpeedDelta);
         combo = 1;
         roundMaxCombo = 1;
         lastEatMs = 0;
         shields = hardcoreModeInput.checked ? 0 : (currentChallenge.startShield || 0);
+        if (!hardcoreModeInput.checked) shields = Math.min(2, shields + rogueStartShield);
         missionTarget = missionOptions[Math.floor(Math.random() * missionOptions.length)];
         missionAchieved = false;
         playCountedThisRound = false;
@@ -1006,6 +1067,11 @@
         if (score >= 200) unlockAchievement('score200', '高分达人（单局 200 分）');
         if (roundMaxCombo >= 5) unlockAchievement('combo5', '连击高手（连击达到 x5）');
         if (mode === 'timed' && reasonText.includes('时间到') && score >= 120) unlockAchievement('timedClear', '限时挑战者（限时模式 120+）');
+        if (mode === 'roguelike') {
+          const gain = Math.max(1, Math.floor(score / 120));
+          roguePerks += gain;
+          saveRogueMeta();
+        }
 
         beep('hit');
         showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${score}</p><p>按方向键或点击“重新开始”再来一局</p>`);
@@ -1069,7 +1135,7 @@
         let ate = false;
         if (head.x === food.x && head.y === food.y) {
           ate = true;
-          score += 10 * scoreMultiplier;
+          score += (10 + rogueScoreBonus) * scoreMultiplier;
           foodsEaten += 1;
           foodsEl.textContent = String(foodsEaten);
           saveLifetimeStats();
@@ -1212,7 +1278,7 @@
 
         if (ate) {
           const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
-          const comboWindow = hardcoreModeInput.checked ? 2000 : 3000;
+          const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
           combo = eatDelta <= comboWindow ? Math.min(combo + 1, 9) : 1;
           roundMaxCombo = Math.max(roundMaxCombo, combo);
           score += (combo - 1) * 2 * scoreMultiplier;
@@ -1229,7 +1295,7 @@
         } else {
           const speedBoost = Math.floor(score / 50) * 5;
           const hardcoreDelta2 = hardcoreModeInput.checked ? -20 : 0;
-          speed = Math.max(45, baseSpeed + hardcoreDelta2 - speedBoost);
+          speed = Math.max(45, baseSpeed + hardcoreDelta2 - speedBoost + rogueSpeedDelta);
           if (running && !paused) startLoop();
         }
 
@@ -1373,7 +1439,7 @@
         baseSpeed = Number(difficultySelect.value);
         const speedBoost = Math.floor(score / 50) * 5;
         const hardcoreDelta3 = hardcoreModeInput.checked ? -20 : 0;
-        speed = Math.max(45, baseSpeed + hardcoreDelta3 - speedBoost);
+        speed = Math.max(45, baseSpeed + hardcoreDelta3 - speedBoost + rogueSpeedDelta);
         if (running && !paused) startLoop();
       });
 
@@ -1413,9 +1479,10 @@
         localStorage.removeItem(historyKey);
         localStorage.removeItem(codexKey);
         localStorage.removeItem(endlessBestLevelKey);
+        localStorage.removeItem(rogueMetaKey);
         bestScore = 0;
         bestEl.textContent = '0';
-        bestByMode = { classic: 0, timed: 0, endless: 0 };
+        bestByMode = { classic: 0, timed: 0, endless: 0, roguelike: 0 };
         refreshModeBestText();
         foodsEaten = 0;
         totalPlays = 0;
@@ -1435,6 +1502,8 @@
         refreshCodex();
         endlessBestLevel = 0;
         saveEndlessBestLevel();
+        roguePerks = 0;
+        saveRogueMeta();
         if (activeAccount) {
           accountStore[activeAccount] = captureProfileSnapshot();
           saveAccountStore();
@@ -1444,7 +1513,7 @@
 
 
       shareBtn.addEventListener('click', async () => {
-        const modeLabel = mode === 'timed' ? '限时模式' : (mode === 'endless' ? '无尽模式' : '经典模式');
+        const modeLabel = mode === 'timed' ? '限时模式' : (mode === 'endless' ? '无尽模式' : (mode === 'roguelike' ? '肉鸽模式' : '经典模式'));
         const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
         const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
         const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
@@ -1490,6 +1559,7 @@
       loadHistory();
       loadCodex();
       loadEndlessBestLevel();
+      loadRogueMeta();
       loadLastResult();
       loadAchievements();
       loadAudioSetting();
