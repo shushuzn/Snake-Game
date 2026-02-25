@@ -67,7 +67,7 @@
   <body>
     <main class="game-shell">
       <section class="header">
-        <h1>🐍 贪吃蛇 <small id="versionTag">v0.25.0</small></h1>
+        <h1>🐍 贪吃蛇 <small id="versionTag">v0.26.0</small></h1>
         <div class="stats">
           <span>分数：<b id="score">0</b></span>
           <span>最高分：<b id="best">0</b></span>
@@ -124,7 +124,17 @@
         </div>
       </section>
 
-      <p class="tips">提示：空格/P 暂停或继续。无尽模式新增最高关记录与里程碑奖励。</p>
+      <section class="history" aria-label="本地账号">
+        <h2>本地账号</h2>
+        <div class="controls-group">
+          <span>当前：<b id="accountName">游客</b></span>
+          <input id="accountInput" type="text" placeholder="输入账号名" maxlength="20" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#0f172a;color:#e2e8f0;" />
+          <button id="loginAccount" type="button" class="secondary">登录/切换</button>
+          <button id="logoutAccount" type="button" class="secondary">退出账号</button>
+        </div>
+      </section>
+
+      <p class="tips">提示：空格/P 暂停或继续。新增本地账号系统，可切换不同玩家存档。</p>
 
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
@@ -174,6 +184,10 @@
       const clearDataBtn = document.getElementById('clearData');
       const muteBtn = document.getElementById('mute');
       const shareBtn = document.getElementById('share');
+      const accountNameEl = document.getElementById('accountName');
+      const accountInput = document.getElementById('accountInput');
+      const loginAccountBtn = document.getElementById('loginAccount');
+      const logoutAccountBtn = document.getElementById('logoutAccount');
       const historyListEl = document.getElementById('historyList');
       const codexListEl = document.getElementById('codexList');
       const codexProgressEl = document.getElementById('codexProgress');
@@ -186,7 +200,7 @@
       const mobilePad = document.querySelector('.mobile-pad');
       const versionTag = document.getElementById('versionTag');
 
-      const GAME_VERSION = '0.25.0';
+      const GAME_VERSION = '0.26.0';
       const gridSize = 20;
       const tileCount = canvas.width / gridSize;
       const timedModeDuration = 60;
@@ -200,6 +214,8 @@
       const historyKey = 'snake-history-v1';
       const codexKey = 'snake-codex-v1';
       const endlessBestLevelKey = 'snake-endless-best-level-v1';
+      const accountStoreKey = 'snake-accounts-v1';
+      const currentAccountKey = 'snake-current-account-v1';
 
       const dailyChallengeOptions = [
         { id: 'fast-start', label: '极速热身', speedDelta: -15 },
@@ -292,6 +308,8 @@
       let history = [];
       let discoveredCodex = {};
       let currentSkin = 'classic';
+      let activeAccount = '';
+      let accountStore = {};
 
       bestEl.textContent = String(bestScore);
       versionTag.textContent = `v${GAME_VERSION}`;
@@ -307,6 +325,90 @@
 
       function getBonusStep() {
         return currentChallenge.bonusStep || 50;
+      }
+
+      function getStorageKeysForProfile() {
+        return [
+          'snake-best', settingsKey, statsKey, audioKey, bestByModeKey,
+          achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey
+        ];
+      }
+
+      function captureProfileSnapshot() {
+        const snapshot = {};
+        for (const key of getStorageKeysForProfile()) {
+          const value = localStorage.getItem(key);
+          if (value !== null) snapshot[key] = value;
+        }
+        return snapshot;
+      }
+
+      function applyProfileSnapshot(snapshot) {
+        const keys = getStorageKeysForProfile();
+        for (const key of keys) localStorage.removeItem(key);
+        for (const [key, value] of Object.entries(snapshot || {})) {
+          if (keys.includes(key) && typeof value === 'string') localStorage.setItem(key, value);
+        }
+      }
+
+      function refreshAccountUI() {
+        accountNameEl.textContent = activeAccount || '游客';
+      }
+
+      function saveAccountStore() {
+        localStorage.setItem(accountStoreKey, JSON.stringify(accountStore));
+      }
+
+      function loadAccountStore() {
+        try {
+          accountStore = JSON.parse(localStorage.getItem(accountStoreKey) || '{}') || {};
+        } catch {
+          accountStore = {};
+        }
+      }
+
+      function saveActiveAccountSnapshot() {
+        if (!activeAccount) return;
+        accountStore[activeAccount] = captureProfileSnapshot();
+        saveAccountStore();
+      }
+
+      function reloadAllFromStorage() {
+        loadLifetimeStats();
+        loadHistory();
+        loadCodex();
+        loadEndlessBestLevel();
+        loadLastResult();
+        loadAchievements();
+        loadAudioSetting();
+        loadBestByMode();
+        loadSettings();
+        currentSkin = skinSelect.value;
+        mode = modeSelect.value;
+        updateLevelText();
+        baseSpeed = Number(difficultySelect.value);
+        refreshModeBestText();
+        resetGame(true);
+      }
+
+      function loginAccount(name) {
+        const username = name.trim();
+        if (!username) return;
+        saveActiveAccountSnapshot();
+        activeAccount = username;
+        localStorage.setItem(currentAccountKey, activeAccount);
+        applyProfileSnapshot(accountStore[activeAccount] || {});
+        refreshAccountUI();
+        reloadAllFromStorage();
+      }
+
+      function logoutAccount() {
+        saveActiveAccountSnapshot();
+        activeAccount = '';
+        localStorage.removeItem(currentAccountKey);
+        applyProfileSnapshot({});
+        refreshAccountUI();
+        reloadAllFromStorage();
       }
 
       function loadSettings() {
@@ -332,6 +434,7 @@
           obstacleMode: obstacleModeInput.checked,
           hardcoreMode: hardcoreModeInput.checked
         }));
+        saveActiveAccountSnapshot();
       }
 
 
@@ -394,6 +497,7 @@
 
       function saveHistory() {
         localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 5)));
+        saveActiveAccountSnapshot();
       }
 
       function addHistoryEntry(score, modeName) {
@@ -433,6 +537,7 @@
 
       function saveLastResult() {
         localStorage.setItem(lastResultKey, JSON.stringify(lastResult));
+        saveActiveAccountSnapshot();
       }
 
       function refreshLastResultText() {
@@ -458,6 +563,7 @@
 
       function saveAchievements() {
         localStorage.setItem(achievementsKey, JSON.stringify(achievements));
+        saveActiveAccountSnapshot();
       }
 
       function refreshAchievementsText() {
@@ -486,6 +592,7 @@
       function saveAudioSetting() {
         localStorage.setItem(audioKey, muted ? '1' : '0');
         muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
+        saveActiveAccountSnapshot();
       }
 
       function beep(type = 'eat') {
@@ -521,6 +628,7 @@
 
       function saveBestByMode() {
         localStorage.setItem(bestByModeKey, JSON.stringify(bestByMode));
+        saveActiveAccountSnapshot();
       }
 
       function refreshModeBestText() {
@@ -545,6 +653,7 @@
 
       function saveLifetimeStats() {
         localStorage.setItem(statsKey, JSON.stringify({ foodsEaten, totalPlays, streakWins }));
+        saveActiveAccountSnapshot();
       }
 
       function loadEndlessBestLevel() {
@@ -555,6 +664,7 @@
       function saveEndlessBestLevel() {
         localStorage.setItem(endlessBestLevelKey, String(endlessBestLevel));
         bestLevelEl.textContent = String(endlessBestLevel);
+        saveActiveAccountSnapshot();
       }
 
       function showOverlay(message) { overlay.innerHTML = `<div>${message}</div>`; overlay.style.display = 'grid'; }
@@ -824,6 +934,7 @@
           bestScore = score;
           bestEl.textContent = String(bestScore);
           localStorage.setItem('snake-best', String(bestScore));
+          saveActiveAccountSnapshot();
         }
 
         if (score > (bestByMode[mode] || 0)) {
@@ -1274,6 +1385,10 @@
         refreshCodex();
         endlessBestLevel = 0;
         saveEndlessBestLevel();
+        if (activeAccount) {
+          accountStore[activeAccount] = captureProfileSnapshot();
+          saveAccountStore();
+        }
         resetGame(true);
       });
 
@@ -1299,6 +1414,24 @@
         muted = !muted;
         saveAudioSetting();
       });
+
+      loginAccountBtn.addEventListener('click', () => {
+        loginAccount(accountInput.value);
+        accountInput.value = '';
+      });
+      logoutAccountBtn.addEventListener('click', logoutAccount);
+      accountInput.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        loginAccount(accountInput.value);
+        accountInput.value = '';
+      });
+
+      loadAccountStore();
+      activeAccount = (localStorage.getItem(currentAccountKey) || '').trim();
+      if (activeAccount && accountStore[activeAccount]) {
+        applyProfileSnapshot(accountStore[activeAccount]);
+      }
+      refreshAccountUI();
 
       selectDailyChallenge();
       loadLifetimeStats();
