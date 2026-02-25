@@ -46,10 +46,11 @@ const wrapModeInput = document.getElementById('wrapMode');
 const obstacleModeInput = document.getElementById('obstacleMode');
 const hardcoreModeInput = document.getElementById('hardcoreMode');
 const contrastModeInput = document.getElementById('contrastMode');
+const miniHudModeInput = document.getElementById('miniHudMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.32.0';
+const GAME_VERSION = '0.32.1';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -75,6 +76,7 @@ const dailyChallengeOptions = [
 ];
 
 const versionEvents = [
+  { version: '0.32.1', notes: ['新增精简HUD开关，移动端信息展示更聚焦', '显示偏好写入设置并随账号切换恢复'] },
   { version: '0.32.0', notes: ['重写前端布局：信息面板、控制区和记录区重新分层', '统一新视觉风格并保留原有玩法与存档兼容'] },
   { version: '0.31.2', notes: ['新增高对比显示开关，提升界面可读性', '设置会写入本地并跟随账号存档切换'] },
   { version: '0.31.1', notes: ['优化页面显示：统计栏改为网格，移动端布局更紧凑', '修复小屏下控件拥挤与信息可读性问题'] },
@@ -268,6 +270,7 @@ function reloadAllFromStorage() {
   updateLevelText();
   baseSpeed = Number(difficultySelect.value);
   applyContrastMode();
+  applyMiniHudMode();
   refreshModeBestText();
   resetGame(true);
 }
@@ -339,6 +342,10 @@ function applyContrastMode() {
   document.body.classList.toggle('high-contrast', Boolean(contrastModeInput?.checked));
 }
 
+function applyMiniHudMode() {
+  document.body.classList.toggle('compact-hud', Boolean(miniHudModeInput?.checked));
+}
+
 function loadSettings() {
   try {
     const parsed = JSON.parse(localStorage.getItem(settingsKey) || '{}');
@@ -349,10 +356,12 @@ function loadSettings() {
     obstacleModeInput.checked = parsed.obstacleMode !== false;
     hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
     contrastModeInput.checked = Boolean(parsed.contrastMode);
+    miniHudModeInput.checked = Boolean(parsed.miniHudMode);
   } catch {
     // ignore malformed settings
   }
   applyContrastMode();
+  applyMiniHudMode();
 }
 
 function saveSettings() {
@@ -363,7 +372,8 @@ function saveSettings() {
     wrapMode: wrapModeInput.checked,
     obstacleMode: obstacleModeInput.checked,
     hardcoreMode: hardcoreModeInput.checked,
-    contrastMode: contrastModeInput.checked
+    contrastMode: contrastModeInput.checked,
+    miniHudMode: miniHudModeInput.checked
   }));
   saveActiveAccountSnapshot();
 }
@@ -1369,6 +1379,7 @@ obstacleModeInput.addEventListener('change', () => { saveSettings(); resetGame(t
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 wrapModeInput.addEventListener('change', saveSettings);
 contrastModeInput.addEventListener('change', () => { saveSettings(); applyContrastMode(); });
+miniHudModeInput.addEventListener('change', () => { saveSettings(); applyMiniHudMode(); });
 skinSelect.addEventListener('change', () => {
   saveSettings();
   currentSkin = skinSelect.value;
@@ -1485,6 +1496,7 @@ loadAudioSetting();
 loadBestByMode();
 loadSettings();
 applyContrastMode();
+applyMiniHudMode();
 currentSkin = skinSelect.value;
 mode = modeSelect.value;
 updateLevelText();
