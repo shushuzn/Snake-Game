@@ -37,8 +37,14 @@
 ├── README.md                                    # 项目说明
 └── skills/snake-feature-evolver/
     ├── SKILL.md
-    ├── references/modes-and-systems.md
-    └── scripts/bump_version.py
+    ├── references/
+    │   ├── modes-and-systems.md            # 引用索引（按需加载）
+    │   ├── module-map.md                   # 模块归属与模式联动点
+    │   ├── persistence-and-account.md      # 存储键与账号兼容清单
+    │   └── integration-checklists.md       # 功能接入检查清单
+    └── scripts/
+        ├── bump_version.py                 # 同步版本号
+        └── run_required_checks.sh          # 一键执行必跑检查
 ```
 
 ## 快速开始
@@ -52,21 +58,17 @@ python3 -m http.server 4173
 
 ## 开发自检
 
-### 1) JavaScript 语法检查
+### 1) 一键必跑检查（推荐）
 
 ```bash
-node --check game.js
+bash skills/snake-feature-evolver/scripts/run_required_checks.sh
 ```
 
-### 2) HTML/CSS/JS 资源引用检查（快速）
+### 2) 手工检查（等价）
 
 ```bash
+node --check $(git ls-files '*.js')
 rg -n "styles.css|workshop.js|modes.js|input.js|render.js|game.js" index.html
-```
-
-### 3) Git 空白与冲突标记检查
-
-```bash
 git diff --check
 ```
 
@@ -157,12 +159,13 @@ python3 skills/snake-feature-evolver/scripts/bump_version.py 0.91.0
 - `v0.88`：✅ 活动规则包扩展（周末/节日）+ 活动文案/倍率说明统一（已完成）。
 - `v0.89`：✅ 排行榜远端接口真实接入（读链路 + 降级回退）（已完成）。
 - `v0.90`：✅ 活动入口聚合 + 地图摘要信息首版（已完成）。
-- `v0.91`：榜单分维度扩展 + 活动规则可配置化。
-- `v0.92`：复盘建议路径提示 + 新手引导分层首版。
+- `v0.91`：✅ 连击里程奖励（x5 额外加分 / x8 倍率冲刺）与节奏强化（已完成）。
+- `v0.92`：榜单分维度扩展 + 活动规则可配置化。
+- `v0.93`：复盘建议路径提示 + 新手引导分层首版。
 
 ### 路线图执行看板（滚动）
-- **Now（进行中）**：`v0.91` 榜单分维度扩展 + 活动规则可配置化。
-- **Next（下一步）**：`v0.92` 复盘建议路径提示 + 新手引导分层。
-- **Later（随后）**：`v0.93` 新手引导分层与地图分享质量校验。
+- **Now（进行中）**：`v0.92` 榜单分维度扩展 + 活动规则可配置化。
+- **Next（下一步）**：`v0.93` 复盘建议路径提示 + 新手引导分层。
+- **Later（随后）**：`v0.94` 新手引导分层与地图分享质量校验。
 
 > 说明：看板每个版本完成后，都会同步写入“最新进展”。
