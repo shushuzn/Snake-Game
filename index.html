@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.80.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.81.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -83,6 +83,9 @@
           <label class="label-inline compact" for="contrastMode"><input id="contrastMode" type="checkbox" />高对比</label>
           <label class="label-inline compact" for="miniHudMode"><input id="miniHudMode" type="checkbox" />精简HUD</label>
           <label class="label-inline compact" for="autoPauseMode"><input id="autoPauseMode" type="checkbox" checked />失焦自动暂停</label>
+          <label class="label-inline" for="swipeThreshold">滑动灵敏度
+            <select id="swipeThreshold"><option value="12">高（12px）</option><option value="18" selected>标准（18px）</option><option value="24">低（24px）</option><option value="32">很低（32px）</option></select>
+          </label>
         </div>
       </section>
 

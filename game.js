@@ -75,17 +75,18 @@ const hardcoreModeInput = document.getElementById('hardcoreMode');
 const contrastModeInput = document.getElementById('contrastMode');
 const miniHudModeInput = document.getElementById('miniHudMode');
 const autoPauseModeInput = document.getElementById('autoPauseMode');
+const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.80.0';
+const GAME_VERSION = '0.81.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
 const blitzModeDuration = 45;
 const missionOptions = SnakeModes.missionOptions;
 const settingsKey = 'snake-settings-v2';
-const settingsSchemaVersion = 2;
+const settingsSchemaVersion = 3;
 const statsKey = 'snake-stats-v1';
 const audioKey = 'snake-audio-v1';
 const bestByModeKey = 'snake-best-by-mode-v1';
@@ -144,8 +145,13 @@ function isValidDlcPackValue(value) {
   return validDlcPacks.includes(String(value));
 }
 
+function isValidSwipeThresholdValue(value) {
+  return ['12', '18', '24', '32'].includes(String(value));
+}
+
 
 const versionEvents = [
+  { version: '0.81.0', notes: ['新增滑动灵敏度设置（12/18/24/32px），支持移动端手势阈值个性化', '路线图 P2 推进：移动端交互增强首版落地，下一步进入风险收益型 DLC 第二阶段'] },
   { version: '0.80.0', notes: ['新增赛季信息区与历史赛季入口（最近6期），支持月赛季剩余时间与赛季最佳展示', '路线图 P2 推进：赛季信息首版完成，下一步进入移动端引导与手势自定义'] },
   { version: '0.79.0', notes: ['新增本地排行榜面板（Top20），按分数/时间排序并持久化到本地', '路线图 P2 推进：榜单面板首版完成，下一步进入赛季信息区与历史入口'] },
   { version: '0.78.0', notes: ['创意工坊规则码新增 mapCode 字段，支持障碍地图随规则一键分享与应用', '路线图 P2 推进：工坊与地图码互通完成，下一步进入榜单面板首版'] },
@@ -450,12 +456,14 @@ const settingsRuntime = window.SnakeSettings.createSettingsModule({
     hardcoreModeInput,
     contrastModeInput,
     miniHudModeInput,
-    autoPauseModeInput
+    autoPauseModeInput,
+    swipeThresholdSelect
   },
   validators: {
     isValidMode: isValidModeValue,
     isValidDifficulty: isValidDifficultyValue,
-    isValidDlcPack: isValidDlcPackValue
+    isValidDlcPack: isValidDlcPackValue,
+    isValidSwipeThreshold: isValidSwipeThresholdValue
   },
   skinThemes,
   getModePreference: () => modePreference,
@@ -554,7 +562,8 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
     hardcoreModeInput,
     contrastModeInput,
     miniHudModeInput,
-    autoPauseModeInput
+    autoPauseModeInput,
+    swipeThresholdSelect
   },
   runtime: {
     getModeSettingValue,

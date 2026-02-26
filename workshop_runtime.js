@@ -17,7 +17,8 @@ window.SnakeWorkshopRuntime = (() => {
         contrastMode: controls.contrastModeInput.checked,
         miniHudMode: controls.miniHudModeInput.checked,
         autoPauseMode: controls.autoPauseModeInput.checked,
-        mapCode: runtime.getMapCode ? runtime.getMapCode() : ''
+        mapCode: runtime.getMapCode ? runtime.getMapCode() : '',
+        swipeThreshold: controls.swipeThresholdSelect?.value || '18'
       };
     }
 
@@ -34,6 +35,7 @@ window.SnakeWorkshopRuntime = (() => {
       controls.contrastModeInput.checked = Boolean(next.contrastMode);
       controls.miniHudModeInput.checked = Boolean(next.miniHudMode);
       controls.autoPauseModeInput.checked = next.autoPauseMode !== false;
+      if (next.swipeThreshold !== undefined && controls.swipeThresholdSelect) controls.swipeThresholdSelect.value = String(next.swipeThreshold);
     }
 
     async function copyCode() {
