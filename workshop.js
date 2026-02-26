@@ -25,7 +25,9 @@
       applyVisualModes,
       saveSettings,
       syncRuntime,
-      resetAndRefresh
+      resetAndRefresh,
+      getMapCode,
+      applyMapCode
     } = config;
 
     const presets = {
@@ -46,7 +48,9 @@
         hardcoreMode: state.hardcoreMode,
         contrastMode: state.contrastMode,
         miniHudMode: state.miniHudMode,
-        autoPauseMode: state.autoPauseMode
+        autoPauseMode: state.autoPauseMode,
+        mapCode: state.mapCode || '',
+        swipeThreshold: state.swipeThreshold || '18'
       };
     }
 
@@ -62,8 +66,14 @@
         hardcoreMode: Boolean(parsed.hardcoreMode),
         contrastMode: Boolean(parsed.contrastMode),
         miniHudMode: Boolean(parsed.miniHudMode),
-        autoPauseMode: parsed.autoPauseMode !== false
+        autoPauseMode: parsed.autoPauseMode !== false,
+        swipeThreshold: ['12', '18', '24', '32'].includes(String(parsed.swipeThreshold)) ? String(parsed.swipeThreshold) : undefined
       });
+
+      if (parsed.mapCode && applyMapCode) {
+        const applied = applyMapCode(parsed.mapCode);
+        if (!applied || !applied.ok) return false;
+      }
 
       applyVisualModes();
       saveSettings();

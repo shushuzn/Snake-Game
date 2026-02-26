@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.71.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.90.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -83,6 +83,9 @@
           <label class="label-inline compact" for="contrastMode"><input id="contrastMode" type="checkbox" />高对比</label>
           <label class="label-inline compact" for="miniHudMode"><input id="miniHudMode" type="checkbox" />精简HUD</label>
           <label class="label-inline compact" for="autoPauseMode"><input id="autoPauseMode" type="checkbox" checked />失焦自动暂停</label>
+          <label class="label-inline" for="swipeThreshold">滑动灵敏度
+            <select id="swipeThreshold"><option value="12">高（12px）</option><option value="18" selected>标准（18px）</option><option value="24">低（24px）</option><option value="32">很低（32px）</option></select>
+          </label>
         </div>
       </section>
 
@@ -125,6 +128,7 @@
       <section class="panel" aria-label="障碍编辑器">
         <h2>障碍编辑器（实验）</h2>
         <p class="tips">每行一个坐标：<code>x,y</code>（范围 0-24），可导出当前障碍布局。</p>
+        <p class="tips" id="mapSummary">地图摘要：--</p>
         <textarea id="rockEditor" class="workshop-code" rows="4" placeholder="例如：
 12,8
 13,8
@@ -132,6 +136,8 @@
         <div class="controls-group">
           <button id="applyRocks" type="button" class="secondary">应用障碍</button>
           <button id="exportRocks" type="button" class="secondary">导出当前障碍</button>
+          <button id="genMapCode" type="button" class="secondary">生成地图码</button>
+          <button id="applyMapCode" type="button" class="secondary">应用地图码</button>
           <button id="clearRocks" type="button">清空自定义障碍</button>
         </div>
       </section>
@@ -156,6 +162,34 @@
         <button data-dir="ArrowRight" aria-label="右">➡️</button>
       </div>
 
+
+      <section class="panel" aria-label="本地排行榜">
+        <h2>排行榜（Top 20，本地/远端）</h2>
+        <p class="tips" id="leaderboardStatus">本地榜：暂无数据</p>
+        <div class="controls-group">
+          <button id="toggleLeaderboardSource" type="button" class="secondary">切换到远端榜</button>
+          <span class="tips" id="leaderboardSourceTag">当前来源：本地榜</span>
+        </div>
+        <ol id="leaderboardList"></ol>
+      </section>
+
+
+      <section class="panel" aria-label="赛季信息">
+        <h2>赛季信息</h2>
+        <p class="tips">当前赛季 <b id="seasonId">--</b>，剩余 <b id="seasonRemaining">--</b></p>
+        <p class="tips">赛季最佳：<b id="seasonBest">--</b></p>
+        <p class="tips">赛季奖励预览：<b id="seasonReward">--</b></p>
+        <h3>历史赛季（最近 6 期）</h3>
+        <ol id="seasonHistoryList"></ol>
+      </section>
+
+
+      <section class="panel" id="eventPanel" aria-label="活动挑战包">
+        <h2>活动挑战包</h2>
+        <p class="tips">当前活动：<b id="eventLabel">无活动</b></p>
+        <p class="tips" id="eventSummary">当前无活动加成</p>
+      </section>
+
       <section class="panel" aria-label="最近战绩">
         <h2>最近战绩（最近 5 局）</h2>
         <ol id="historyList"></ol>
@@ -167,13 +201,31 @@
       </section>
 
 
+
+      <section class="panel" aria-label="对局复盘摘要">
+        <h2>对局复盘摘要（最近一局）</h2>
+        <p class="tips" id="recapSummary">暂无复盘数据</p>
+        <ul id="recapList"></ul>
+        <h3>关键帧时间线</h3>
+        <ol id="recapTimelineList"></ol>
+      </section>
+
       <section class="panel" aria-label="结算明细">
         <h2>结算明细（最近一局）</h2>
         <ul id="settlementList"></ul>
       </section>
 
+
+      <section class="panel" aria-label="DLC 风险收益对比">
+        <h2>DLC 风险收益对比（阶段 2）</h2>
+        <ul id="dlcCompareList"></ul>
+      </section>
+
       <section class="panel" aria-label="版本大事件">
         <h2>版本大事件（最近 8 条）</h2>
+        <div class="controls-group">
+          <button id="jumpToEventPanel" type="button" class="secondary">活动入口：跳转到活动面板</button>
+        </div>
         <ol id="versionEventsList"></ol>
       </section>
     </main>
@@ -190,6 +242,10 @@
     <script src="item_spawn.js"></script>
     <script src="loop_timers.js"></script>
     <script src="play_state.js"></script>
+    <script src="leaderboard.js"></script>
+    <script src="season.js"></script>
+    <script src="events.js"></script>
+    <script src="recap.js"></script>
     <script src="records.js"></script>
     <script src="endgame_flow.js"></script>
     <script src="reset_prepare.js"></script>

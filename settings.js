@@ -42,6 +42,10 @@ window.SnakeSettings = (() => {
         if (!('dlcPack' in normalized)) normalized.dlcPack = 'none';
         normalized.schemaVersion = 2;
       }
+      if (normalized.schemaVersion < 3) {
+        if (!validators.isValidSwipeThreshold(normalized.swipeThreshold)) normalized.swipeThreshold = '18';
+        normalized.schemaVersion = 3;
+      }
       if (!validators.isValidDlcPack(normalized.dlcPack)) {
         normalized.dlcPack = 'none';
       }
@@ -69,6 +73,7 @@ window.SnakeSettings = (() => {
       controls.contrastModeInput.checked = Boolean(parsed.contrastMode);
       controls.miniHudModeInput.checked = Boolean(parsed.miniHudMode);
       controls.autoPauseModeInput.checked = parsed.autoPauseMode !== false;
+      if (validators.isValidSwipeThreshold(parsed.swipeThreshold)) controls.swipeThresholdSelect.value = String(parsed.swipeThreshold);
       applyVisualModes();
     }
 
@@ -84,7 +89,8 @@ window.SnakeSettings = (() => {
         hardcoreMode: controls.hardcoreModeInput.checked,
         contrastMode: controls.contrastModeInput.checked,
         miniHudMode: controls.miniHudModeInput.checked,
-        autoPauseMode: controls.autoPauseModeInput.checked
+        autoPauseMode: controls.autoPauseModeInput.checked,
+        swipeThreshold: controls.swipeThresholdSelect.value
       });
       onSave?.();
     }

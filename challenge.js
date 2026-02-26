@@ -7,6 +7,7 @@ window.SnakeChallenge = (() => {
     setCurrentChallenge
   }) {
     let currentChallengeSeed = 0;
+    let pendingChallengeSeed = 0;
     let lastChallengeCountdownText = '';
     let refreshTimer = null;
 
@@ -46,6 +47,20 @@ window.SnakeChallenge = (() => {
       controls.modeSelect.title = '';
     }
 
+
+    function parseSeedToDate(seed) {
+      const normalized = String(seed || '');
+      if (!/^\d{8}$/.test(normalized)) return new Date();
+      const y = Number(normalized.slice(0, 4));
+      const m = Number(normalized.slice(4, 6)) - 1;
+      const d = Number(normalized.slice(6, 8));
+      return new Date(y, m, d);
+    }
+
+    function getCurrentChallengeDate() {
+      return currentChallengeSeed ? parseSeedToDate(currentChallengeSeed) : new Date();
+    }
+
     function updateCountdownOnly() {
       const text = snakeModes.getChallengeRefreshCountdown();
       if (text === lastChallengeCountdownText) return;
@@ -54,23 +69,29 @@ window.SnakeChallenge = (() => {
     }
 
     function refreshHud() {
-      const currentChallenge = runtime.getCurrentChallenge();
+      const currentDate = getCurrentChallengeDate();
+      const challengeBundle = snakeModes.getDailyChallengeBundle(currentDate);
+      const currentChallenge = runtime.getCurrentChallenge() || challengeBundle.current;
+      const nextChallenge = challengeBundle.next;
       elements.challengeEl.textContent = currentChallenge.label;
       elements.challengeDetailEl.textContent = snakeModes.describeChallenge(currentChallenge);
-      const nextChallenge = snakeModes.pickDailyChallengeByOffset(1);
       elements.challengeNextEl.textContent = nextChallenge.label;
       elements.challengeNextEl.title = snakeModes.describeChallenge(nextChallenge);
-      elements.challengeNextDateEl.textContent = snakeModes.formatRelativeLocalDateLabel(1);
-      elements.challengeDateEl.textContent = snakeModes.formatLocalDateLabel();
+      elements.challengeNextDateEl.textContent = challengeBundle.nextDateLabel;
+      elements.challengeDateEl.textContent = challengeBundle.currentDateLabel;
       applyControlLocks(currentChallenge);
+      elements.challengeRefreshEl.title = pendingChallengeSeed
+        ? '当前对局进行中：跨天后将于本局结束后切换新挑战'
+        : '';
       lastChallengeCountdownText = '';
       updateCountdownOnly();
     }
 
-    function selectDailyChallenge() {
-      const picked = snakeModes.pickDailyChallenge();
+    function selectDailyChallenge(date = new Date()) {
+      const picked = snakeModes.pickDailyChallenge(date);
       setCurrentChallenge(picked);
-      currentChallengeSeed = snakeModes.getLocalDateSeed();
+      currentChallengeSeed = snakeModes.getLocalDateSeed(date);
+      pendingChallengeSeed = 0;
       refreshHud();
     }
 
@@ -78,6 +99,11 @@ window.SnakeChallenge = (() => {
       const latestSeed = snakeModes.getLocalDateSeed();
       if (latestSeed === currentChallengeSeed) {
         updateCountdownOnly();
+        return;
+      }
+      if (runtime.isRunning()) {
+        pendingChallengeSeed = latestSeed;
+        refreshHud();
         return;
       }
       selectDailyChallenge();
