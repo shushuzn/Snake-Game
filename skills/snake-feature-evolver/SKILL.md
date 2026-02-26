@@ -25,12 +25,16 @@ Implement one coherent gameplay or product slice per iteration.
    - add only necessary storage keys
    - wire key(s) into clear/reset flows
    - if account-scoped, include snapshot/export/import compatibility
-5. Run required checks.
+5. Run required checks (prefer script form).
 6. If visible UI changed, run local server and capture a screenshot.
 
 ## Required checks
 
 ```bash
+# Preferred: one-shot required checks
+bash skills/snake-feature-evolver/scripts/run_required_checks.sh
+
+# Equivalent manual commands
 node --check $(git ls-files '*.js')
 rg -n "styles.css|workshop.js|modes.js|input.js|render.js|game.js" index.html
 git diff --check
@@ -44,6 +48,7 @@ git ls-files | rg '__pycache__|\.pyc$|\.png$|\.jpg$|\.jpeg$|\.gif$|\.webp$' && e
 - Persistence/account compatibility: `references/persistence-and-account.md`
 - Feature integration checklists: `references/integration-checklists.md`
 - Version bump helper: `scripts/bump_version.py`
+- Required checks runner: `scripts/run_required_checks.sh`
 
 ## Notes
 
