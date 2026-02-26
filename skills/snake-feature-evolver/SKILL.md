@@ -39,7 +39,10 @@ git ls-files | rg '__pycache__|\.pyc$|\.png$|\.jpg$|\.jpeg$|\.gif$|\.webp$' && e
 
 ## References
 
-- System map and integration checklist: `references/modes-and-systems.md`
+- Reference index (load minimal files): `references/modes-and-systems.md`
+- Module ownership and mode touchpoints: `references/module-map.md`
+- Persistence/account compatibility: `references/persistence-and-account.md`
+- Feature integration checklists: `references/integration-checklists.md`
 - Version bump helper: `scripts/bump_version.py`
 
 ## Notes
