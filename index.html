@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.79.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.80.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -165,6 +165,15 @@
         <ol id="leaderboardList"></ol>
       </section>
 
+
+      <section class="panel" aria-label="赛季信息">
+        <h2>赛季信息</h2>
+        <p class="tips">当前赛季 <b id="seasonId">--</b>，剩余 <b id="seasonRemaining">--</b></p>
+        <p class="tips">赛季最佳：<b id="seasonBest">--</b></p>
+        <h3>历史赛季（最近 6 期）</h3>
+        <ol id="seasonHistoryList"></ol>
+      </section>
+
       <section class="panel" aria-label="最近战绩">
         <h2>最近战绩（最近 5 局）</h2>
         <ol id="historyList"></ol>
@@ -200,6 +209,7 @@
     <script src="loop_timers.js"></script>
     <script src="play_state.js"></script>
     <script src="leaderboard.js"></script>
+    <script src="season.js"></script>
     <script src="records.js"></script>
     <script src="endgame_flow.js"></script>
     <script src="reset_prepare.js"></script>

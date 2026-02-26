@@ -57,6 +57,10 @@ const clearRocksBtn = document.getElementById('clearRocks');
 const historyListEl = document.getElementById('historyList');
 const leaderboardListEl = document.getElementById('leaderboardList');
 const leaderboardStatusEl = document.getElementById('leaderboardStatus');
+const seasonIdEl = document.getElementById('seasonId');
+const seasonRemainingEl = document.getElementById('seasonRemaining');
+const seasonBestEl = document.getElementById('seasonBest');
+const seasonHistoryListEl = document.getElementById('seasonHistoryList');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
@@ -74,7 +78,7 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.79.0';
+const GAME_VERSION = '0.80.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -96,6 +100,7 @@ const rogueMetaKey = 'snake-roguelike-meta-v1';
 const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 const leaderboardKey = 'snake-leaderboard-v1';
+const seasonMetaKey = 'snake-season-meta-v1';
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
 const validDifficulties = ['140', '110', '80'];
@@ -141,6 +146,7 @@ function isValidDlcPackValue(value) {
 
 
 const versionEvents = [
+  { version: '0.80.0', notes: ['新增赛季信息区与历史赛季入口（最近6期），支持月赛季剩余时间与赛季最佳展示', '路线图 P2 推进：赛季信息首版完成，下一步进入移动端引导与手势自定义'] },
   { version: '0.79.0', notes: ['新增本地排行榜面板（Top20），按分数/时间排序并持久化到本地', '路线图 P2 推进：榜单面板首版完成，下一步进入赛季信息区与历史入口'] },
   { version: '0.78.0', notes: ['创意工坊规则码新增 mapCode 字段，支持障碍地图随规则一键分享与应用', '路线图 P2 推进：工坊与地图码互通完成，下一步进入榜单面板首版'] },
   { version: '0.77.0', notes: ['障碍编辑器新增地图码（SNKMAP1）生成与应用，支持校验码验证', '路线图 P2 推进：地图码导入导出首版落地，进入工坊互通阶段'] },
@@ -665,6 +671,19 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
 });
 
 
+const seasonRuntime = window.SnakeSeason.createSeasonModule({
+  storage,
+  key: seasonMetaKey,
+  elements: {
+    seasonIdEl,
+    seasonRemainingEl,
+    seasonBestEl,
+    seasonHistoryListEl
+  },
+  onPersist: saveActiveAccountSnapshot
+});
+
+
 const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   state: {
     setSnake: (value) => { snake = value; },
@@ -819,6 +838,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     recordRound: (nextScore, modeName) => {
       recordsRuntime.recordRound(nextScore, modeName);
       leaderboardRuntime.recordRound(nextScore, modeName);
+      seasonRuntime.recordRound(nextScore, modeName);
     }
   },
   achievements: {
@@ -1691,7 +1711,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -1709,6 +1729,7 @@ clearDataBtn.addEventListener('click', () => {
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
   leaderboardRuntime.clear();
+  seasonRuntime.clear();
   discoveredCodex = defaultCodexState();
   refreshCodex();
   endlessBestLevel = 0;
@@ -1831,10 +1852,12 @@ clearRocksBtn.addEventListener('click', () => {
 accountRuntime.loadFromStorage();
 
 challengeRuntime.selectDailyChallenge();
+setInterval(() => seasonRuntime.refreshRemainingOnly(), 60000);
 renderVersionEvents();
 loadLifetimeStats();
 loadHistory();
 leaderboardRuntime.load();
+seasonRuntime.load();
 loadCodex();
 loadEndlessBestLevel();
 loadRogueMeta();
