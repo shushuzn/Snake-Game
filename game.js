@@ -88,7 +88,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.87.0';
+const GAME_VERSION = '0.88.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -161,6 +161,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.88.0', notes: ['活动规则包扩展：新增新年/春节/黄金周/周末常驻规则包，并统一倍率文案', '路线图推进：v0.88 完成活动规则包扩展，下一步进入远端榜接口真实接入'] },
   { version: '0.87.0', notes: ['新增赛季奖励预览，并与当前活动挑战包联动显示奖励加成', '路线图 P3 推进：赛季奖励与活动联动展示落地，下一步扩展活动规则包'] },
   { version: '0.86.0', notes: ['对局复盘新增关键帧时间线（最近8条），支持展示开局/进食里程碑/升级节点', '路线图 P3 推进：数据回放增强落地，下一步进入赛季奖励与活动联动展示'] },
   { version: '0.85.0', notes: ['新增排行榜来源切换开关（本地榜/远端榜占位），离线场景自动提示回退', '路线图 P3 推进：排行榜远端接口切换首版落地，下一步进入数据回放关键帧时间线'] },
@@ -1979,6 +1980,10 @@ accountRuntime.loadFromStorage();
 eventsRuntime.refresh();
 challengeRuntime.selectDailyChallenge();
 setInterval(() => seasonRuntime.refreshRemainingOnly(), 60000);
+setInterval(() => {
+  eventsRuntime.refresh();
+  refreshSeasonRewardPreview();
+}, 60000);
 renderVersionEvents();
 loadLifetimeStats();
 loadHistory();
