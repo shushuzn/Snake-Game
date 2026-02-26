@@ -130,7 +130,15 @@ window.SnakeSeason = (() => {
       elements.seasonRemainingEl.textContent = getSeasonRemaining(new Date());
     }
 
-    return { load, recordRound, clear, refreshRemainingOnly };
+    function getCurrentBestScore() {
+      return Number(state.currentBest.score || 0);
+    }
+
+    function getCurrentSeasonId() {
+      return state.currentSeasonId;
+    }
+
+    return { load, recordRound, clear, refreshRemainingOnly, getCurrentBestScore, getCurrentSeasonId };
   }
 
   return { createSeasonModule };

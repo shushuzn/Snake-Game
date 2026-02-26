@@ -62,6 +62,7 @@ const toggleLeaderboardSourceBtn = document.getElementById('toggleLeaderboardSou
 const seasonIdEl = document.getElementById('seasonId');
 const seasonRemainingEl = document.getElementById('seasonRemaining');
 const seasonBestEl = document.getElementById('seasonBest');
+const seasonRewardEl = document.getElementById('seasonReward');
 const seasonHistoryListEl = document.getElementById('seasonHistoryList');
 const eventLabelEl = document.getElementById('eventLabel');
 const eventSummaryEl = document.getElementById('eventSummary');
@@ -87,7 +88,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.86.0';
+const GAME_VERSION = '0.87.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -160,6 +161,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.87.0', notes: ['新增赛季奖励预览，并与当前活动挑战包联动显示奖励加成', '路线图 P3 推进：赛季奖励与活动联动展示落地，下一步扩展活动规则包'] },
   { version: '0.86.0', notes: ['对局复盘新增关键帧时间线（最近8条），支持展示开局/进食里程碑/升级节点', '路线图 P3 推进：数据回放增强落地，下一步进入赛季奖励与活动联动展示'] },
   { version: '0.85.0', notes: ['新增排行榜来源切换开关（本地榜/远端榜占位），离线场景自动提示回退', '路线图 P3 推进：排行榜远端接口切换首版落地，下一步进入数据回放关键帧时间线'] },
   { version: '0.84.0', notes: ['新增活动挑战包面板（节日主题首版），展示当前活动加成与说明', '路线图 P3 推进：活动化运营能力首版落地，下一步进入排行榜远端接口切换开关'] },
@@ -749,6 +751,25 @@ const eventsRuntime = window.SnakeEvents.createEventsModule({
 });
 
 
+function getSeasonRewardTier(score) {
+  if (score >= 600) return { tier: 'S', base: 200 };
+  if (score >= 400) return { tier: 'A', base: 120 };
+  if (score >= 250) return { tier: 'B', base: 80 };
+  if (score >= 120) return { tier: 'C', base: 40 };
+  return { tier: 'D', base: 10 };
+}
+
+function refreshSeasonRewardPreview() {
+  if (!seasonRewardEl) return;
+  const best = seasonRuntime.getCurrentBestScore();
+  const tier = getSeasonRewardTier(best);
+  const factorRaw = Number(eventsRuntime.getScoreFactor());
+  const eventFactor = Number.isFinite(factorRaw) && factorRaw > 0 ? factorRaw : 1;
+  const finalReward = Math.round(tier.base * eventFactor);
+  const eventTag = eventFactor > 1 ? `（活动加成 x${eventFactor.toFixed(1)}）` : '';
+  seasonRewardEl.textContent = `${tier.tier} 档：${finalReward} 奖励点${eventTag}`;
+}
+
 const recapRuntime = window.SnakeRecap.createRecapModule({
   storage,
   key: recapKey,
@@ -918,6 +939,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
       recordsRuntime.recordRound(nextScore, modeName);
       leaderboardRuntime.recordRound(nextScore, modeName);
       seasonRuntime.recordRound(nextScore, modeName);
+      refreshSeasonRewardPreview();
     }
   },
   achievements: {
@@ -1832,6 +1854,7 @@ clearDataBtn.addEventListener('click', () => {
   leaderboardRuntime.clear();
   seasonRuntime.clear();
   recapRuntime.clear();
+  refreshSeasonRewardPreview();
   discoveredCodex = defaultCodexState();
   refreshCodex();
   endlessBestLevel = 0;
@@ -1962,6 +1985,7 @@ loadHistory();
 leaderboardRuntime.load();
 leaderboardRuntime.bindEvents();
 seasonRuntime.load();
+refreshSeasonRewardPreview();
 recapRuntime.load();
 loadCodex();
 loadEndlessBestLevel();
