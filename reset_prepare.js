@@ -37,7 +37,8 @@ window.SnakeResetPrepare = (() => {
         isTimerMode: mode.isTimerMode(),
         getTimerStartBonusSeconds: mode.getTimerStartBonusSeconds,
         getModeTimeDuration: mode.getModeTimeDuration,
-        missionOptions: mode.getMissionOptions()
+        missionOptions: mode.getMissionOptions(),
+        shieldCap: dlc.getShieldCap ? dlc.getShieldCap() : 2
       });
     }
 
