@@ -16,7 +16,9 @@ window.SnakeWorkshopRuntime = (() => {
         hardcoreMode: controls.hardcoreModeInput.checked,
         contrastMode: controls.contrastModeInput.checked,
         miniHudMode: controls.miniHudModeInput.checked,
-        autoPauseMode: controls.autoPauseModeInput.checked
+        autoPauseMode: controls.autoPauseModeInput.checked,
+        mapCode: runtime.getMapCode ? runtime.getMapCode() : '',
+        swipeThreshold: controls.swipeThresholdSelect?.value || '18'
       };
     }
 
@@ -33,6 +35,7 @@ window.SnakeWorkshopRuntime = (() => {
       controls.contrastModeInput.checked = Boolean(next.contrastMode);
       controls.miniHudModeInput.checked = Boolean(next.miniHudMode);
       controls.autoPauseModeInput.checked = next.autoPauseMode !== false;
+      if (next.swipeThreshold !== undefined && controls.swipeThresholdSelect) controls.swipeThresholdSelect.value = String(next.swipeThreshold);
     }
 
     async function copyCode() {
@@ -61,7 +64,7 @@ window.SnakeWorkshopRuntime = (() => {
       controls.applyWorkshopBtn.addEventListener('click', () => {
         const ok = workshop.applyCode(controls.workshopCodeInput.value, applyControls, getStateSnapshot);
         if (!ok) {
-          ui.showOverlay('<p><strong>工坊代码无效</strong></p><p>请检查是否为 SWK1 格式</p>');
+          ui.showOverlay('<p><strong>工坊代码无效</strong></p><p>请检查 SWK1 格式或地图码字段</p>');
           setTimeout(() => { if (ui.isRunning() && !ui.isPaused()) ui.hideOverlay(); }, 900);
           return;
         }
