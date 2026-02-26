@@ -92,7 +92,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.94.0';
+const GAME_VERSION = '0.95.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -165,6 +165,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.95.0', notes: ['地图分享前校验增强：支持识别越界/重复/关键路径冲突并给出质量提示', '路线图推进：v0.95 完成分享前校验增强，下一步进入复盘建议与新手引导分层'] },
   { version: '0.94.0', notes: ['榜单扩展新增每日挑战榜与DLC分类榜筛选，支持按对局标签聚焦查看', '路线图推进：v0.94 进入榜单深度分类与分享前校验增强阶段'] },
   { version: '0.93.0', notes: ['活动规则包改为声明式规则配置：支持按规则类型扩展日期段/周末活动', '路线图推进：v0.93 完成活动规则可配置化，下一步继续扩展榜单维度'] },
   { version: '0.92.0', notes: ['排行榜新增分维度筛选：支持综合榜与五种模式榜快速切换', '路线图推进：v0.92 完成榜单分维度扩展，下一步推进活动规则可配置化'] },
@@ -1987,7 +1988,9 @@ rockEditorInput?.addEventListener('input', () => {
     mapSummaryEl.textContent = `地图摘要：输入待修正（${parsed.error}）`;
     return;
   }
+  const quality = buildRockQualityTip(analyzeRockQuality(rockEditorInput.value), parsed.rocks.length);
   refreshMapSummary(parsed.rocks);
+  mapSummaryEl.textContent += ` · ${quality}`;
 });
 
 jumpToEventPanelBtn?.addEventListener('click', () => {
@@ -2005,10 +2008,11 @@ applyRocksBtn.addEventListener('click', () => {
     return;
   }
   customRocks = parsed.rocks;
+  const quality = buildRockQualityTip(analyzeRockQuality(rockEditorInput.value), customRocks.length);
   saveCustomRocks();
   resetGame(true);
   const sourceText = parsed.mode === 'mapCode' ? '（来源：地图码）' : '';
-  showOverlay(`<p><strong>障碍已应用${sourceText}</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  showOverlay(`<p><strong>障碍已应用${sourceText}</strong></p><p>共 ${customRocks.length} 个障碍点</p><p>${quality}</p>`);
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
 });
 
@@ -2047,9 +2051,10 @@ applyMapCodeBtn.addEventListener('click', () => {
     return;
   }
   customRocks = parsed.rocks;
+  const quality = buildRockQualityTip(analyzeRockQuality(encodeRocks(parsed.rocks)), customRocks.length);
   saveCustomRocks();
   resetGame(true);
-  showOverlay(`<p><strong>地图码已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  showOverlay(`<p><strong>地图码已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p><p>${quality}</p>`);
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
 });
 
