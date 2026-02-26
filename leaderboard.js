@@ -8,6 +8,7 @@ window.SnakeLeaderboard = (() => {
     toggleBtn,
     dimensionSelectEl,
     getModeLabel,
+    getCurrentChallengeSeed,
     onPersist,
     remoteConfig = {}
   }) {
@@ -20,16 +21,32 @@ window.SnakeLeaderboard = (() => {
     const remoteTimeoutMs = Number(remoteConfig.timeoutMs || 1800);
 
     function getDimensionLabel() {
-      if (dimension === 'all') return '综合榜';
+      const labels = {
+        all: '综合榜',
+        daily: '每日挑战榜',
+        'dlc-frenzy': '狂热DLC榜',
+        'dlc-guardian': '守护DLC榜',
+        'dlc-chrono': '时序DLC榜'
+      };
+      if (labels[dimension]) return labels[dimension];
       return `${getModeLabel(dimension).replace('模式', '')}榜`;
     }
 
-    function applyDimensionFilter() {
-      if (dimension === 'all') {
-        visibleEntries = allEntries.slice(0, 20);
-        return;
+    function isVisibleByDimension(item) {
+      if (dimension === 'all') return true;
+      if (dimension === 'daily') {
+        const seed = String(getCurrentChallengeSeed?.() || '');
+        return seed && String(item.challengeSeed || '') === seed;
       }
-      visibleEntries = allEntries.filter(item => item.mode === dimension).slice(0, 20);
+      if (dimension.startsWith('dlc-')) {
+        const dlcId = dimension.replace('dlc-', '');
+        return String(item.dlcPack || 'none') === dlcId;
+      }
+      return item.mode === dimension;
+    }
+
+    function applyDimensionFilter() {
+      visibleEntries = allEntries.filter(isVisibleByDimension).slice(0, 20);
     }
 
     function computeStatus() {
@@ -63,7 +80,8 @@ window.SnakeLeaderboard = (() => {
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           const dd = String(d.getDate()).padStart(2, '0');
           const mark = source === 'remote' && remoteMeta.ok ? '🌐' : '🏠';
-          return `<li>${mark} #${idx + 1} ${item.score} 分 · ${modeLabel} <small>(${mm}-${dd})</small></li>`;
+          const dlcTag = item.dlcPack && item.dlcPack !== 'none' ? ` · DLC:${item.dlcPack}` : '';
+          return `<li>${mark} #${idx + 1} ${item.score} 分 · ${modeLabel}${dlcTag} <small>(${mm}-${dd})</small></li>`;
         })
         .join('');
     }
@@ -81,7 +99,9 @@ window.SnakeLeaderboard = (() => {
         .map((item) => ({
           score: Number(item?.score || 0),
           mode: String(item?.mode || 'classic'),
-          ts: Number(item?.ts || 0)
+          ts: Number(item?.ts || 0),
+          dlcPack: String(item?.dlcPack || 'none'),
+          challengeSeed: String(item?.challengeSeed || '')
         }))
         .filter(item => item.score > 0)
         .sort((a, b) => (b.score - a.score) || (b.ts - a.ts))
@@ -97,9 +117,9 @@ window.SnakeLeaderboard = (() => {
       render();
     }
 
-    function recordRound(score, mode) {
+    function recordRound(score, mode, meta = {}) {
       const localEntries = loadLocalEntries();
-      allEntries = normalize([{ score, mode, ts: Date.now() }, ...localEntries]);
+      allEntries = normalize([{ score, mode, ts: Date.now(), ...meta }, ...localEntries]);
       storage.writeJson(key, allEntries);
       onPersist();
       if (source !== 'remote') render();
@@ -124,7 +144,7 @@ window.SnakeLeaderboard = (() => {
       try {
         const res = await fetch(remoteUrl, {
           method: 'GET',
-          headers: { 'Accept': 'application/json' },
+          headers: { Accept: 'application/json' },
           signal: controller.signal,
           cache: 'no-store'
         });
@@ -163,8 +183,7 @@ window.SnakeLeaderboard = (() => {
     }
 
     function onDimensionChange() {
-      const value = String(dimensionSelectEl?.value || 'all');
-      dimension = value;
+      dimension = String(dimensionSelectEl?.value || 'all');
       render();
     }
 

@@ -92,7 +92,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.93.0';
+const GAME_VERSION = '0.94.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -165,6 +165,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.94.0', notes: ['榜单扩展新增每日挑战榜与DLC分类榜筛选，支持按对局标签聚焦查看', '路线图推进：v0.94 进入榜单深度分类与分享前校验增强阶段'] },
   { version: '0.93.0', notes: ['活动规则包改为声明式规则配置：支持按规则类型扩展日期段/周末活动', '路线图推进：v0.93 完成活动规则可配置化，下一步继续扩展榜单维度'] },
   { version: '0.92.0', notes: ['排行榜新增分维度筛选：支持综合榜与五种模式榜快速切换', '路线图推进：v0.92 完成榜单分维度扩展，下一步推进活动规则可配置化'] },
   { version: '0.91.0', notes: ['新增连击里程奖励：连击达到 x5 立即获得额外分数奖励', '连击达到 x8 可触发短时倍率冲刺，帮助中后期滚雪球'] },
@@ -740,6 +741,7 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
   toggleBtn: toggleLeaderboardSourceBtn,
   dimensionSelectEl: leaderboardDimensionSelectEl,
   getModeLabel: SnakeModes.getModeLabel,
+  getCurrentChallengeSeed: () => SnakeModes.getLocalDateSeed(),
   onPersist: saveActiveAccountSnapshot,
   remoteConfig: {
     url: './leaderboard_remote.json',
@@ -952,7 +954,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   records: {
     recordRound: (nextScore, modeName) => {
       recordsRuntime.recordRound(nextScore, modeName);
-      leaderboardRuntime.recordRound(nextScore, modeName);
+      leaderboardRuntime.recordRound(nextScore, modeName, { dlcPack, challengeSeed: SnakeModes.getLocalDateSeed() });
       seasonRuntime.recordRound(nextScore, modeName);
       refreshSeasonRewardPreview();
     }
