@@ -72,6 +72,7 @@ const dlcCompareListEl = document.getElementById('dlcCompareList');
 const settlementListEl = document.getElementById('settlementList');
 const recapSummaryEl = document.getElementById('recapSummary');
 const recapListEl = document.getElementById('recapList');
+const recapTimelineListEl = document.getElementById('recapTimelineList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const dlcPackSelect = document.getElementById('dlcPack');
@@ -86,7 +87,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.85.0';
+const GAME_VERSION = '0.86.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -159,6 +160,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.86.0', notes: ['对局复盘新增关键帧时间线（最近8条），支持展示开局/进食里程碑/升级节点', '路线图 P3 推进：数据回放增强落地，下一步进入赛季奖励与活动联动展示'] },
   { version: '0.85.0', notes: ['新增排行榜来源切换开关（本地榜/远端榜占位），离线场景自动提示回退', '路线图 P3 推进：排行榜远端接口切换首版落地，下一步进入数据回放关键帧时间线'] },
   { version: '0.84.0', notes: ['新增活动挑战包面板（节日主题首版），展示当前活动加成与说明', '路线图 P3 推进：活动化运营能力首版落地，下一步进入排行榜远端接口切换开关'] },
   { version: '0.83.0', notes: ['新增对局复盘摘要面板（最近一局），展示关键指标与终局原因', '路线图 P3 推进：数据回放与复盘首版落地，下一步进入活动化运营能力'] },
@@ -304,6 +306,7 @@ let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
 let roundFoodsEaten = 0;
+let roundKeyframes = [];
 let scoreMultiplier = 1;
 let multiplierExpireAt = 0;
 let freezeUntil = 0;
@@ -376,6 +379,16 @@ function getShieldCap() {
 
 function addShield(next = 1) {
   shields = Math.min(getShieldCap(), shields + Math.max(0, Number(next || 0)));
+}
+
+function pushRoundKeyframe(label, detail) {
+  const safeLabel = String(label || '').trim();
+  const safeDetail = String(detail || '').trim();
+  if (!safeLabel || !safeDetail) return;
+  const duplicated = roundKeyframes.some(item => item.label === safeLabel && item.detail === safeDetail);
+  if (duplicated) return;
+  roundKeyframes.push({ label: safeLabel, detail: safeDetail });
+  if (roundKeyframes.length > 8) roundKeyframes = roundKeyframes.slice(-8);
 }
 
 function renderDlcComparePanel() {
@@ -741,6 +754,7 @@ const recapRuntime = window.SnakeRecap.createRecapModule({
   key: recapKey,
   summaryEl: recapSummaryEl,
   listEl: recapListEl,
+  timelineListEl: recapTimelineListEl,
   getModeLabel: SnakeModes.getModeLabel,
   onPersist: saveActiveAccountSnapshot
 });
@@ -828,6 +842,7 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
       magnetUntil = roundMeta.magnetUntil;
       comboGuardUntil = roundMeta.comboGuardUntil;
       roundFoodsEaten = roundMeta.roundFoodsEaten;
+      roundKeyframes = roundMeta.roundKeyframes || [];
     },
     getShields: () => shields,
     getMissionTarget: () => missionTarget
@@ -924,7 +939,8 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
         roundFoods: roundFoodsEaten,
         levelLabel: mode === 'endless' ? `L${level}` : '--',
         remainingTimeLabel: isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--',
-        dlcText: getDlcStatusText()
+        dlcText: getDlcStatusText(),
+        timeline: roundKeyframes
       });
       showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${nextScore}</p><p>按方向键或点击“重新开始”再来一局</p>`);
     }
@@ -1338,6 +1354,7 @@ function resetGame(showStartOverlay = true) {
     snakeLength: snake.length,
     showStartOverlay
   });
+  pushRoundKeyframe('开局', `模式 ${SnakeModes.getModeLabel(mode)}，DLC ${getDlcStatusText()}`);
 }
 
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
@@ -1473,6 +1490,9 @@ function update() {
     addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
     foodsEaten += 1;
     roundFoodsEaten += 1;
+    if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
+      pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
+    }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     food = randomFoodPosition();
@@ -1487,6 +1507,9 @@ function update() {
     addScore(bonusBase * scoreMultiplier, 'bonus');
     foodsEaten += 1;
     roundFoodsEaten += 1;
+    if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
+      pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
+    }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     bonusFood = null;
@@ -1671,6 +1694,7 @@ function update() {
         }
       }
 
+      pushRoundKeyframe('升级节点', `进入第 ${level} 关`);
       if (level > endlessBestLevel) {
         endlessBestLevel = level;
         saveEndlessBestLevel();

@@ -69,7 +69,8 @@ window.SnakeRoundState = (() => {
         phaseUntil: 0,
         magnetUntil: 0,
         comboGuardUntil: 0,
-        roundFoodsEaten: 0
+        roundFoodsEaten: 0,
+        roundKeyframes: []
       };
     }
 
