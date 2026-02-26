@@ -57,6 +57,8 @@ const clearRocksBtn = document.getElementById('clearRocks');
 const historyListEl = document.getElementById('historyList');
 const leaderboardListEl = document.getElementById('leaderboardList');
 const leaderboardStatusEl = document.getElementById('leaderboardStatus');
+const leaderboardSourceTagEl = document.getElementById('leaderboardSourceTag');
+const toggleLeaderboardSourceBtn = document.getElementById('toggleLeaderboardSource');
 const seasonIdEl = document.getElementById('seasonId');
 const seasonRemainingEl = document.getElementById('seasonRemaining');
 const seasonBestEl = document.getElementById('seasonBest');
@@ -84,7 +86,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.84.0';
+const GAME_VERSION = '0.85.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -157,6 +159,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.85.0', notes: ['新增排行榜来源切换开关（本地榜/远端榜占位），离线场景自动提示回退', '路线图 P3 推进：排行榜远端接口切换首版落地，下一步进入数据回放关键帧时间线'] },
   { version: '0.84.0', notes: ['新增活动挑战包面板（节日主题首版），展示当前活动加成与说明', '路线图 P3 推进：活动化运营能力首版落地，下一步进入排行榜远端接口切换开关'] },
   { version: '0.83.0', notes: ['新增对局复盘摘要面板（最近一局），展示关键指标与终局原因', '路线图 P3 推进：数据回放与复盘首版落地，下一步进入活动化运营能力'] },
   { version: '0.82.0', notes: ['新增 DLC 风险收益对比面板，支持阶段 2 可视化对比', '狂热扩展新增护盾上限惩罚（上限=1），风险收益规则进入第二阶段'] },
@@ -708,6 +711,8 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
   key: leaderboardKey,
   listEl: leaderboardListEl,
   statusEl: leaderboardStatusEl,
+  sourceTagEl: leaderboardSourceTagEl,
+  toggleBtn: toggleLeaderboardSourceBtn,
   getModeLabel: SnakeModes.getModeLabel,
   onPersist: saveActiveAccountSnapshot
 });
@@ -1931,6 +1936,7 @@ renderVersionEvents();
 loadLifetimeStats();
 loadHistory();
 leaderboardRuntime.load();
+leaderboardRuntime.bindEvents();
 seasonRuntime.load();
 recapRuntime.load();
 loadCodex();
