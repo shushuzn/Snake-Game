@@ -64,6 +64,7 @@ const seasonHistoryListEl = document.getElementById('seasonHistoryList');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
+const dlcCompareListEl = document.getElementById('dlcCompareList');
 const settlementListEl = document.getElementById('settlementList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
@@ -79,7 +80,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.81.0';
+const GAME_VERSION = '0.82.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -116,7 +117,7 @@ const dlcMeta = {
   frenzy: {
     hudText: '狂热（奖励果+10，刷新更频繁）',
     summary: '道具刷新更快，节奏更激进',
-    risk: '走位压力更高，失误容错更低',
+    risk: '护盾上限降为 1，容错显著下降',
     reward: '更高分数上限与爆发收益'
   },
   guardian: {
@@ -151,6 +152,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.82.0', notes: ['新增 DLC 风险收益对比面板，支持阶段 2 可视化对比', '狂热扩展新增护盾上限惩罚（上限=1），风险收益规则进入第二阶段'] },
   { version: '0.81.0', notes: ['新增滑动灵敏度设置（12/18/24/32px），支持移动端手势阈值个性化', '路线图 P2 推进：移动端交互增强首版落地，下一步进入风险收益型 DLC 第二阶段'] },
   { version: '0.80.0', notes: ['新增赛季信息区与历史赛季入口（最近6期），支持月赛季剩余时间与赛季最佳展示', '路线图 P2 推进：赛季信息首版完成，下一步进入移动端引导与手势自定义'] },
   { version: '0.79.0', notes: ['新增本地排行榜面板（Top20），按分数/时间排序并持久化到本地', '路线图 P2 推进：榜单面板首版完成，下一步进入赛季信息区与历史入口'] },
@@ -339,6 +341,7 @@ bestLevelEl.textContent = '0';
 roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
 refreshDlcHud();
+renderDlcComparePanel();
 
 
 function getDlcStatusText() {
@@ -353,6 +356,24 @@ function getDlcRiskRewardSummary() {
 function refreshDlcHud() {
   dlcStatusEl.textContent = getDlcStatusText();
   dlcStatusEl.title = getDlcRiskRewardSummary();
+}
+
+function getShieldCap() {
+  if (dlcPack === 'frenzy') return 1;
+  return 2;
+}
+
+function addShield(next = 1) {
+  shields = Math.min(getShieldCap(), shields + Math.max(0, Number(next || 0)));
+}
+
+function renderDlcComparePanel() {
+  const rows = Object.entries(dlcMeta).map(([key, meta]) => {
+    const selected = key === dlcPack ? '（当前）' : '';
+    const phase2 = key === 'frenzy' ? '｜阶段2规则：护盾上限=1' : '';
+    return `<li><strong>${meta.hudText}${selected}</strong><br/><small>收益：${meta.reward}；风险：${meta.risk}${phase2}</small></li>`;
+  });
+  dlcCompareListEl.innerHTML = rows.join('');
 }
 
 function getChallengeScoreFactor() {
@@ -729,7 +750,8 @@ const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   dlc: {
     syncSelectedPack: () => { dlcPack = dlcPackSelect.value; },
     refreshHud: refreshDlcHud,
-    getPack: () => dlcPack
+    getPack: () => dlcPack,
+    getShieldCap
   },
   challenge: {
     refreshHud: () => challengeRuntime.refreshHud(),
@@ -1430,7 +1452,7 @@ function update() {
   if (shieldFood && ((head.x === shieldFood.x && head.y === shieldFood.y) || canMagnetCollect(head, shieldFood, now))) {
     ate = true;
     if (!hardcoreModeInput.checked) {
-      shields = Math.min(2, shields + 1);
+      addShield(1);
       shieldEl.textContent = String(shields);
     }
     shieldFood = null;
@@ -1494,7 +1516,7 @@ function update() {
       rewardText = '奖励 +40 分';
     } else if (rewardRoll === 1) {
       if (!hardcoreModeInput.checked) {
-        shields = Math.min(2, shields + 1);
+        addShield(1);
         shieldEl.textContent = String(shields);
         rewardText = '奖励 护盾 +1';
       } else {
@@ -1595,7 +1617,7 @@ function update() {
       let milestoneText = '';
       if (level % 3 === 0) {
         if (!hardcoreModeInput.checked) {
-          shields = Math.min(2, shields + 1);
+          addShield(1);
           shieldEl.textContent = String(shields);
           milestoneText = '里程碑奖励：护盾 +1';
         } else {
@@ -1623,7 +1645,7 @@ function update() {
   if (!missionAchieved && score >= missionTarget) {
     missionAchieved = true;
     if (!hardcoreModeInput.checked) {
-      shields = Math.min(2, shields + 1);
+      addShield(1);
       shieldEl.textContent = String(shields);
     }
     missionEl.textContent = `完成✔`;
@@ -1705,6 +1727,7 @@ dlcPackSelect.addEventListener('change', () => {
   saveSettings();
   dlcPack = dlcPackSelect.value;
   refreshDlcHud();
+  renderDlcComparePanel();
   resetGame(true);
 });
 
@@ -1875,6 +1898,7 @@ loadAchievements();
 loadAudioSetting();
 loadBestByMode();
 loadSettings();
+renderDlcComparePanel();
 loadCustomRocks();
 currentSkin = skinSelect.value;
 mode = modeSelect.value;
