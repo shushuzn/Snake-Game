@@ -51,12 +51,32 @@ const applyWorkshopPresetBtn = document.getElementById('applyWorkshopPreset');
 const rockEditorInput = document.getElementById('rockEditor');
 const applyRocksBtn = document.getElementById('applyRocks');
 const exportRocksBtn = document.getElementById('exportRocks');
+const genMapCodeBtn = document.getElementById('genMapCode');
+const applyMapCodeBtn = document.getElementById('applyMapCode');
 const clearRocksBtn = document.getElementById('clearRocks');
+const mapSummaryEl = document.getElementById('mapSummary');
 const historyListEl = document.getElementById('historyList');
+const leaderboardListEl = document.getElementById('leaderboardList');
+const leaderboardStatusEl = document.getElementById('leaderboardStatus');
+const leaderboardSourceTagEl = document.getElementById('leaderboardSourceTag');
+const toggleLeaderboardSourceBtn = document.getElementById('toggleLeaderboardSource');
+const seasonIdEl = document.getElementById('seasonId');
+const seasonRemainingEl = document.getElementById('seasonRemaining');
+const seasonBestEl = document.getElementById('seasonBest');
+const seasonRewardEl = document.getElementById('seasonReward');
+const seasonHistoryListEl = document.getElementById('seasonHistoryList');
+const eventLabelEl = document.getElementById('eventLabel');
+const eventSummaryEl = document.getElementById('eventSummary');
+const eventPanelEl = document.getElementById('eventPanel');
+const jumpToEventPanelBtn = document.getElementById('jumpToEventPanel');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
+const dlcCompareListEl = document.getElementById('dlcCompareList');
 const settlementListEl = document.getElementById('settlementList');
+const recapSummaryEl = document.getElementById('recapSummary');
+const recapListEl = document.getElementById('recapList');
+const recapTimelineListEl = document.getElementById('recapTimelineList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const dlcPackSelect = document.getElementById('dlcPack');
@@ -67,17 +87,18 @@ const hardcoreModeInput = document.getElementById('hardcoreMode');
 const contrastModeInput = document.getElementById('contrastMode');
 const miniHudModeInput = document.getElementById('miniHudMode');
 const autoPauseModeInput = document.getElementById('autoPauseMode');
+const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.71.0';
+const GAME_VERSION = '0.90.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
 const blitzModeDuration = 45;
 const missionOptions = SnakeModes.missionOptions;
 const settingsKey = 'snake-settings-v2';
-const settingsSchemaVersion = 2;
+const settingsSchemaVersion = 3;
 const statsKey = 'snake-stats-v1';
 const audioKey = 'snake-audio-v1';
 const bestByModeKey = 'snake-best-by-mode-v1';
@@ -91,10 +112,39 @@ const currentAccountKey = 'snake-current-account-v1';
 const rogueMetaKey = 'snake-roguelike-meta-v1';
 const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
+const leaderboardKey = 'snake-leaderboard-v1';
+const seasonMetaKey = 'snake-season-meta-v1';
+const recapKey = 'snake-recap-v1';
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
 const validDifficulties = ['140', '110', '80'];
 const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
+const dlcMeta = {
+  none: {
+    hudText: '关闭',
+    summary: '未启用扩展规则',
+    risk: '无额外风险',
+    reward: '基础平衡体验'
+  },
+  frenzy: {
+    hudText: '狂热（奖励果+10，刷新更频繁）',
+    summary: '道具刷新更快，节奏更激进',
+    risk: '护盾上限降为 1，容错显著下降',
+    reward: '更高分数上限与爆发收益'
+  },
+  guardian: {
+    hudText: '守护（开局护盾+1）',
+    summary: '开局提供额外护盾，稳定推进',
+    risk: '前中期收益更稳但爆发较弱',
+    reward: '容错提升，任务/连胜更稳'
+  },
+  chrono: {
+    hudText: '时序（限时开局+8秒）',
+    summary: '限时类模式时间收益更突出',
+    risk: '更依赖节奏把控，拖节奏会亏时机',
+    reward: '计时模式可获得更长输出窗口'
+  }
+};
 
 function isValidModeValue(value) {
   return validModes.includes(String(value));
@@ -108,8 +158,31 @@ function isValidDlcPackValue(value) {
   return validDlcPacks.includes(String(value));
 }
 
+function isValidSwipeThresholdValue(value) {
+  return ['12', '18', '24', '32'].includes(String(value));
+}
+
 
 const versionEvents = [
+  { version: '0.90.0', notes: ['活动入口聚合上线：新增活动面板快速跳转，版本事件与活动浏览路径打通', '地图摘要首版上线：障碍数量/覆盖率/危险等级/推荐模式可视化'] },
+  { version: '0.89.0', notes: ['排行榜远端读取链路上线：支持远端 JSON 拉取、超时保护与失败回退本地', '路线图推进：v0.89 完成远端榜真实接入，下一步进入活动入口聚合与地图摘要'] },
+  { version: '0.88.0', notes: ['活动规则包扩展：新增新年/春节/黄金周/周末常驻规则包，并统一倍率文案', '路线图推进：v0.88 完成活动规则包扩展，下一步进入远端榜接口真实接入'] },
+  { version: '0.87.0', notes: ['新增赛季奖励预览，并与当前活动挑战包联动显示奖励加成', '路线图 P3 推进：赛季奖励与活动联动展示落地，下一步扩展活动规则包'] },
+  { version: '0.86.0', notes: ['对局复盘新增关键帧时间线（最近8条），支持展示开局/进食里程碑/升级节点', '路线图 P3 推进：数据回放增强落地，下一步进入赛季奖励与活动联动展示'] },
+  { version: '0.85.0', notes: ['新增排行榜来源切换开关（本地榜/远端榜占位），离线场景自动提示回退', '路线图 P3 推进：排行榜远端接口切换首版落地，下一步进入数据回放关键帧时间线'] },
+  { version: '0.84.0', notes: ['新增活动挑战包面板（节日主题首版），展示当前活动加成与说明', '路线图 P3 推进：活动化运营能力首版落地，下一步进入排行榜远端接口切换开关'] },
+  { version: '0.83.0', notes: ['新增对局复盘摘要面板（最近一局），展示关键指标与终局原因', '路线图 P3 推进：数据回放与复盘首版落地，下一步进入活动化运营能力'] },
+  { version: '0.82.0', notes: ['新增 DLC 风险收益对比面板，支持阶段 2 可视化对比', '狂热扩展新增护盾上限惩罚（上限=1），风险收益规则进入第二阶段'] },
+  { version: '0.81.0', notes: ['新增滑动灵敏度设置（12/18/24/32px），支持移动端手势阈值个性化', '路线图 P2 推进：移动端交互增强首版落地，下一步进入风险收益型 DLC 第二阶段'] },
+  { version: '0.80.0', notes: ['新增赛季信息区与历史赛季入口（最近6期），支持月赛季剩余时间与赛季最佳展示', '路线图 P2 推进：赛季信息首版完成，下一步进入移动端引导与手势自定义'] },
+  { version: '0.79.0', notes: ['新增本地排行榜面板（Top20），按分数/时间排序并持久化到本地', '路线图 P2 推进：榜单面板首版完成，下一步进入赛季信息区与历史入口'] },
+  { version: '0.78.0', notes: ['创意工坊规则码新增 mapCode 字段，支持障碍地图随规则一键分享与应用', '路线图 P2 推进：工坊与地图码互通完成，下一步进入榜单面板首版'] },
+  { version: '0.77.0', notes: ['障碍编辑器新增地图码（SNKMAP1）生成与应用，支持校验码验证', '路线图 P2 推进：地图码导入导出首版落地，进入工坊互通阶段'] },
+  { version: '0.76.0', notes: ['挑战面板刷新改为复用 getDailyChallengeBundle，减少重复日期/挑战推导逻辑', '路线图 P1 推进：挑战展示链路完成一次去冗余优化，便于后续维护与扩展'] },
+  { version: '0.75.0', notes: ['每日挑战跨天切换优化：进行中的对局维持当局挑战，结束后再应用新日期挑战', '挑战面板新增跨天切换提示，避免午夜期间规则突变造成体验割裂'] },
+  { version: '0.74.0', notes: ['优化每日挑战刷新展示：今日/明日挑战使用同一时间快照生成，跨秒显示更一致', '挑战得分倍率新增安全校验与上限保护，降低异常配置风险'] },
+  { version: '0.73.0', notes: ['每日挑战新增“周循环主题”：工作日稳态 / 周末双倍率，挑战节奏更有区分度', '路线图 P1 推进：周循环主题已落地，挑战系统进入细化平衡阶段'] },
+  { version: '0.72.0', notes: ['DLC 状态栏支持“风险/收益”规则摘要提示，便于开局前决策', '路线图 P1 推进：完成 DLC 风险收益可视化，进入每周挑战主题设计阶段'] },
   { version: '0.71.0', notes: ['新增 reset_prepare.js，重置前置（spawn + roundMeta 组装）从 game.js 拆分', '路线图 P1 推进：重置编排层完成前后拆分，主流程模块化进一步收敛'] },
   { version: '0.70.0', notes: ['新增 reset_flow.js，重置收尾（计时器停止/HUD复位/开局提示）从 game.js 拆分', '路线图 P1 推进：完成重置收尾编排层拆分，下一步拆分重置前置编排层'] },
   { version: '0.69.0', notes: ['新增 endgame_flow.js 与 records.js，拆分结算触发与战绩写入编排逻辑', '路线图 P1 推进：完成结算触发层 + 战绩编排层拆分，下一步拆分重置收尾编排层'] },
@@ -240,6 +313,8 @@ let playCountedThisRound = false;
 let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
+let roundFoodsEaten = 0;
+let roundKeyframes = [];
 let scoreMultiplier = 1;
 let multiplierExpireAt = 0;
 let freezeUntil = 0;
@@ -288,24 +363,69 @@ bestLevelEl.textContent = '0';
 roguePerksEl.textContent = '0';
 rogueMutatorEl.textContent = '--';
 refreshDlcHud();
+renderDlcComparePanel();
 
 
 function getDlcStatusText() {
-  if (dlcPack === 'frenzy') return '狂热（奖励果+10，刷新更频繁）';
-  if (dlcPack === 'guardian') return '守护（开局护盾+1）';
-  if (dlcPack === 'chrono') return '时序（限时开局+8秒）';
-  return '关闭';
+  return (dlcMeta[dlcPack] || dlcMeta.none).hudText;
+}
+
+function getDlcRiskRewardSummary() {
+  const meta = dlcMeta[dlcPack] || dlcMeta.none;
+  return `${meta.summary}｜收益：${meta.reward}｜风险：${meta.risk}`;
 }
 
 function refreshDlcHud() {
   dlcStatusEl.textContent = getDlcStatusText();
+  dlcStatusEl.title = getDlcRiskRewardSummary();
+}
+
+function getShieldCap() {
+  if (dlcPack === 'frenzy') return 1;
+  return 2;
+}
+
+function addShield(next = 1) {
+  shields = Math.min(getShieldCap(), shields + Math.max(0, Number(next || 0)));
+}
+
+function pushRoundKeyframe(label, detail) {
+  const safeLabel = String(label || '').trim();
+  const safeDetail = String(detail || '').trim();
+  if (!safeLabel || !safeDetail) return;
+  const duplicated = roundKeyframes.some(item => item.label === safeLabel && item.detail === safeDetail);
+  if (duplicated) return;
+  roundKeyframes.push({ label: safeLabel, detail: safeDetail });
+  if (roundKeyframes.length > 8) roundKeyframes = roundKeyframes.slice(-8);
+}
+
+function renderDlcComparePanel() {
+  const rows = Object.entries(dlcMeta).map(([key, meta]) => {
+    const selected = key === dlcPack ? '（当前）' : '';
+    const phase2 = key === 'frenzy' ? '｜阶段2规则：护盾上限=1' : '';
+    return `<li><strong>${meta.hudText}${selected}</strong><br/><small>收益：${meta.reward}；风险：${meta.risk}${phase2}</small></li>`;
+  });
+  dlcCompareListEl.innerHTML = rows.join('');
+}
+
+function getChallengeScoreFactor() {
+  const rawFactor = Number(currentChallenge?.scoreFactor || 1);
+  if (!Number.isFinite(rawFactor)) return 1;
+  return Math.min(3, Math.max(1, rawFactor));
 }
 
 function addScore(points, source = '') {
   const delta = Number(points || 0);
   if (!delta) return;
-  score += delta;
-  settlement.addScore(source, delta);
+  const challengeFactor = getChallengeScoreFactor();
+  const eventFactor = Number(eventsRuntime?.getScoreFactor?.() || 1);
+  const finalDelta = Math.max(1, Math.round(delta * challengeFactor * eventFactor));
+  score += finalDelta;
+  const tags = [];
+  if (challengeFactor > 1) tags.push(`周主题x${challengeFactor}`);
+  if (eventFactor > 1) tags.push(`活动x${eventFactor.toFixed(1)}`);
+  const sourceLabel = tags.length && source ? `${source}（${tags.join('，')}）` : source;
+  settlement.addScore(sourceLabel, finalDelta);
 }
 
 function refreshSettlementPanel(extra = {}) {
@@ -393,12 +513,14 @@ const settingsRuntime = window.SnakeSettings.createSettingsModule({
     hardcoreModeInput,
     contrastModeInput,
     miniHudModeInput,
-    autoPauseModeInput
+    autoPauseModeInput,
+    swipeThresholdSelect
   },
   validators: {
     isValidMode: isValidModeValue,
     isValidDifficulty: isValidDifficultyValue,
-    isValidDlcPack: isValidDlcPackValue
+    isValidDlcPack: isValidDlcPackValue,
+    isValidSwipeThreshold: isValidSwipeThresholdValue
   },
   skinThemes,
   getModePreference: () => modePreference,
@@ -468,7 +590,15 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
     updateLevelText();
     refreshModeBestText();
   },
-  resetAndRefresh: () => resetGame(true)
+  resetAndRefresh: () => resetGame(true),
+  getMapCode: () => encodeMapCode(customRocks),
+  applyMapCode: (rawMapCode) => {
+    const parsed = parseMapCode(rawMapCode);
+    if (!parsed.ok) return { ok: false, reason: parsed.reason };
+    customRocks = parsed.rocks;
+    saveCustomRocks();
+    return { ok: true };
+  }
 });
 
 const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
@@ -489,13 +619,15 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
     hardcoreModeInput,
     contrastModeInput,
     miniHudModeInput,
-    autoPauseModeInput
+    autoPauseModeInput,
+    swipeThresholdSelect
   },
   runtime: {
     getModeSettingValue,
     getObstacleModeSettingValue,
     setModePreference: (value) => { modePreference = value; },
-    setObstacleModePreference: (value) => { obstacleModePreference = value; }
+    setObstacleModePreference: (value) => { obstacleModePreference = value; },
+    getMapCode: () => encodeMapCode(customRocks)
   },
   ui: {
     showOverlay,
@@ -595,6 +727,70 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   onResume: startLoop
 });
 
+const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
+  storage,
+  key: leaderboardKey,
+  listEl: leaderboardListEl,
+  statusEl: leaderboardStatusEl,
+  sourceTagEl: leaderboardSourceTagEl,
+  toggleBtn: toggleLeaderboardSourceBtn,
+  getModeLabel: SnakeModes.getModeLabel,
+  onPersist: saveActiveAccountSnapshot,
+  remoteConfig: {
+    url: './leaderboard_remote.json',
+    timeoutMs: 2000
+  }
+});
+
+
+const seasonRuntime = window.SnakeSeason.createSeasonModule({
+  storage,
+  key: seasonMetaKey,
+  elements: {
+    seasonIdEl,
+    seasonRemainingEl,
+    seasonBestEl,
+    seasonHistoryListEl
+  },
+  onPersist: saveActiveAccountSnapshot
+});
+
+
+const eventsRuntime = window.SnakeEvents.createEventsModule({
+  elements: { eventLabelEl, eventSummaryEl }
+});
+
+
+function getSeasonRewardTier(score) {
+  if (score >= 600) return { tier: 'S', base: 200 };
+  if (score >= 400) return { tier: 'A', base: 120 };
+  if (score >= 250) return { tier: 'B', base: 80 };
+  if (score >= 120) return { tier: 'C', base: 40 };
+  return { tier: 'D', base: 10 };
+}
+
+function refreshSeasonRewardPreview() {
+  if (!seasonRewardEl) return;
+  const best = seasonRuntime.getCurrentBestScore();
+  const tier = getSeasonRewardTier(best);
+  const factorRaw = Number(eventsRuntime.getScoreFactor());
+  const eventFactor = Number.isFinite(factorRaw) && factorRaw > 0 ? factorRaw : 1;
+  const finalReward = Math.round(tier.base * eventFactor);
+  const eventTag = eventFactor > 1 ? `（活动加成 x${eventFactor.toFixed(1)}）` : '';
+  seasonRewardEl.textContent = `${tier.tier} 档：${finalReward} 奖励点${eventTag}`;
+}
+
+const recapRuntime = window.SnakeRecap.createRecapModule({
+  storage,
+  key: recapKey,
+  summaryEl: recapSummaryEl,
+  listEl: recapListEl,
+  timelineListEl: recapTimelineListEl,
+  getModeLabel: SnakeModes.getModeLabel,
+  onPersist: saveActiveAccountSnapshot
+});
+
+
 const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   state: {
     setSnake: (value) => { snake = value; },
@@ -631,7 +827,8 @@ const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   dlc: {
     syncSelectedPack: () => { dlcPack = dlcPackSelect.value; },
     refreshHud: refreshDlcHud,
-    getPack: () => dlcPack
+    getPack: () => dlcPack,
+    getShieldCap
   },
   challenge: {
     refreshHud: () => challengeRuntime.refreshHud(),
@@ -675,6 +872,8 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
       phaseUntil = roundMeta.phaseUntil;
       magnetUntil = roundMeta.magnetUntil;
       comboGuardUntil = roundMeta.comboGuardUntil;
+      roundFoodsEaten = roundMeta.roundFoodsEaten;
+      roundKeyframes = roundMeta.roundKeyframes || [];
     },
     getShields: () => shields,
     getMissionTarget: () => missionTarget
@@ -748,6 +947,9 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   records: {
     recordRound: (nextScore, modeName) => {
       recordsRuntime.recordRound(nextScore, modeName);
+      leaderboardRuntime.recordRound(nextScore, modeName);
+      seasonRuntime.recordRound(nextScore, modeName);
+      refreshSeasonRewardPreview();
     }
   },
   achievements: {
@@ -761,6 +963,17 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   },
   ui: {
     showEndOverlay: (reasonText, nextScore) => {
+      recapRuntime.record({
+        reason: reasonText,
+        score: nextScore,
+        mode,
+        maxCombo: roundMaxCombo,
+        roundFoods: roundFoodsEaten,
+        levelLabel: mode === 'endless' ? `L${level}` : '--',
+        remainingTimeLabel: isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--',
+        dlcText: getDlcStatusText(),
+        timeline: roundKeyframes
+      });
       showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${nextScore}</p><p>按方向键或点击“重新开始”再来一局</p>`);
     }
   },
@@ -1101,15 +1314,92 @@ function encodeRocks(rockList) {
   return rockList.map(item => `${item.x},${item.y}`).join('\n');
 }
 
+function encodeMapPayload(rockList) {
+  return rockList.map(item => `${item.x},${item.y}`).join(';');
+}
+
+function checksumMapPayload(payload) {
+  let acc = 7;
+  for (let i = 0; i < payload.length; i += 1) {
+    acc = (acc * 131 + payload.charCodeAt(i)) % 104729;
+  }
+  return acc.toString(36).toUpperCase();
+}
+
+function encodeMapCode(rockList) {
+  const normalized = normalizeRockList(rockList);
+  const payload = encodeMapPayload(normalized);
+  const checksum = checksumMapPayload(payload);
+  return `SNKMAP1:${payload}:${checksum}`;
+}
+
+function parseMapCode(raw) {
+  const text = String(raw || '').trim();
+  if (!text.startsWith('SNKMAP1:')) {
+    return { ok: false, reason: '缺少 SNKMAP1 前缀' };
+  }
+  const parts = text.split(':');
+  if (parts.length !== 3) {
+    return { ok: false, reason: '地图码结构错误（应为 SNKMAP1:payload:checksum）' };
+  }
+  const payload = parts[1] || '';
+  const checksum = (parts[2] || '').toUpperCase();
+  if (checksumMapPayload(payload) != checksum) {
+    return { ok: false, reason: '地图码校验失败，请确认完整复制' };
+  }
+  const entries = payload ? payload.split(';') : [];
+  const parsed = entries.map((entry) => {
+    const [x, y] = entry.split(',').map(v => Number(v));
+    return { x, y };
+  });
+  const normalized = normalizeRockList(parsed);
+  return { ok: true, rocks: normalized };
+}
+
+function parseRocksFromInput(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return { rocks: [], mode: 'empty' };
+  if (text.startsWith('SNKMAP1:')) {
+    const parsedMap = parseMapCode(text);
+    if (!parsedMap.ok) return { error: parsedMap.reason, mode: 'mapCode' };
+    return { rocks: parsedMap.rocks, mode: 'mapCode' };
+  }
+  return { rocks: parseRockEditorText(text), mode: 'coords' };
+}
+
+function getMapRiskLevel(coveragePercent) {
+  if (coveragePercent >= 14) return '高';
+  if (coveragePercent >= 8) return '中';
+  return '低';
+}
+
+function getRecommendedModeByCoverage(coveragePercent) {
+  if (coveragePercent >= 14) return '经典/限时（谨慎）';
+  if (coveragePercent >= 8) return '经典/肉鸽';
+  return '经典/无尽';
+}
+
+function refreshMapSummary(rockList = customRocks) {
+  if (!mapSummaryEl) return;
+  const count = Array.isArray(rockList) ? rockList.length : 0;
+  const totalCells = tileCount * tileCount;
+  const coveragePercent = totalCells > 0 ? (count / totalCells) * 100 : 0;
+  const risk = getMapRiskLevel(coveragePercent);
+  const recommended = getRecommendedModeByCoverage(coveragePercent);
+  mapSummaryEl.textContent = `地图摘要：障碍 ${count} · 覆盖率 ${coveragePercent.toFixed(1)}% · 危险度 ${risk} · 推荐 ${recommended}`;
+}
+
 function saveCustomRocks() {
   storage.writeJson(customRocksKey, customRocks);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
+  refreshMapSummary(customRocks);
 }
 
 function loadCustomRocks() {
   const parsed = storage.readJson(customRocksKey, []);
   customRocks = normalizeRockList(Array.isArray(parsed) ? parsed : []);
   if (rockEditorInput) rockEditorInput.value = encodeRocks(customRocks);
+  refreshMapSummary(customRocks);
 }
 
 function resetGame(showStartOverlay = true) {
@@ -1120,6 +1410,7 @@ function resetGame(showStartOverlay = true) {
     snakeLength: snake.length,
     showStartOverlay
   });
+  pushRoundKeyframe('开局', `模式 ${SnakeModes.getModeLabel(mode)}，DLC ${getDlcStatusText()}`);
 }
 
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
@@ -1254,6 +1545,10 @@ function update() {
     ate = true;
     addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
     foodsEaten += 1;
+    roundFoodsEaten += 1;
+    if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
+      pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
+    }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     food = randomFoodPosition();
@@ -1267,6 +1562,10 @@ function update() {
     const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
     addScore(bonusBase * scoreMultiplier, 'bonus');
     foodsEaten += 1;
+    roundFoodsEaten += 1;
+    if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
+      pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
+    }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     bonusFood = null;
@@ -1277,7 +1576,7 @@ function update() {
   if (shieldFood && ((head.x === shieldFood.x && head.y === shieldFood.y) || canMagnetCollect(head, shieldFood, now))) {
     ate = true;
     if (!hardcoreModeInput.checked) {
-      shields = Math.min(2, shields + 1);
+      addShield(1);
       shieldEl.textContent = String(shields);
     }
     shieldFood = null;
@@ -1341,7 +1640,7 @@ function update() {
       rewardText = '奖励 +40 分';
     } else if (rewardRoll === 1) {
       if (!hardcoreModeInput.checked) {
-        shields = Math.min(2, shields + 1);
+        addShield(1);
         shieldEl.textContent = String(shields);
         rewardText = '奖励 护盾 +1';
       } else {
@@ -1442,7 +1741,7 @@ function update() {
       let milestoneText = '';
       if (level % 3 === 0) {
         if (!hardcoreModeInput.checked) {
-          shields = Math.min(2, shields + 1);
+          addShield(1);
           shieldEl.textContent = String(shields);
           milestoneText = '里程碑奖励：护盾 +1';
         } else {
@@ -1451,6 +1750,7 @@ function update() {
         }
       }
 
+      pushRoundKeyframe('升级节点', `进入第 ${level} 关`);
       if (level > endlessBestLevel) {
         endlessBestLevel = level;
         saveEndlessBestLevel();
@@ -1470,7 +1770,7 @@ function update() {
   if (!missionAchieved && score >= missionTarget) {
     missionAchieved = true;
     if (!hardcoreModeInput.checked) {
-      shields = Math.min(2, shields + 1);
+      addShield(1);
       shieldEl.textContent = String(shields);
     }
     missionEl.textContent = `完成✔`;
@@ -1552,6 +1852,7 @@ dlcPackSelect.addEventListener('change', () => {
   saveSettings();
   dlcPack = dlcPackSelect.value;
   refreshDlcHud();
+  renderDlcComparePanel();
   resetGame(true);
 });
 
@@ -1567,7 +1868,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -1584,6 +1885,10 @@ clearDataBtn.addEventListener('click', () => {
   refreshAchievementsText();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
+  leaderboardRuntime.clear();
+  seasonRuntime.clear();
+  recapRuntime.clear();
+  refreshSeasonRewardPreview();
   discoveredCodex = defaultCodexState();
   refreshCodex();
   endlessBestLevel = 0;
@@ -1601,7 +1906,7 @@ shareBtn.addEventListener('click', async () => {
   const modeLabel = SnakeModes.getModeLabel(mode);
   const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
   const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
-  const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
+  const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，活动：${eventsRuntime.getLabel()}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
@@ -1642,18 +1947,41 @@ accountInput.addEventListener('keydown', (event) => {
 
 workshopRuntime.bindEvents();
 
+rockEditorInput?.addEventListener('input', () => {
+  const parsed = parseRocksFromInput(rockEditorInput.value);
+  if (parsed.error) {
+    mapSummaryEl.textContent = `地图摘要：输入待修正（${parsed.error}）`;
+    return;
+  }
+  refreshMapSummary(parsed.rocks);
+});
+
+jumpToEventPanelBtn?.addEventListener('click', () => {
+  eventPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  eventPanelEl?.classList.add('highlight');
+  setTimeout(() => eventPanelEl?.classList.remove('highlight'), 1200);
+});
+
 applyRocksBtn.addEventListener('click', () => {
-  const parsed = parseRockEditorText(rockEditorInput.value);
-  customRocks = parsed;
+  const parsed = parseRocksFromInput(rockEditorInput.value);
+  if (!parsed.error) refreshMapSummary(parsed.rocks);
+  if (parsed.error) {
+    showOverlay(`<p><strong>地图解析失败</strong></p><p>${parsed.error}</p>`);
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+    return;
+  }
+  customRocks = parsed.rocks;
   saveCustomRocks();
   resetGame(true);
-  showOverlay(`<p><strong>障碍已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  const sourceText = parsed.mode === 'mapCode' ? '（来源：地图码）' : '';
+  showOverlay(`<p><strong>障碍已应用${sourceText}</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
 });
 
 exportRocksBtn.addEventListener('click', async () => {
   const text = encodeRocks(rocks);
   rockEditorInput.value = text;
+  refreshMapSummary(rocks);
   try {
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
     showOverlay('<p><strong>已导出当前障碍</strong></p><p>坐标已写入文本框并复制</p>');
@@ -1661,6 +1989,34 @@ exportRocksBtn.addEventListener('click', async () => {
     showOverlay('<p><strong>已导出当前障碍</strong></p><p>坐标已写入文本框，可手动复制</p>');
   }
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+});
+
+genMapCodeBtn.addEventListener('click', async () => {
+  const code = encodeMapCode(rocks);
+  rockEditorInput.value = code;
+  refreshMapSummary(rocks);
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(code);
+    showOverlay(`<p><strong>地图码已生成</strong></p><p>长度 ${code.length}，已写入并复制</p>`);
+  } catch {
+    showOverlay(`<p><strong>地图码已生成</strong></p><p>长度 ${code.length}，已写入文本框</p>`);
+  }
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+});
+
+applyMapCodeBtn.addEventListener('click', () => {
+  const parsed = parseMapCode(rockEditorInput.value);
+  if (parsed.ok) refreshMapSummary(parsed.rocks);
+  if (!parsed.ok) {
+    showOverlay(`<p><strong>地图码无效</strong></p><p>${parsed.reason}</p>`);
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+    return;
+  }
+  customRocks = parsed.rocks;
+  saveCustomRocks();
+  resetGame(true);
+  showOverlay(`<p><strong>地图码已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p>`);
+  setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
 });
 
 clearRocksBtn.addEventListener('click', () => {
@@ -1673,10 +2029,21 @@ clearRocksBtn.addEventListener('click', () => {
 
 accountRuntime.loadFromStorage();
 
+eventsRuntime.refresh();
 challengeRuntime.selectDailyChallenge();
+setInterval(() => seasonRuntime.refreshRemainingOnly(), 60000);
+setInterval(() => {
+  eventsRuntime.refresh();
+  refreshSeasonRewardPreview();
+}, 60000);
 renderVersionEvents();
 loadLifetimeStats();
 loadHistory();
+leaderboardRuntime.load();
+leaderboardRuntime.bindEvents();
+seasonRuntime.load();
+refreshSeasonRewardPreview();
+recapRuntime.load();
 loadCodex();
 loadEndlessBestLevel();
 loadRogueMeta();
@@ -1685,7 +2052,9 @@ loadAchievements();
 loadAudioSetting();
 loadBestByMode();
 loadSettings();
+renderDlcComparePanel();
 loadCustomRocks();
+refreshMapSummary(customRocks);
 currentSkin = skinSelect.value;
 mode = modeSelect.value;
 updateLevelText();

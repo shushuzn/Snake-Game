@@ -15,7 +15,8 @@
       onRestart,
       onToggleMute,
       onToggleHelp,
-      onDirection
+      onDirection,
+      getSwipeThreshold
     } = config;
 
     let touchStart = null;
@@ -71,7 +72,9 @@
       const dy = touch.clientY - touchStart.y;
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
-      if (absX < 18 && absY < 18) {
+      const swipeThreshold = Number(getSwipeThreshold?.() || 18);
+      const threshold = Number.isFinite(swipeThreshold) ? Math.min(40, Math.max(8, swipeThreshold)) : 18;
+      if (absX < threshold && absY < threshold) {
         touchStart = null;
         return;
       }
