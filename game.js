@@ -61,6 +61,8 @@ const seasonIdEl = document.getElementById('seasonId');
 const seasonRemainingEl = document.getElementById('seasonRemaining');
 const seasonBestEl = document.getElementById('seasonBest');
 const seasonHistoryListEl = document.getElementById('seasonHistoryList');
+const eventLabelEl = document.getElementById('eventLabel');
+const eventSummaryEl = document.getElementById('eventSummary');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
@@ -82,7 +84,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.83.0';
+const GAME_VERSION = '0.84.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -155,6 +157,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.84.0', notes: ['新增活动挑战包面板（节日主题首版），展示当前活动加成与说明', '路线图 P3 推进：活动化运营能力首版落地，下一步进入排行榜远端接口切换开关'] },
   { version: '0.83.0', notes: ['新增对局复盘摘要面板（最近一局），展示关键指标与终局原因', '路线图 P3 推进：数据回放与复盘首版落地，下一步进入活动化运营能力'] },
   { version: '0.82.0', notes: ['新增 DLC 风险收益对比面板，支持阶段 2 可视化对比', '狂热扩展新增护盾上限惩罚（上限=1），风险收益规则进入第二阶段'] },
   { version: '0.81.0', notes: ['新增滑动灵敏度设置（12/18/24/32px），支持移动端手势阈值个性化', '路线图 P2 推进：移动端交互增强首版落地，下一步进入风险收益型 DLC 第二阶段'] },
@@ -391,9 +394,13 @@ function addScore(points, source = '') {
   const delta = Number(points || 0);
   if (!delta) return;
   const challengeFactor = getChallengeScoreFactor();
-  const finalDelta = Math.max(1, Math.round(delta * challengeFactor));
+  const eventFactor = Number(eventsRuntime?.getScoreFactor?.() || 1);
+  const finalDelta = Math.max(1, Math.round(delta * challengeFactor * eventFactor));
   score += finalDelta;
-  const sourceLabel = challengeFactor > 1 && source ? `${source}（周主题x${challengeFactor}）` : source;
+  const tags = [];
+  if (challengeFactor > 1) tags.push(`周主题x${challengeFactor}`);
+  if (eventFactor > 1) tags.push(`活动x${eventFactor.toFixed(1)}`);
+  const sourceLabel = tags.length && source ? `${source}（${tags.join('，')}）` : source;
   settlement.addScore(sourceLabel, finalDelta);
 }
 
@@ -716,6 +723,11 @@ const seasonRuntime = window.SnakeSeason.createSeasonModule({
     seasonHistoryListEl
   },
   onPersist: saveActiveAccountSnapshot
+});
+
+
+const eventsRuntime = window.SnakeEvents.createEventsModule({
+  elements: { eventLabelEl, eventSummaryEl }
 });
 
 
@@ -1808,7 +1820,7 @@ shareBtn.addEventListener('click', async () => {
   const modeLabel = SnakeModes.getModeLabel(mode);
   const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
   const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
-  const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
+  const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，活动：${eventsRuntime.getLabel()}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
@@ -1912,6 +1924,7 @@ clearRocksBtn.addEventListener('click', () => {
 
 accountRuntime.loadFromStorage();
 
+eventsRuntime.refresh();
 challengeRuntime.selectDailyChallenge();
 setInterval(() => seasonRuntime.refreshRemainingOnly(), 60000);
 renderVersionEvents();

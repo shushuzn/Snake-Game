@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.83.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.84.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -177,6 +177,13 @@
         <ol id="seasonHistoryList"></ol>
       </section>
 
+
+      <section class="panel" aria-label="活动挑战包">
+        <h2>活动挑战包</h2>
+        <p class="tips">当前活动：<b id="eventLabel">无活动</b></p>
+        <p class="tips" id="eventSummary">当前无活动加成</p>
+      </section>
+
       <section class="panel" aria-label="最近战绩">
         <h2>最近战绩（最近 5 局）</h2>
         <ol id="historyList"></ol>
@@ -226,6 +233,7 @@
     <script src="play_state.js"></script>
     <script src="leaderboard.js"></script>
     <script src="season.js"></script>
+    <script src="events.js"></script>
     <script src="recap.js"></script>
     <script src="records.js"></script>
     <script src="endgame_flow.js"></script>
