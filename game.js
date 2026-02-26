@@ -91,7 +91,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.90.0';
+const GAME_VERSION = '0.91.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -164,6 +164,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.91.0', notes: ['新增连击里程奖励：连击达到 x5 立即获得额外分数奖励', '连击达到 x8 可触发短时倍率冲刺，帮助中后期滚雪球'] },
   { version: '0.90.0', notes: ['活动入口聚合上线：新增活动面板快速跳转，版本事件与活动浏览路径打通', '地图摘要首版上线：障碍数量/覆盖率/危险等级/推荐模式可视化'] },
   { version: '0.89.0', notes: ['排行榜远端读取链路上线：支持远端 JSON 拉取、超时保护与失败回退本地', '路线图推进：v0.89 完成远端榜真实接入，下一步进入活动入口聚合与地图摘要'] },
   { version: '0.88.0', notes: ['活动规则包扩展：新增新年/春节/黄金周/周末常驻规则包，并统一倍率文案', '路线图推进：v0.88 完成活动规则包扩展，下一步进入远端榜接口真实接入'] },
@@ -1489,6 +1490,32 @@ function canMagnetCollect(head, pickup, now, range = 2) {
   return dist <= range;
 }
 
+function applyComboMilestoneReward(now, comboValue) {
+  if (comboValue === 5) {
+    addScore(15 * scoreMultiplier, 'comboMilestone5');
+    pushRoundKeyframe('连击里程碑', '连击达到 x5，额外 +15 分');
+    if (running && !paused) {
+      showOverlay('<p><strong>🔥 连击里程碑 x5</strong></p><p>额外奖励 +15 分</p>');
+      setTimeout(() => {
+        if (running && !paused) hideOverlay();
+      }, 650);
+    }
+    return;
+  }
+  if (comboValue === 8) {
+    scoreMultiplier = 2;
+    multiplierExpireAt = Math.max(multiplierExpireAt, now + 4000);
+    multiplierEl.textContent = 'x2';
+    pushRoundKeyframe('连击里程碑', '连击达到 x8，触发倍率冲刺 4 秒');
+    if (running && !paused) {
+      showOverlay('<p><strong>⚡ 连击里程碑 x8</strong></p><p>触发 4 秒倍率冲刺（x2）</p>');
+      setTimeout(() => {
+        if (running && !paused) hideOverlay();
+      }, 700);
+    }
+  }
+}
+
 function update() {
   const now = performance.now();
   const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
@@ -1713,6 +1740,7 @@ function update() {
     roundMaxCombo = Math.max(roundMaxCombo, combo);
     addScore((combo - 1) * 2 * scoreMultiplier, 'comboChain');
     comboEl.textContent = `x${combo}`;
+    applyComboMilestoneReward(now, combo);
     lastEatMs = now;
     itemSpawnRuntime.maybeAddRock();
   } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000) && now > comboGuardUntil) {

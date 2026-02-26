@@ -75,11 +75,12 @@ git diff --check
 同步页面可见版本与 `GAME_VERSION`：
 
 ```bash
-python3 skills/snake-feature-evolver/scripts/bump_version.py 0.90.0
+python3 skills/snake-feature-evolver/scripts/bump_version.py 0.91.0
 ```
 
 ## 最新进展
 
+- v0.91.0：新增连击里程奖励（x5 额外加分、x8 触发 4 秒倍率冲刺），强化中后期滚雪球节奏。
 - v0.90.0：活动入口聚合与地图摘要首版上线，支持活动面板快速跳转与障碍危险度/推荐模式展示。
 - v0.89.0：排行榜远端读取链路上线，支持远端 JSON 拉取、超时保护与失败自动回退本地。
 - v0.88.0：活动规则包扩展上线，新增新年/春节/黄金周/周末常驻活动并统一倍率文案说明。
