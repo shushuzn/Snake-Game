@@ -1,22 +1,49 @@
 window.SnakeLeaderboard = (() => {
-  function createLeaderboardModule({ storage, key, listEl, statusEl, sourceTagEl, toggleBtn, getModeLabel, onPersist, remoteConfig = {} }) {
-    let entries = [];
+  function createLeaderboardModule({
+    storage,
+    key,
+    listEl,
+    statusEl,
+    sourceTagEl,
+    toggleBtn,
+    dimensionSelectEl,
+    getModeLabel,
+    onPersist,
+    remoteConfig = {}
+  }) {
+    let allEntries = [];
+    let visibleEntries = [];
     let source = 'local';
+    let dimension = 'all';
     let remoteMeta = { ok: false, message: '未请求远端榜单' };
     const remoteUrl = String(remoteConfig.url || '').trim();
     const remoteTimeoutMs = Number(remoteConfig.timeoutMs || 1800);
 
+    function getDimensionLabel() {
+      if (dimension === 'all') return '综合榜';
+      return `${getModeLabel(dimension).replace('模式', '')}榜`;
+    }
+
+    function applyDimensionFilter() {
+      if (dimension === 'all') {
+        visibleEntries = allEntries.slice(0, 20);
+        return;
+      }
+      visibleEntries = allEntries.filter(item => item.mode === dimension).slice(0, 20);
+    }
+
     function computeStatus() {
+      const dimensionLabel = getDimensionLabel();
       if (source === 'remote') {
         if (remoteMeta.ok) {
-          const best = entries[0];
-          return `远端榜：已同步 ${entries.length} 条${best ? ` · 最高 ${best.score} 分` : ''}`;
+          const best = visibleEntries[0];
+          return `远端${dimensionLabel}：${visibleEntries.length} 条${best ? ` · 最高 ${best.score} 分` : ''}`;
         }
-        return `远端榜：请求失败（${remoteMeta.message}），已回退本地数据`;
+        return `远端${dimensionLabel}：请求失败（${remoteMeta.message}），已回退本地数据`;
       }
-      if (!entries.length) return '本地榜：暂无数据';
-      const best = entries[0];
-      return `本地榜：${entries.length} 条 · 最高 ${best.score} 分`;
+      if (!visibleEntries.length) return `本地${dimensionLabel}：暂无数据`;
+      const best = visibleEntries[0];
+      return `本地${dimensionLabel}：${visibleEntries.length} 条 · 最高 ${best.score} 分`;
     }
 
     function renderSourceState() {
@@ -24,21 +51,26 @@ window.SnakeLeaderboard = (() => {
       toggleBtn.textContent = source === 'remote' ? '切换到本地榜' : '切换到远端榜';
     }
 
-    function render() {
-      if (!entries.length) {
+    function renderList() {
+      if (!visibleEntries.length) {
         listEl.innerHTML = '<li>暂无排行数据</li>';
-      } else {
-        listEl.innerHTML = entries
-          .map((item, idx) => {
-            const modeLabel = getModeLabel(item.mode).replace('模式', '');
-            const d = new Date(item.ts || Date.now());
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            const mark = source === 'remote' && remoteMeta.ok ? '🌐' : '🏠';
-            return `<li>${mark} #${idx + 1} ${item.score} 分 · ${modeLabel} <small>(${mm}-${dd})</small></li>`;
-          })
-          .join('');
+        return;
       }
+      listEl.innerHTML = visibleEntries
+        .map((item, idx) => {
+          const modeLabel = getModeLabel(item.mode).replace('模式', '');
+          const d = new Date(item.ts || Date.now());
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mark = source === 'remote' && remoteMeta.ok ? '🌐' : '🏠';
+          return `<li>${mark} #${idx + 1} ${item.score} 分 · ${modeLabel} <small>(${mm}-${dd})</small></li>`;
+        })
+        .join('');
+    }
+
+    function render() {
+      applyDimensionFilter();
+      renderList();
       statusEl.textContent = computeStatus();
       renderSourceState();
     }
@@ -61,27 +93,21 @@ window.SnakeLeaderboard = (() => {
     }
 
     function load() {
-      entries = loadLocalEntries();
+      allEntries = loadLocalEntries();
       render();
-    }
-
-    function save() {
-      storage.writeJson(key, entries);
-      onPersist();
     }
 
     function recordRound(score, mode) {
       const localEntries = loadLocalEntries();
-      entries = normalize([{ score, mode, ts: Date.now() }, ...localEntries]);
-      storage.writeJson(key, entries);
+      allEntries = normalize([{ score, mode, ts: Date.now() }, ...localEntries]);
+      storage.writeJson(key, allEntries);
       onPersist();
-      if (source !== 'remote') {
-        render();
-      }
+      if (source !== 'remote') render();
     }
 
     function clear() {
-      entries = [];
+      allEntries = [];
+      visibleEntries = [];
       remoteMeta = { ok: false, message: '远端数据未加载' };
       render();
     }
@@ -89,7 +115,7 @@ window.SnakeLeaderboard = (() => {
     async function fetchRemoteEntries() {
       if (!remoteUrl) {
         remoteMeta = { ok: false, message: '未配置远端地址' };
-        entries = loadLocalEntries();
+        allEntries = loadLocalEntries();
         render();
         return;
       }
@@ -106,10 +132,10 @@ window.SnakeLeaderboard = (() => {
         const data = await res.json();
         const remoteEntries = normalize(data?.entries || data);
         if (!remoteEntries.length) throw new Error('空榜单');
-        entries = remoteEntries;
+        allEntries = remoteEntries;
         remoteMeta = { ok: true, message: `更新时间 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}` };
       } catch (err) {
-        entries = loadLocalEntries();
+        allEntries = loadLocalEntries();
         remoteMeta = { ok: false, message: err?.name === 'AbortError' ? '请求超时' : (err?.message || '网络异常') };
       } finally {
         clearTimeout(timeout);
@@ -119,28 +145,32 @@ window.SnakeLeaderboard = (() => {
 
     function switchToLocal() {
       source = 'local';
-      entries = loadLocalEntries();
+      allEntries = loadLocalEntries();
       render();
     }
 
     async function switchToRemote() {
       source = 'remote';
-      entries = loadLocalEntries();
+      allEntries = loadLocalEntries();
       remoteMeta = { ok: false, message: '请求中...' };
       render();
       await fetchRemoteEntries();
     }
 
     function toggleSource() {
-      if (source === 'local') {
-        switchToRemote();
-      } else {
-        switchToLocal();
-      }
+      if (source === 'local') switchToRemote();
+      else switchToLocal();
+    }
+
+    function onDimensionChange() {
+      const value = String(dimensionSelectEl?.value || 'all');
+      dimension = value;
+      render();
     }
 
     function bindEvents() {
       toggleBtn.addEventListener('click', toggleSource);
+      if (dimensionSelectEl) dimensionSelectEl.addEventListener('change', onDimensionChange);
     }
 
     return { load, render, recordRound, clear, bindEvents, fetchRemoteEntries };

@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.91.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.92.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -169,6 +169,18 @@
         <div class="controls-group">
           <button id="toggleLeaderboardSource" type="button" class="secondary">切换到远端榜</button>
           <span class="tips" id="leaderboardSourceTag">当前来源：本地榜</span>
+        </div>
+        <div class="controls-group">
+          <label class="label-inline" for="leaderboardDimension">榜单维度
+            <select id="leaderboardDimension">
+              <option value="all" selected>综合榜</option>
+              <option value="classic">经典榜</option>
+              <option value="timed">限时榜</option>
+              <option value="blitz">冲刺榜</option>
+              <option value="endless">无尽榜</option>
+              <option value="roguelike">肉鸽榜</option>
+            </select>
+          </label>
         </div>
         <ol id="leaderboardList"></ol>
       </section>

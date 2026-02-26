@@ -59,6 +59,7 @@ const historyListEl = document.getElementById('historyList');
 const leaderboardListEl = document.getElementById('leaderboardList');
 const leaderboardStatusEl = document.getElementById('leaderboardStatus');
 const leaderboardSourceTagEl = document.getElementById('leaderboardSourceTag');
+const leaderboardDimensionSelectEl = document.getElementById('leaderboardDimension');
 const toggleLeaderboardSourceBtn = document.getElementById('toggleLeaderboardSource');
 const seasonIdEl = document.getElementById('seasonId');
 const seasonRemainingEl = document.getElementById('seasonRemaining');
@@ -91,7 +92,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.91.0';
+const GAME_VERSION = '0.92.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -164,6 +165,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.92.0', notes: ['排行榜新增分维度筛选：支持综合榜与五种模式榜快速切换', '路线图推进：v0.92 完成榜单分维度扩展，下一步推进活动规则可配置化'] },
   { version: '0.91.0', notes: ['新增连击里程奖励：连击达到 x5 立即获得额外分数奖励', '连击达到 x8 可触发短时倍率冲刺，帮助中后期滚雪球'] },
   { version: '0.90.0', notes: ['活动入口聚合上线：新增活动面板快速跳转，版本事件与活动浏览路径打通', '地图摘要首版上线：障碍数量/覆盖率/危险等级/推荐模式可视化'] },
   { version: '0.89.0', notes: ['排行榜远端读取链路上线：支持远端 JSON 拉取、超时保护与失败回退本地', '路线图推进：v0.89 完成远端榜真实接入，下一步进入活动入口聚合与地图摘要'] },
@@ -735,6 +737,7 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
   statusEl: leaderboardStatusEl,
   sourceTagEl: leaderboardSourceTagEl,
   toggleBtn: toggleLeaderboardSourceBtn,
+  dimensionSelectEl: leaderboardDimensionSelectEl,
   getModeLabel: SnakeModes.getModeLabel,
   onPersist: saveActiveAccountSnapshot,
   remoteConfig: {
