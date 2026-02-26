@@ -4,62 +4,62 @@
 
 - `classic`
 - `timed`
+- `sprint`
 - `endless`
 - `roguelike`
 
-When adding a new mode, update all of:
-- mode `<select id="mode">` options
-- mode parsing in `loadSettings`
-- history/last-result mode label rendering
-- share text mode label
-- `bestByMode` read/write defaults and reset paths
+When changing or adding a mode, verify all of:
 
-## Persisted system keys (profile-scoped)
+- mode config/source of truth in `modes.js`
+- mode rule branches in `mode_rules.js`
+- round initialization defaults in `round_state.js`
+- mode labels shown in records/recap/share outputs
+- mode-related best-score persistence and reset behavior
 
-- `snake-best`
-- `snake-settings-v2`
-- `snake-stats-v1`
-- `snake-audio-v1`
-- `snake-best-by-mode-v1`
-- `snake-achievements-v1`
-- `snake-last-result-v1`
-- `snake-history-v1`
-- `snake-codex-v1`
-- `snake-endless-best-level-v1`
-- `snake-roguelike-meta-v1`
+## Persistence and account integration
 
-If adding a new persistent key:
-1. Include it in profile capture/apply list
-2. Include clear/reset behavior
-3. Include export/import compatibility
+Core persistence modules:
 
-## Account system integration points
+- `storage.js` (read/write helpers)
+- `settings.js` (setting values and defaulting)
+- `account.js` (profile snapshot/export/import)
+- `records.js` (history and result persistence)
 
-Account controls:
-- `accountInput`, `loginAccount`, `logoutAccount`
-- `exportSave`, `importSave`
+If adding or changing a persistent key:
 
-Critical account functions:
-- `captureProfileSnapshot`
-- `applyProfileSnapshot`
-- `saveActiveAccountSnapshot`
-- `reloadAllFromStorage`
-- `loginAccount` / `logoutAccount`
-- `exportSaveData` / `importSaveData`
+1. Define load/save defaults.
+2. Include clear/reset path.
+3. Include account snapshot export/import compatibility.
+4. Guard old saves with safe fallback values.
 
-## New pickup integration checklist
+## Feature integration checklists
 
-- Add state vars and expire timestamps
-- Add collision-safe spawn in `randomFreeCell`
-- Add spawn rule function
-- Add expire handling in `update`
-- Add pickup handling in `update`
-- Add rendering in `draw`
-- Add codex entry and discovery hook if collectible
-- Add reset handling in `resetGame`
+### New pickup / status effect
 
-## Endless / roguelike reminders
+- Add spawn rule in `item_spawn.js`.
+- Add runtime state initialization in `round_state.js`.
+- Add timer/effect handling in `loop_timers.js` or the relevant runtime loop path.
+- Add collision/effect application in `game.js` orchestration path.
+- Add rendering/HUD feedback in `render.js`.
+- Add reset cleanup in `reset_prepare.js` and/or `reset_flow.js`.
 
-- Endless mode has `level`, `levelTargetScore`, `endlessBestLevel`
-- Roguelike mode has mutators and perk persistence (`snake-roguelike-meta-v1`)
-- If changing score pacing, re-check endless threshold logic and roguelike reward gain
+### New challenge/season/event behavior
+
+- `challenge.js` for daily/rotation challenge logic.
+- `season.js` for season progress/reward surfaces.
+- `events.js` for event package and period logic.
+- `settlement.js` and `recap.js` for end-of-round summary exposure.
+
+### New share/workshop capability
+
+- `workshop.js` for encode/decode and schema fields.
+- `workshop_runtime.js` for runtime application/validation.
+- Keep backward compatibility for previously shared codes.
+
+## Version/update discipline
+
+For user-visible gameplay updates, keep all synchronized:
+
+- `GAME_VERSION` in `game.js`
+- version text in `index.html`
+- latest progress entry in `README.md`
