@@ -92,7 +92,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.92.0';
+const GAME_VERSION = '0.93.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -165,6 +165,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.93.0', notes: ['活动规则包改为声明式规则配置：支持按规则类型扩展日期段/周末活动', '路线图推进：v0.93 完成活动规则可配置化，下一步继续扩展榜单维度'] },
   { version: '0.92.0', notes: ['排行榜新增分维度筛选：支持综合榜与五种模式榜快速切换', '路线图推进：v0.92 完成榜单分维度扩展，下一步推进活动规则可配置化'] },
   { version: '0.91.0', notes: ['新增连击里程奖励：连击达到 x5 立即获得额外分数奖励', '连击达到 x8 可触发短时倍率冲刺，帮助中后期滚雪球'] },
   { version: '0.90.0', notes: ['活动入口聚合上线：新增活动面板快速跳转，版本事件与活动浏览路径打通', '地图摘要首版上线：障碍数量/覆盖率/危险等级/推荐模式可视化'] },
