@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.82.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v0.83.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -188,6 +188,13 @@
       </section>
 
 
+
+      <section class="panel" aria-label="对局复盘摘要">
+        <h2>对局复盘摘要（最近一局）</h2>
+        <p class="tips" id="recapSummary">暂无复盘数据</p>
+        <ul id="recapList"></ul>
+      </section>
+
       <section class="panel" aria-label="结算明细">
         <h2>结算明细（最近一局）</h2>
         <ul id="settlementList"></ul>
@@ -219,6 +226,7 @@
     <script src="play_state.js"></script>
     <script src="leaderboard.js"></script>
     <script src="season.js"></script>
+    <script src="recap.js"></script>
     <script src="records.js"></script>
     <script src="endgame_flow.js"></script>
     <script src="reset_prepare.js"></script>

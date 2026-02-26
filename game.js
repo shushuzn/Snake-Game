@@ -66,6 +66,8 @@ const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
 const dlcCompareListEl = document.getElementById('dlcCompareList');
 const settlementListEl = document.getElementById('settlementList');
+const recapSummaryEl = document.getElementById('recapSummary');
+const recapListEl = document.getElementById('recapList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const dlcPackSelect = document.getElementById('dlcPack');
@@ -80,7 +82,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.82.0';
+const GAME_VERSION = '0.83.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -103,6 +105,7 @@ const onboardingKey = 'snake-onboarding-v1';
 const customRocksKey = 'snake-custom-rocks-v1';
 const leaderboardKey = 'snake-leaderboard-v1';
 const seasonMetaKey = 'snake-season-meta-v1';
+const recapKey = 'snake-recap-v1';
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
 const validDifficulties = ['140', '110', '80'];
@@ -152,6 +155,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '0.83.0', notes: ['新增对局复盘摘要面板（最近一局），展示关键指标与终局原因', '路线图 P3 推进：数据回放与复盘首版落地，下一步进入活动化运营能力'] },
   { version: '0.82.0', notes: ['新增 DLC 风险收益对比面板，支持阶段 2 可视化对比', '狂热扩展新增护盾上限惩罚（上限=1），风险收益规则进入第二阶段'] },
   { version: '0.81.0', notes: ['新增滑动灵敏度设置（12/18/24/32px），支持移动端手势阈值个性化', '路线图 P2 推进：移动端交互增强首版落地，下一步进入风险收益型 DLC 第二阶段'] },
   { version: '0.80.0', notes: ['新增赛季信息区与历史赛季入口（最近6期），支持月赛季剩余时间与赛季最佳展示', '路线图 P2 推进：赛季信息首版完成，下一步进入移动端引导与手势自定义'] },
@@ -293,6 +297,7 @@ let playCountedThisRound = false;
 let muted = false;
 let achievements = { score200: false, combo5: false, timedClear: false };
 let roundMaxCombo = 1;
+let roundFoodsEaten = 0;
 let scoreMultiplier = 1;
 let multiplierExpireAt = 0;
 let freezeUntil = 0;
@@ -714,6 +719,16 @@ const seasonRuntime = window.SnakeSeason.createSeasonModule({
 });
 
 
+const recapRuntime = window.SnakeRecap.createRecapModule({
+  storage,
+  key: recapKey,
+  summaryEl: recapSummaryEl,
+  listEl: recapListEl,
+  getModeLabel: SnakeModes.getModeLabel,
+  onPersist: saveActiveAccountSnapshot
+});
+
+
 const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   state: {
     setSnake: (value) => { snake = value; },
@@ -795,6 +810,7 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
       phaseUntil = roundMeta.phaseUntil;
       magnetUntil = roundMeta.magnetUntil;
       comboGuardUntil = roundMeta.comboGuardUntil;
+      roundFoodsEaten = roundMeta.roundFoodsEaten;
     },
     getShields: () => shields,
     getMissionTarget: () => missionTarget
@@ -883,6 +899,16 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   },
   ui: {
     showEndOverlay: (reasonText, nextScore) => {
+      recapRuntime.record({
+        reason: reasonText,
+        score: nextScore,
+        mode,
+        maxCombo: roundMaxCombo,
+        roundFoods: roundFoodsEaten,
+        levelLabel: mode === 'endless' ? `L${level}` : '--',
+        remainingTimeLabel: isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--',
+        dlcText: getDlcStatusText()
+      });
       showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${nextScore}</p><p>按方向键或点击“重新开始”再来一局</p>`);
     }
   },
@@ -1429,6 +1455,7 @@ function update() {
     ate = true;
     addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
     foodsEaten += 1;
+    roundFoodsEaten += 1;
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     food = randomFoodPosition();
@@ -1442,6 +1469,7 @@ function update() {
     const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
     addScore(bonusBase * scoreMultiplier, 'bonus');
     foodsEaten += 1;
+    roundFoodsEaten += 1;
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
     bonusFood = null;
@@ -1743,7 +1771,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -1762,6 +1790,7 @@ clearDataBtn.addEventListener('click', () => {
   recordsRuntime.clearHistory();
   leaderboardRuntime.clear();
   seasonRuntime.clear();
+  recapRuntime.clear();
   discoveredCodex = defaultCodexState();
   refreshCodex();
   endlessBestLevel = 0;
@@ -1890,6 +1919,7 @@ loadLifetimeStats();
 loadHistory();
 leaderboardRuntime.load();
 seasonRuntime.load();
+recapRuntime.load();
 loadCodex();
 loadEndlessBestLevel();
 loadRogueMeta();
