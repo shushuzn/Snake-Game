@@ -87,6 +87,7 @@ const recapListEl = document.getElementById('recapList');
 const recapTimelineListEl = document.getElementById('recapTimelineList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
+const openShopBtn = document.getElementById('openShop');
 const dlcPackSelect = document.getElementById('dlcPack');
 const modeSelect = document.getElementById('mode');
 const aiDifficultySelect = document.getElementById('aiDifficulty');
@@ -388,6 +389,9 @@ let multiplayerPlayerCount = 2;
 // 观战模式变量
 let spectateController = null;
 let spectateType = 'ai-battle'; // 'ai-battle', 'multiplayer', 'replay'
+
+// 皮肤商店模块
+let shopRuntime = null;
 
 const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   snakeModes: SnakeModes,
@@ -1913,11 +1917,23 @@ function loadRogueMeta() {
   const parsed = storage.readJson(rogueMetaKey, {});
   roguePerks = Number(parsed.perks || 0);
   roguePerksEl.textContent = String(roguePerks);
+
+  // 初始化皮肤商店并同步肉鸽点
+  if (!shopRuntime) {
+    shopRuntime = window.SnakeShop.createShopModule(storage);
+  }
+  shopRuntime.setRoguePoints(roguePerks);
 }
 
 function saveRogueMeta() {
   storage.writeJson(rogueMetaKey, { perks: roguePerks });
   roguePerksEl.textContent = String(roguePerks);
+
+  // 同步皮肤商店肉鸽点
+  if (shopRuntime) {
+    shopRuntime.setRoguePoints(roguePerks);
+  }
+
   saveActiveAccountSnapshot();
 }
 
@@ -2397,6 +2413,82 @@ function resetSpectate(showStartOverlay = true) {
 function updateSpectate() {
   if (!spectateController || !spectateController.isRunning()) return;
   // 观战模式自动更新，不需要手动调用
+}
+
+// 初始化皮肤选择器
+function initSkinSelector() {
+  if (!shopRuntime) return;
+
+  // 更新皮肤选择器选项
+  const ownedSkins = shopRuntime.getOwnedSkins();
+  const equippedSkin = shopRuntime.getEquippedSkin();
+
+  // 清空现有选项
+  skinSelect.innerHTML = '';
+
+  // 添加已拥有的皮肤
+  ownedSkins.forEach(skin => {
+    const option = document.createElement('option');
+    option.value = skin.id;
+    option.textContent = skin.name;
+    skinSelect.appendChild(option);
+  });
+
+  // 设置当前装备的皮肤
+  skinSelect.value = equippedSkin.id;
+  currentSkin = equippedSkin.id;
+}
+
+// 打开皮肤商店
+function openSkinShop() {
+  if (!shopRuntime) {
+    shopRuntime = window.SnakeShop.createShopModule(storage);
+    shopRuntime.setRoguePoints(roguePerks);
+  }
+
+  // 这里可以触发显示商店UI
+  // 由于游戏使用简单的UI，我们通过alert展示商店信息
+  const categories = shopRuntime.getCategories();
+  const allSkins = shopRuntime.getAllSkins();
+  const roguePoints = shopRuntime.getRoguePoints();
+
+  let shopInfo = `🏪 皮肤商店 - 持有肉鸽点: ${roguePoints}\n\n`;
+
+  categories.forEach(cat => {
+    shopInfo += `${cat.icon} ${cat.name}:\n`;
+    const catSkins = allSkins.filter(s => s.category === cat.id);
+    catSkins.forEach(skin => {
+      const status = skin.owned ? '✓已拥有' : (skin.unlocked ? `💰${skin.price}` : '🔒未解锁');
+      shopInfo += `  ${skin.name}: ${status}\n`;
+    });
+    shopInfo += '\n';
+  });
+
+  shopInfo += '提示: 在对局中获得肉鸽点，来这里购买皮肤！';
+
+  alert(shopInfo);
+}
+
+// 购买皮肤
+function buySkin(skinId) {
+  if (!shopRuntime) return false;
+
+  const result = shopRuntime.purchaseSkin(skinId);
+
+  if (result.success) {
+    // 扣除肉鸽点
+    roguePerks = shopRuntime.getRoguePoints();
+    saveRogueMeta();
+
+    // 刷新皮肤选择器
+    initSkinSelector();
+
+    alert(result.message);
+    return true;
+  } else {
+    alert(result.message);
+    return false;
+  }
 }
 
 // 观战退出处理
@@ -2989,10 +3081,29 @@ contrastModeInput.addEventListener('change', () => { saveSettings(); applyContra
 miniHudModeInput.addEventListener('change', () => { saveSettings(); applyMiniHudMode(); });
 autoPauseModeInput.addEventListener('change', saveSettings);
 skinSelect.addEventListener('change', () => {
+  const selectedSkin = skinSelect.value;
+
+  // 检查是否拥有该皮肤
+  if (shopRuntime) {
+    const equipped = shopRuntime.equipSkin(selectedSkin);
+    if (!equipped) {
+      // 未拥有，恢复之前的选择
+      const currentEquipped = shopRuntime.getEquippedSkin();
+      skinSelect.value = currentEquipped.id;
+      alert('您尚未拥有该皮肤，请前往商店购买！');
+      return;
+    }
+  }
+
   saveSettings();
-  currentSkin = skinSelect.value;
+  currentSkin = selectedSkin;
   renderer.draw();
 });
+
+// 商店按钮
+if (openShopBtn) {
+  openShopBtn.addEventListener('click', openSkinShop);
+}
 
 dlcPackSelect.addEventListener('change', () => {
   saveSettings();
@@ -3268,6 +3379,10 @@ recapRuntime.load();
 loadCodex();
 loadEndlessBestLevel();
 loadRogueMeta();
+
+  // 初始化皮肤选择器
+  initSkinSelector();
+
 loadLastResult();
 loadAchievements();
 loadAudioSetting();
