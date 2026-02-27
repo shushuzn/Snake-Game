@@ -240,3 +240,21 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   body.compact-hud .hud-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body.compact-hud .hud-grid span:nth-child(n+9) { display: none; }
 }
+
+.exp-bar {
+  width: 80px;
+  height: 6px;
+  background: #1f2937;
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.exp-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.3s ease;
+}

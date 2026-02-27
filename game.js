@@ -171,6 +171,11 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '1.2.0', notes: ['正式版发布：性能优化与渲染优化，添加网格缓存减少重复绘制', '创作与分享体验整合优化，新增预设和随机障碍生成，地图分享流程优化', '新手指引导航系统完整实现，地图分享质量校验闭环', '复盘建议路径提示，新手引导分层首版上线'] },
+  { version: '0.99.0', notes: ['渲染性能优化：添加网格缓存减少重复绘制'] },
+  { version: '0.98.0', notes: ['工坊体验优化：新增预设和随机障碍生成，地图分享流程优化'] },
+  { version: '0.97.0', notes: ['新手指引导航系统完整实现，地图分享质量校验闭环'] },
+  { version: '0.96.0', notes: ['复盘建议路径提示，新手引导分层首版上线'] },
   { version: '0.95.0', notes: ['地图分享前校验增强：支持识别越界/重复/关键路径冲突并给出质量提示', '路线图推进：v0.95 完成分享前校验增强，下一步进入复盘建议与新手引导分层'] },
   { version: '0.94.0', notes: ['榜单扩展新增每日挑战榜与DLC分类榜筛选，支持按对局标签聚焦查看', '路线图推进：v0.94 进入榜单深度分类与分享前校验增强阶段'] },
   { version: '0.93.0', notes: ['活动规则包改为声明式规则配置：支持按规则类型扩展日期段/周末活动', '路线图推进：v0.93 完成活动规则可配置化，下一步继续扩展榜单维度'] },
@@ -353,6 +358,8 @@ const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   setCurrentChallenge: (value) => { currentChallenge = value; }
 });
 
+// 初始化每日签到系统
+const dailyRewards = window.SnakeDailyRewards.createDailyRewardsModule({ storage });
 
 let discoveredCodex = {};
 let currentSkin = 'classic';
@@ -1205,8 +1212,13 @@ function refreshDailyRewardsUI() {
     dailyStreakEl.textContent = `已签到`;
   }
   
-  // Update player level
+  // Update player level and experience bar
   playerLevelEl.textContent = String(expProgress.level);
+  const expBar = document.getElementById('expBar');
+  const expProgressEl = document.getElementById('expProgress');
+  if (expProgressEl) {
+    expProgressEl.style.width = `${expProgress.progress}%`;
+  }
 }
 
 function handleClaimDaily() {

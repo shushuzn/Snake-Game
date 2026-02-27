@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>🐍 Snake 控制台 <small id="versionTag">v0.95.0</small></h1>
+        <h1>🐍 Snake 控制台 <small id="versionTag">v1.2.0</small></h1>
         <div class="hud-grid" aria-label="游戏状态">
           <span>分数 <b id="score">0</b></span>
           <span>最高 <b id="best">0</b></span>
@@ -29,6 +29,7 @@
           <span>成就 <b id="achievements">0/8</b></span>
           <span>签到 <b id="dailyStreak">未签到</b></span>
           <span>等级 <b id="playerLevel">1</b></span>
+          <span>经验 <div id="expBar" class="exp-bar"><div id="expProgress" class="exp-progress"></div></div></span>
           <span>挑战 <b id="challenge">--</b></span>
           <span>挑战效果 <b id="challengeDetail">--</b></span>
           <span>明日挑战 <b id="challengeNext">--</b></span>
@@ -275,6 +276,7 @@
     <script src="src/modules/render.js"></script>
     <script src="src/modules/settlement.js"></script>
     <script src="src/modules/guide.js"></script>
+    <script src="src/modules/daily_rewards.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
