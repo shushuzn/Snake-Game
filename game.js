@@ -121,6 +121,13 @@ const statHighestComboEl = document.getElementById('statHighestCombo');
 const statPlayTimeEl = document.getElementById('statPlayTime');
 const modeStatsEl = document.getElementById('modeStats');
 const recentGamesEl = document.getElementById('recentGames');
+const profileAvatarEl = document.getElementById('profileAvatar');
+const profileNameEl = document.getElementById('profileName');
+const profileLevelEl = document.getElementById('profileLevel');
+const profileNameInput = document.getElementById('profileNameInput');
+const updateProfileNameBtn = document.getElementById('updateProfileName');
+const shareScoreBtn = document.getElementById('shareScore');
+const shareAchievementBtn = document.getElementById('shareAchievement');
 
 const GAME_VERSION = '1.2.0';
 const gridSize = 20;
@@ -407,6 +414,12 @@ const friendsChallengeRuntime = window.SnakeFriendsChallenge.createFriendsChalle
 
 // 初始化游戏统计系统
 const statisticsRuntime = window.SnakeStatistics.createStatisticsModule({ storage });
+
+// 初始化个人资料系统
+const profileRuntime = window.SnakeProfile.createProfileModule({ 
+  storage, 
+  getActiveAccount: () => activeAccount 
+});
 
 let discoveredCodex = {};
 let currentSkin = 'classic';
@@ -1682,6 +1695,75 @@ function recordGameStats(result) {
   refreshStatisticsUI();
 }
 
+function refreshProfileUI() {
+  if (!profileRuntime) return;
+  
+  const displayName = profileRuntime.getDisplayName();
+  const initial = displayName.charAt(0).toUpperCase();
+  
+  if (profileAvatarEl) profileAvatarEl.textContent = initial;
+  if (profileNameEl) profileNameEl.textContent = displayName;
+  
+  // Get level from daily rewards
+  if (dailyRewardsRuntime && profileLevelEl) {
+    const expProgress = dailyRewardsRuntime.getExpProgress();
+    profileLevelEl.textContent = `等级 ${expProgress.level}`;
+  }
+}
+
+function handleUpdateProfileName() {
+  if (!profileRuntime || !profileNameInput) return;
+  
+  const name = profileNameInput.value.trim();
+  if (!name) return;
+  
+  const result = profileRuntime.updateUsername(name);
+  if (result.success) {
+    profileNameInput.value = '';
+    refreshProfileUI();
+    showOverlay(`<p><strong>✓ 更新成功</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
+}
+
+function handleShareScore() {
+  const text = `我在贪吃蛇游戏中获得了 ${score} 分！来挑战我吧！`;
+  if (navigator.share) {
+    navigator.share({
+      title: '贪吃蛇游戏成绩',
+      text: text,
+      url: window.location.href
+    });
+  } else {
+    navigator.clipboard.writeText(text);
+    showOverlay('<p><strong>📋 已复制</strong></p><p>成绩已复制到剪贴板</p>');
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
+}
+
+function handleShareAchievement() {
+  const unlockedCount = Object.values(achievements).filter(a => a).length;
+  const totalCount = Object.keys(achievements).length;
+  const text = `我在贪吃蛇游戏中解锁了 ${unlockedCount}/${totalCount} 个成就！`;
+  if (navigator.share) {
+    navigator.share({
+      title: '贪吃蛇游戏成就',
+      text: text,
+      url: window.location.href
+    });
+  } else {
+    navigator.clipboard.writeText(text);
+    showOverlay('<p><strong>📋 已复制</strong></p><p>成就已复制到剪贴板</p>');
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
+}
+
 function handleClaimDaily() {
   if (!dailyRewardsRuntime) return;
   
@@ -2518,6 +2600,25 @@ if (sendChallengeBtn) {
   sendChallengeBtn.addEventListener('click', handleSendChallenge);
 }
 
+if (updateProfileNameBtn) {
+  updateProfileNameBtn.addEventListener('click', handleUpdateProfileName);
+}
+
+if (profileNameInput) {
+  profileNameInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    handleUpdateProfileName();
+  });
+}
+
+if (shareScoreBtn) {
+  shareScoreBtn.addEventListener('click', handleShareScore);
+}
+
+if (shareAchievementBtn) {
+  shareAchievementBtn.addEventListener('click', handleShareAchievement);
+}
+
 difficultySelect.addEventListener('change', () => {
   saveSettings();
   baseSpeed = Number(difficultySelect.value);
@@ -2831,6 +2932,7 @@ refreshFriendsUI();
 refreshFriendsLeaderboardUI();
 refreshChallengesUI();
 refreshStatisticsUI();
+refreshProfileUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();
