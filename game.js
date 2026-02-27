@@ -71,6 +71,8 @@ const seasonRemainingEl = document.getElementById('seasonRemaining');
 const seasonBestEl = document.getElementById('seasonBest');
 const seasonRewardEl = document.getElementById('seasonReward');
 const seasonHistoryListEl = document.getElementById('seasonHistoryList');
+const seasonProgressTextEl = document.getElementById('seasonProgressText');
+const seasonProgressFillEl = document.getElementById('seasonProgressFill');
 const eventLabelEl = document.getElementById('eventLabel');
 const eventSummaryEl = document.getElementById('eventSummary');
 const eventPanelEl = document.getElementById('eventPanel');
@@ -833,7 +835,10 @@ const seasonRuntime = window.SnakeSeason.createSeasonModule({
     seasonIdEl,
     seasonRemainingEl,
     seasonBestEl,
-    seasonHistoryListEl
+    seasonRewardEl,
+    seasonHistoryListEl,
+    seasonProgressTextEl,
+    seasonProgressFillEl
   },
   onPersist: saveActiveAccountSnapshot
 });

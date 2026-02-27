@@ -29,6 +29,25 @@ window.SnakeSeason = (() => {
       return `${days} 天 ${hours} 小时`;
     }
 
+    function getSeasonProgress(date = new Date()) {
+      const currentMonth = date.getMonth(); // 0-11
+      const currentDay = date.getDate();
+      const daysInMonth = new Date(date.getFullYear(), currentMonth + 1, 0).getDate();
+      
+      // Calculate progress: (days passed) / (total days in month)
+      const daysPassed = currentDay - 1;
+      const progressPercent = Math.min(100, Math.max(0, (daysPassed / daysInMonth) * 100));
+      
+      return {
+        month: currentMonth + 1,
+        totalMonths: 12,
+        daysPassed: daysPassed + 1,
+        daysInMonth: daysInMonth,
+        percent: progressPercent,
+        text: `第 ${currentMonth + 1}/12 月 · 本月 ${daysPassed + 1}/${daysInMonth} 天 (${Math.round(progressPercent)}%)`
+      };
+    }
+
     function normalizeHistory(history) {
       const list = Array.isArray(history) ? history : [];
       return list
@@ -80,6 +99,15 @@ window.SnakeSeason = (() => {
         elements.seasonBestEl.textContent = `${state.currentBest.score} 分（${state.currentBest.mode}）`;
       } else {
         elements.seasonBestEl.textContent = '--';
+      }
+
+      // Render season progress
+      const progress = getSeasonProgress(now);
+      if (elements.seasonProgressTextEl) {
+        elements.seasonProgressTextEl.textContent = progress.text;
+      }
+      if (elements.seasonProgressFillEl) {
+        elements.seasonProgressFillEl.style.width = `${progress.percent}%`;
       }
 
       if (!state.history.length) {
