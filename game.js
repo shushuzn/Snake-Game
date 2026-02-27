@@ -16,6 +16,9 @@ const playsEl = document.getElementById('plays');
 const foodsEl = document.getElementById('foods');
 const streakEl = document.getElementById('streak');
 const achievementsEl = document.getElementById('achievements');
+const dailyStreakEl = document.getElementById('dailyStreak');
+const playerLevelEl = document.getElementById('playerLevel');
+const claimDailyBtn = document.getElementById('claimDaily');
 const challengeEl = document.getElementById('challenge');
 const challengeDetailEl = document.getElementById('challengeDetail');
 const challengeNextEl = document.getElementById('challengeNext');
@@ -94,7 +97,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '1.1.0';
+const GAME_VERSION = '1.2.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -823,6 +826,10 @@ const eventsRuntime = window.SnakeEvents.createEventsModule({
   elements: { eventLabelEl, eventSummaryEl }
 });
 
+const dailyRewardsRuntime = window.SnakeDailyRewards.createDailyRewardsModule({
+  storage
+});
+
 
 function getSeasonRewardTier(score) {
   if (score >= 600) return { tier: 'S', base: 200 };
@@ -1177,6 +1184,54 @@ function refreshAchievementsText() {
   const keys = Object.keys(achievements);
   const count = keys.filter(k => achievements[k]).length;
   achievementsEl.textContent = `${count}/${keys.length}`;
+}
+
+function refreshDailyRewardsUI() {
+  if (!dailyRewardsRuntime || !dailyStreakEl || !playerLevelEl) return;
+  
+  const status = dailyRewardsRuntime.getStreakStatus();
+  const expProgress = dailyRewardsRuntime.getExpProgress();
+  
+  // Update streak text
+  if (status.canClaim) {
+    if (status.streakBroken) {
+      dailyStreakEl.textContent = '断签了';
+    } else if (status.streak === 0) {
+      dailyStreakEl.textContent = '可签到';
+    } else {
+      dailyStreakEl.textContent = `第${status.streak}天`;
+    }
+  } else {
+    dailyStreakEl.textContent = `已签到`;
+  }
+  
+  // Update player level
+  playerLevelEl.textContent = String(expProgress.level);
+}
+
+function handleClaimDaily() {
+  if (!dailyRewardsRuntime) return;
+  
+  const result = dailyRewardsRuntime.claimReward();
+  
+  if (result.success) {
+    refreshDailyRewardsUI();
+    
+    let message = result.message;
+    if (result.levelUp) {
+      message += `\n🎉 升级到 Lv.${result.newLevel}！`;
+    }
+    
+    showOverlay(`<p><strong>🎁 签到奖励</strong></p><p>${message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 1200);
+  } else {
+    showOverlay(`<p><strong>签到</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
 }
 
 function unlockAchievement(key, label) {
@@ -1924,6 +1979,10 @@ SnakeInput.createInputController({
 restartBtn.addEventListener('click', () => resetGame(true));
 pauseBtn.addEventListener('click', togglePause);
 
+if (claimDailyBtn) {
+  claimDailyBtn.addEventListener('click', handleClaimDaily);
+}
+
 difficultySelect.addEventListener('change', () => {
   saveSettings();
   baseSpeed = Number(difficultySelect.value);
@@ -2231,6 +2290,7 @@ loadRogueMeta();
 loadLastResult();
 loadAchievements();
 loadAudioSetting();
+refreshDailyRewardsUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();
