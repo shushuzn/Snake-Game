@@ -156,7 +156,7 @@ const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
 
-const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer'];
+const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate'];
 const validDifficulties = ['140', '110', '80'];
 const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
 const dlcMeta = {
@@ -384,6 +384,10 @@ let aiBattleScores = { player: 0, ai: [] };
 // 多人对战模式变量
 let multiplayerController = null;
 let multiplayerPlayerCount = 2;
+
+// 观战模式变量
+let spectateController = null;
+let spectateType = 'ai-battle'; // 'ai-battle', 'multiplayer', 'replay'
 
 const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   snakeModes: SnakeModes,
@@ -2129,6 +2133,12 @@ function resetGame(showStartOverlay = true) {
     return;
   }
 
+  // 观战模式特殊处理
+  if (mode === 'spectate') {
+    resetSpectate(showStartOverlay);
+    return;
+  }
+
   const roundMeta = resetPrepareRuntime.prepareRound();
   settlement.resetRound(roundMeta.startBonusSeconds);
   resetFlowRuntime.applyResetRound({
@@ -2343,6 +2353,76 @@ function recordMultiplayerResult(result) {
   storage.writeJson('snake-multiplayer-history', history);
 }
 
+// 观战模式重置
+function resetSpectate(showStartOverlay = true) {
+  spectateType = document.getElementById('spectateType')?.value || 'ai-battle';
+
+  // 初始化观战控制器
+  spectateController = window.SnakeSpectate.createSpectateController({
+    canvas,
+    gridSize,
+    tileCount: { x: tileCount, y: tileCount },
+    onExit: handleSpectateExit
+  });
+
+  let spectateInfo;
+
+  if (spectateType === 'ai-battle') {
+    const difficulty = aiDifficultySelect?.value || 'normal';
+    spectateInfo = spectateController.startAISpectate(difficulty, 3);
+  } else if (spectateType === 'multiplayer') {
+    spectateInfo = spectateController.startMultiplayerSpectate(4);
+  }
+
+  // 重置游戏状态
+  score = 0;
+  running = true;
+  paused = false;
+  updateScoreText();
+  refreshStateText();
+
+  if (showStartOverlay) {
+    overlay.innerHTML = `<p><strong>观战模式</strong></p><p style="font-size:12px;">${spectateInfo?.description || '观看AI对战'}</p><p style="font-size:12px;color:#888;">点击任意处或按空格开始观战</p>`;
+    overlay.classList.remove('hidden');
+  } else {
+    overlay.classList.add('hidden');
+    startLoop();
+  }
+
+  roundStartTime = Date.now();
+  pushRoundKeyframe('观战开始', spectateInfo?.description || 'AI对战观战');
+}
+
+// 观战模式更新
+function updateSpectate() {
+  if (!spectateController || !spectateController.isRunning()) return;
+  // 观战模式自动更新，不需要手动调用
+}
+
+// 观战退出处理
+function handleSpectateExit(mode, result) {
+  running = false;
+  loopTimersRuntime.stopAll();
+
+  let title, message;
+
+  if (mode === 'ai-battle' || mode === 'multiplayer') {
+    if (result && result.winner) {
+      title = '🎉 观战结束';
+      message = `${result.winner.name} 获胜！`;
+    } else {
+      title = '观战结束';
+      message = '游戏已结束';
+    }
+  } else {
+    title = '回放结束';
+    message = '回放已播放完毕';
+  }
+
+  overlay.innerHTML = `<p><strong>${title}</strong></p><p>${message}</p><p style="font-size:12px;margin-top:8px;">按空格或点击重新开始观战</p>`;
+  overlay.classList.remove('hidden');
+}
+
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
 
 function randomFreeCell() {
@@ -2463,6 +2543,12 @@ function update() {
   // 多人对战模式更新
   if (mode === 'multiplayer' && multiplayerController) {
     updateMultiplayer();
+    return;
+  }
+
+  // 观战模式更新
+  if (mode === 'spectate' && spectateController) {
+    updateSpectate();
     return;
   }
 
@@ -2787,6 +2873,11 @@ function update() {
   // 多人对战模式额外渲染
   if (mode === 'multiplayer' && multiplayerController) {
     multiplayerController.render(ctx);
+  }
+
+  // 观战模式额外渲染
+  if (mode === 'spectate' && spectateController) {
+    spectateController.render(ctx);
   }
 }
 
