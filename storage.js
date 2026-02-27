@@ -33,8 +33,10 @@ window.SnakeStorage = (() => {
     }
 
     function captureSnapshot(keys = []) {
+      if (!keys.length) return {};
       const snapshot = {};
-      for (const key of keys) {
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
         const value = store.getItem(key);
         if (value !== null) snapshot[key] = value;
       }
@@ -42,9 +44,11 @@ window.SnakeStorage = (() => {
     }
 
     function applySnapshot(keys = [], snapshot = {}) {
+      if (!keys.length || !snapshot) return;
+      const keySet = new Set(keys);
       removeMany(keys);
-      for (const [key, value] of Object.entries(snapshot || {})) {
-        if (keys.includes(key) && typeof value === 'string') store.setItem(key, value);
+      for (const [key, value] of Object.entries(snapshot)) {
+        if (keySet.has(key) && typeof value === 'string') store.setItem(key, value);
       }
     }
 

@@ -2,6 +2,7 @@ window.SnakeLoopTimers = (() => {
   function createLoopTimersModule({ showOverlay, getEffectiveSpeed, onTick, isPaused, isRunning }) {
     let loopTimer = null;
     let countdownTimer = null;
+    let lastTickTime = 0;
 
     function stopAll() {
       clearInterval(loopTimer);
@@ -12,7 +13,17 @@ window.SnakeLoopTimers = (() => {
 
     function startLoop() {
       stopAll();
-      loopTimer = setInterval(onTick, getEffectiveSpeed());
+      const interval = getEffectiveSpeed();
+      lastTickTime = performance.now();
+      loopTimer = setInterval(() => {
+        const now = performance.now();
+        const elapsed = now - lastTickTime;
+        // Prevent drift by only ticking if interval has passed
+        if (elapsed >= interval - 5) {
+          onTick();
+          lastTickTime = now;
+        }
+      }, interval);
     }
 
     function startCountdown(onDone) {

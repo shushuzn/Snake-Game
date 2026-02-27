@@ -20,6 +20,7 @@
     } = config;
 
     let touchStart = null;
+    let cachedSwipeThreshold = null;
 
     documentEl.addEventListener('keydown', (event) => {
       if (shouldIgnoreHotkeys?.(event)) return;
@@ -72,8 +73,11 @@
       const dy = touch.clientY - touchStart.y;
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
-      const swipeThreshold = Number(getSwipeThreshold?.() || 18);
-      const threshold = Number.isFinite(swipeThreshold) ? Math.min(40, Math.max(8, swipeThreshold)) : 18;
+      if (cachedSwipeThreshold === null) {
+        const swipeThreshold = Number(getSwipeThreshold?.() || 18);
+        cachedSwipeThreshold = Number.isFinite(swipeThreshold) ? Math.min(40, Math.max(8, swipeThreshold)) : 18;
+      }
+      const threshold = cachedSwipeThreshold;
       if (absX < threshold && absY < threshold) {
         touchStart = null;
         return;

@@ -34,6 +34,9 @@
     function draw() {
       const skinThemes = getSkinThemes();
       const currentSkin = getCurrentSkin();
+      const skin = skinThemes[currentSkin];
+      const now = performance.now();
+      const isPhaseActive = now < phaseUntil;
       const {
         food,
         bonusFood,
@@ -46,12 +49,11 @@
         magnetFood,
         comboFood,
         rocks,
-        snake,
-        phaseUntil
+        snake
       } = getState();
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = skinThemes[currentSkin].board;
+      ctx.fillStyle = skin.board;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       drawGrid();
       drawCell(food, '#f472b6', 6);
@@ -65,8 +67,8 @@
       if (magnetFood) drawCell(magnetFood, '#60a5fa', 8);
       if (comboFood) drawCell(comboFood, '#fb7185', 8);
       rocks.forEach((rock) => drawCell(rock, '#64748b', 5));
-      const headColor = performance.now() < phaseUntil ? skinThemes[currentSkin].phaseHead : skinThemes[currentSkin].head;
-      snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skinThemes[currentSkin].body));
+      const headColor = isPhaseActive ? skin.phaseHead : skin.head;
+      snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skin.body));
     }
 
     return { draw };
