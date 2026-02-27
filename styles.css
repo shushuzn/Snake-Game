@@ -450,3 +450,82 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #fff;
 }
+
+.friends-leaderboard-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.leaderboard-item.top3 {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.leaderboard-item.self {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.leaderboard-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #1f2937;
+  color: #9ca3af;
+}
+
+.leaderboard-rank.gold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #000;
+}
+
+.leaderboard-rank.silver {
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+  color: #000;
+}
+
+.leaderboard-rank.bronze {
+  background: linear-gradient(135deg, #fdba74, #ea580c);
+  color: #000;
+}
+
+.leaderboard-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leaderboard-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}
+
+.leaderboard-name.self {
+  color: #34d399;
+}
+
+.leaderboard-score {
+  font-size: 1rem;
+  color: #fbbf24;
+  font-weight: 700;
+}

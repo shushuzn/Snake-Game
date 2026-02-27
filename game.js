@@ -104,6 +104,10 @@ const friendsCountEl = document.getElementById('friendsCount');
 const friendInput = document.getElementById('friendInput');
 const addFriendBtn = document.getElementById('addFriend');
 const friendsListEl = document.getElementById('friendsList');
+const leaderboardPeriodEl = document.getElementById('leaderboardPeriod');
+const weeklyLeaderboardBtn = document.getElementById('weeklyLeaderboard');
+const monthlyLeaderboardBtn = document.getElementById('monthlyLeaderboard');
+const friendsLeaderboardListEl = document.getElementById('friendsLeaderboardList');
 
 const GAME_VERSION = '1.2.0';
 const gridSize = 20;
@@ -374,6 +378,13 @@ const dailyTasksRuntime = window.SnakeDailyTasks.createDailyTasksModule({ storag
 
 // 初始化好友系统
 const friendsRuntime = window.SnakeFriends.createFriendsModule({ storage });
+
+// 初始化好友排行榜系统
+const friendsLeaderboardRuntime = window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
+  storage,
+  friendsRuntime,
+  getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
+});
 
 let discoveredCodex = {};
 let currentSkin = 'classic';
@@ -1362,6 +1373,58 @@ function removeFriend(friendId) {
   
   if (result.success) {
     refreshFriendsUI();
+    refreshFriendsLeaderboardUI();
+  }
+}
+
+let currentLeaderboardType = 'weekly';
+
+function refreshFriendsLeaderboardUI() {
+  if (!friendsLeaderboardRuntime || !friendsLeaderboardListEl) return;
+  
+  const { leaderboard, period } = friendsLeaderboardRuntime.getLeaderboard(currentLeaderboardType);
+  
+  if (leaderboardPeriodEl) {
+    leaderboardPeriodEl.textContent = period;
+  }
+  
+  if (leaderboard.length === 0) {
+    friendsLeaderboardListEl.innerHTML = '<p class="tips">添加好友后查看排行榜</p>';
+    return;
+  }
+  
+  const html = leaderboard.map(player => {
+    const rankClass = player.rank === 1 ? 'gold' : player.rank === 2 ? 'silver' : player.rank === 3 ? 'bronze' : '';
+    const itemClass = player.isTop3 ? 'top3' : player.isSelf ? 'self' : '';
+    const nameClass = player.isSelf ? 'self' : '';
+    
+    return `
+      <div class="leaderboard-item ${itemClass}">
+        <div class="leaderboard-rank ${rankClass}">${player.rank}</div>
+        <div class="leaderboard-info">
+          <div class="leaderboard-name ${nameClass}">${player.username}</div>
+        </div>
+        <div class="leaderboard-score">${player.bestScore}</div>
+      </div>
+    `;
+  }).join('');
+  
+  friendsLeaderboardListEl.innerHTML = html;
+}
+
+function switchLeaderboardType(type) {
+  currentLeaderboardType = type;
+  refreshFriendsLeaderboardUI();
+  
+  // Update button styles
+  if (weeklyLeaderboardBtn && monthlyLeaderboardBtn) {
+    if (type === 'weekly') {
+      weeklyLeaderboardBtn.classList.remove('secondary');
+      monthlyLeaderboardBtn.classList.add('secondary');
+    } else {
+      weeklyLeaderboardBtn.classList.add('secondary');
+      monthlyLeaderboardBtn.classList.remove('secondary');
+    }
   }
 }
 
@@ -2184,6 +2247,14 @@ if (friendInput) {
   });
 }
 
+if (weeklyLeaderboardBtn) {
+  weeklyLeaderboardBtn.addEventListener('click', () => switchLeaderboardType('weekly'));
+}
+
+if (monthlyLeaderboardBtn) {
+  monthlyLeaderboardBtn.addEventListener('click', () => switchLeaderboardType('monthly'));
+}
+
 difficultySelect.addEventListener('change', () => {
   saveSettings();
   baseSpeed = Number(difficultySelect.value);
@@ -2494,6 +2565,7 @@ loadAudioSetting();
 refreshDailyRewardsUI();
 refreshDailyTasksUI();
 refreshFriendsUI();
+refreshFriendsLeaderboardUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();
