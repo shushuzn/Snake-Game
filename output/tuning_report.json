@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-02-27T15:14:27.930Z",
+  "top1": {
+    "config_id": "v0.95_baseline",
+    "score": {
+      "V_total": 68.5,
+      "accepted": true,
+      "trend": "stable",
+      "components": {
+        "growth_momentum": 72.0,
+        "return_quality": 65.0,
+        "upgrade_satisfaction": 70.0,
+        "progress_clarity": 68.0,
+        "stability_score": 75.0
+      },
+      "fail_rate": 0.008,
+      "constraint_failed": 0,
+      "bottleneck": {
+        "longest_stall_median_seconds": 45
+      }
+    }
+  },
+  "notes": "Baseline metrics from v0.95. Next target: v0.96 with recap hints and beginner guide."
+}
