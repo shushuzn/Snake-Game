@@ -70,7 +70,7 @@
 
         <div class="controls-group setting-row">
           <label class="label-inline" for="mode">模式
-            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="blitz">冲刺 45 秒</option><option value="endless">无尽关卡</option><option value="roguelike">肉鸽模式</option><option value="ai-battle">AI对战</option></select>
+            <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="blitz">冲刺 45 秒</option><option value="endless">无尽关卡</option><option value="roguelike">肉鸽模式</option><option value="ai-battle">AI对战</option><option value="multiplayer">多人对战</option></select>
           </label>
           <label class="label-inline" for="difficulty">难度
             <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option></select>
@@ -83,6 +83,9 @@
           </label>
           <label class="label-inline" for="aiDifficulty">AI难度
             <select id="aiDifficulty"><option value="easy">简单</option><option value="normal" selected>普通</option><option value="hard">困难</option><option value="hell">地狱</option></select>
+          </label>
+          <label class="label-inline" for="playerCount">玩家人数
+            <select id="playerCount"><option value="2" selected>2人</option><option value="3">3人</option><option value="4">4人</option></select>
           </label>
           <label class="label-inline compact" for="wrapMode"><input id="wrapMode" type="checkbox" />穿墙</label>
           <label class="label-inline compact" for="obstacleMode"><input id="obstacleMode" type="checkbox" checked />障碍</label>
@@ -397,6 +400,7 @@
     <script src="src/modules/statistics.js"></script>
     <script src="src/modules/profile.js"></script>
     <script src="src/modules/ai_player.js"></script>
+    <script src="src/modules/multiplayer.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

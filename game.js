@@ -156,7 +156,7 @@ const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
 
-const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle'];
+const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer'];
 const validDifficulties = ['140', '110', '80'];
 const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
 const dlcMeta = {
@@ -380,6 +380,10 @@ let modePreference = modeSelect.value;
 let aiBattleController = null;
 let aiBattleDifficulty = 'normal';
 let aiBattleScores = { player: 0, ai: [] };
+
+// 多人对战模式变量
+let multiplayerController = null;
+let multiplayerPlayerCount = 2;
 
 const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   snakeModes: SnakeModes,
@@ -2119,6 +2123,12 @@ function resetGame(showStartOverlay = true) {
     return;
   }
 
+  // 多人对战模式特殊处理
+  if (mode === 'multiplayer') {
+    resetMultiplayer(showStartOverlay);
+    return;
+  }
+
   const roundMeta = resetPrepareRuntime.prepareRound();
   settlement.resetRound(roundMeta.startBonusSeconds);
   resetFlowRuntime.applyResetRound({
@@ -2227,6 +2237,110 @@ function recordAIBattleResult(result) {
   if (result.playerScore > currentBest) {
     storage.writeText(bestKey, String(result.playerScore));
   }
+}
+
+// 多人对战模式重置
+function resetMultiplayer(showStartOverlay = true) {
+  multiplayerPlayerCount = Math.max(2, Math.min(4, Number(document.getElementById('playerCount')?.value || 2)));
+
+  // 初始化多人对战控制器
+  multiplayerController = window.SnakeMultiplayer.createMultiplayerController({
+    canvas,
+    gridSize,
+    tileCount: { x: tileCount, y: tileCount },
+    onGameOver: handleMultiplayerGameOver,
+    onScoreUpdate: handleMultiplayerScoreUpdate,
+    playerCount: multiplayerPlayerCount
+  });
+
+  multiplayerController.init(multiplayerPlayerCount);
+
+  // 重置游戏状态
+  score = 0;
+  running = true;
+  paused = false;
+  updateScoreText();
+  refreshStateText();
+
+  // 显示操作说明
+  const controlHelp = multiplayerController.getControlHelp();
+  const controlText = controlHelp.map(p => `<span style="color:${p.color}">${p.name}</span>: ${p.controls}`).join('<br>');
+
+  if (showStartOverlay) {
+    overlay.innerHTML = `<p><strong>多人对战模式</strong></p><p style="font-size:12px;">${controlText}</p><p style="font-size:12px;color:#888;">点击任意处或按空格开始</p>`;
+    overlay.classList.remove('hidden');
+  } else {
+    overlay.classList.add('hidden');
+    startLoop();
+  }
+
+  roundStartTime = Date.now();
+  pushRoundKeyframe('多人对战开局', `${multiplayerPlayerCount}人模式`);
+}
+
+// 多人对战更新函数
+function updateMultiplayer() {
+  if (!multiplayerController || !multiplayerController.isGameRunning()) return;
+  multiplayerController.update();
+}
+
+// 多人对战游戏结束处理
+function handleMultiplayerGameOver(result) {
+  running = false;
+  loopTimersRuntime.stopAll();
+
+  const winner = result.winner;
+  let title, message;
+
+  if (winner) {
+    title = `🎉 ${winner.name} 获胜！`;
+    message = `得分: ${winner.score} | 击杀: ${winner.kills}`;
+  } else {
+    title = '🤝 平局！';
+    message = '所有玩家同时淘汰';
+  }
+
+  // 显示最终排名
+  const sortedPlayers = [...result.players].sort((a, b) => b.score - a.score);
+  const rankingHtml = sortedPlayers.map((p, i) =>
+    `<div style="color:${p.color};margin:2px 0;">${i + 1}. ${p.name}: ${p.score}分 ${p.isAlive ? '✓' : '✗'}</div>`
+  ).join('');
+
+  overlay.innerHTML = `<p><strong>${title}</strong></p><p>${message}</p><div style="margin:10px 0;font-size:12px;">${rankingHtml}</div><p style="font-size:12px;">按空格或点击重新开始</p>`;
+  overlay.classList.remove('hidden');
+
+  // 记录战绩
+  recordMultiplayerResult(result);
+}
+
+// 多人对战分数更新
+function handleMultiplayerScoreUpdate(players) {
+  // 更新分数显示 - 显示所有玩家分数
+  const scoreText = players.map(p => `<span style="color:${p.color}">${p.name}: ${p.score}${p.isAlive ? '' : ' ✗'}</span>`).join(' | ');
+  if (multiplierEl) {
+    multiplierEl.innerHTML = scoreText;
+  }
+}
+
+// 记录多人对战结果
+function recordMultiplayerResult(result) {
+  const record = {
+    date: new Date().toISOString(),
+    playerCount: multiplayerPlayerCount,
+    players: result.players.map(p => ({
+      name: p.name,
+      score: p.score,
+      kills: p.kills,
+      isAlive: p.isAlive
+    })),
+    winner: result.winner?.name || null,
+    mode: 'multiplayer'
+  };
+
+  const history = storage.readJson('snake-multiplayer-history', []);
+  history.unshift(record);
+  if (history.length > 50) history.pop();
+  storage.writeJson('snake-multiplayer-history', history);
 }
 
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
@@ -2343,6 +2457,12 @@ function update() {
   // AI对战模式更新
   if (mode === 'ai-battle' && aiBattleController) {
     updateAIBattle();
+    return;
+  }
+
+  // 多人对战模式更新
+  if (mode === 'multiplayer' && multiplayerController) {
+    updateMultiplayer();
     return;
   }
 
@@ -2663,6 +2783,11 @@ function update() {
   if (mode === 'ai-battle' && aiBattleController) {
     aiBattleController.renderBattle(ctx);
   }
+
+  // 多人对战模式额外渲染
+  if (mode === 'multiplayer' && multiplayerController) {
+    multiplayerController.render(ctx);
+  }
 }
 
 const renderer = SnakeRender.createRenderer({
@@ -2690,7 +2815,13 @@ SnakeInput.createInputController({
     saveAudioSetting();
   },
   onToggleHelp: () => toggleHelp(helpPanel.style.display === 'none'),
-  onDirection: (next) => changeDirection(next)
+  onDirection: (next) => changeDirection(next),
+  onKeyDown: (key) => {
+    // 多人对战模式处理其他玩家的输入
+    if (mode === 'multiplayer' && multiplayerController) {
+      multiplayerController.handleInput(key);
+    }
+  }
 });
 
 restartBtn.addEventListener('click', () => resetGame(true));

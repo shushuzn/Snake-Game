@@ -50,7 +50,11 @@
       }
 
       const next = dirMap[key];
-      if (!next) return;
+      if (!next) {
+        // 如果没有匹配方向键，传递原始按键给其他处理
+        config.onKeyDown?.(key);
+        return;
+      }
       event.preventDefault();
       onDirection?.(next);
     });
