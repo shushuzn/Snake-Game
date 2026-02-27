@@ -96,6 +96,8 @@ const autoPauseModeInput = document.getElementById('autoPauseMode');
 const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
+const dailyTasksDateEl = document.getElementById('dailyTasksDate');
+const dailyTasksListEl = document.getElementById('dailyTasksList');
 
 const GAME_VERSION = '1.2.0';
 const gridSize = 20;
@@ -361,6 +363,9 @@ const challengeRuntime = window.SnakeChallenge.createChallengeModule({
 // 初始化每日签到系统
 const dailyRewards = window.SnakeDailyRewards.createDailyRewardsModule({ storage });
 
+// 初始化每日任务系统
+const dailyTasksRuntime = window.SnakeDailyTasks.createDailyTasksModule({ storage });
+
 let discoveredCodex = {};
 let currentSkin = 'classic';
 let dlcPack = 'none';
@@ -497,6 +502,11 @@ function addScore(points, source = '') {
   if (eventFactor > 1) tags.push(`活动x${eventFactor.toFixed(1)}`);
   const sourceLabel = tags.length && source ? `${source}（${tags.join('，')}）` : source;
   settlement.addScore(sourceLabel, finalDelta);
+  
+  // Update reachScore daily task progress
+  if (dailyTasksRuntime && running) {
+    dailyTasksRuntime.updateTaskProgressByType('reachScore', score);
+  }
 }
 
 function refreshSettlementPanel(extra = {}) {
@@ -1221,6 +1231,52 @@ function refreshDailyRewardsUI() {
   }
 }
 
+function refreshDailyTasksUI() {
+  if (!dailyTasksRuntime || !dailyTasksListEl) return;
+  
+  const tasks = dailyTasksRuntime.getTasks();
+  const today = new Date();
+  const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
+  
+  if (dailyTasksDateEl) {
+    dailyTasksDateEl.textContent = dateStr;
+  }
+  
+  if (tasks.length === 0) {
+    dailyTasksListEl.innerHTML = '<p class="tips">暂无任务</p>';
+    return;
+  }
+  
+  const html = tasks.map(task => {
+    const progressPercent = Math.min(100, (task.progress / task.target) * 100);
+    const isCompleted = task.completed;
+    const progressText = typeof task.target === 'number' 
+      ? `${task.progress}/${task.target}` 
+      : (isCompleted ? '已完成' : '未完成');
+    
+    return `
+      <div class="daily-task-item ${isCompleted ? 'completed' : ''}">
+        <div class="daily-task-info">
+          <div class="daily-task-name">${task.name}</div>
+          <div class="daily-task-desc">${task.description}</div>
+        </div>
+        <div class="daily-task-progress">
+          ${typeof task.target === 'number' ? `
+            <div class="daily-task-progress-bar">
+              <div class="daily-task-progress-fill" style="width: ${progressPercent}%"></div>
+            </div>
+          ` : ''}
+          <span>${progressText}</span>
+        </div>
+        <div class="daily-task-reward">+${task.rewardExp}EXP</div>
+        ${isCompleted ? '<div class="daily-task-status">✓</div>' : ''}
+      </div>
+    `;
+  }).join('');
+  
+  dailyTasksListEl.innerHTML = html;
+}
+
 function handleClaimDaily() {
   if (!dailyRewardsRuntime) return;
   
@@ -1718,6 +1774,11 @@ function update() {
     addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
     foodsEaten += 1;
     roundFoodsEaten += 1;
+    // Update daily task progress
+    if (dailyTasksRuntime) {
+      dailyTasksRuntime.updateTaskProgressByType('eatFood', roundFoodsEaten);
+      refreshDailyTasksUI();
+    }
     if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
       pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
     }
@@ -1883,6 +1944,10 @@ function update() {
     const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
     combo = eatDelta <= comboWindow ? Math.min(combo + 1, 9) : 1;
     roundMaxCombo = Math.max(roundMaxCombo, combo);
+    // Update achieveCombo daily task progress
+    if (dailyTasksRuntime) {
+      dailyTasksRuntime.updateTaskProgressByType('achieveCombo', combo);
+    }
     addScore((combo - 1) * 2 * scoreMultiplier, 'comboChain');
     comboEl.textContent = `x${combo}`;
     applyComboMilestoneReward(now, combo);
@@ -2303,6 +2368,7 @@ loadLastResult();
 loadAchievements();
 loadAudioSetting();
 refreshDailyRewardsUI();
+refreshDailyTasksUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();

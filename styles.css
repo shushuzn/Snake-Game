@@ -258,3 +258,77 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   width: 0%;
   transition: width 0.3s ease;
 }
+
+.daily-tasks-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.daily-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.daily-task-item.completed {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+}
+
+.daily-task-info {
+  flex: 1;
+}
+
+.daily-task-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.daily-task-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.daily-task-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.daily-task-progress-bar {
+  width: 60px;
+  height: 6px;
+  background: #1f2937;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.daily-task-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #60a5fa, #93c5fd);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.daily-task-reward {
+  font-size: 0.75rem;
+  color: #34d399;
+  padding: 2px 6px;
+  background: rgba(52, 211, 153, 0.15);
+  border-radius: 4px;
+}
+
+.daily-task-status {
+  font-size: 0.8rem;
+  color: #10b981;
+  font-weight: 600;
+}
