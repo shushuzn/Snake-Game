@@ -332,7 +332,7 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let muted = false;
-let achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false };
+let achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false, dailyStreak7: false, dailyStreak30: false, firstTask: false, allTasks: false };
 let roundMaxCombo = 1;
 let roundFoodsEaten = 0;
 let roundKeyframes = [];
@@ -507,7 +507,11 @@ function addScore(points, source = '') {
   
   // Update reachScore daily task progress
   if (dailyTasksRuntime && running) {
-    dailyTasksRuntime.updateTaskProgressByType('reachScore', score);
+    const result = dailyTasksRuntime.updateTaskProgressByType('reachScore', score);
+    if (result && result.completed) {
+      unlockAchievement('firstTask', '完成首个每日任务');
+      checkAllTasksCompleted();
+    }
   }
 }
 
@@ -1290,6 +1294,14 @@ function handleClaimDaily() {
   if (result.success) {
     refreshDailyRewardsUI();
     
+    // Check and unlock daily streak achievements
+    if (result.streak >= 7) {
+      unlockAchievement('dailyStreak7', '连续签到7天');
+    }
+    if (result.streak >= 30) {
+      unlockAchievement('dailyStreak30', '连续签到30天');
+    }
+    
     let message = result.message;
     if (result.levelUp) {
       message += `\n🎉 升级到 Lv.${result.newLevel}！`;
@@ -1317,6 +1329,15 @@ function unlockAchievement(key, label) {
     setTimeout(() => {
       if (running && !paused) hideOverlay();
     }, 800);
+  }
+}
+
+function checkAllTasksCompleted() {
+  if (!dailyTasksRuntime) return;
+  const tasks = dailyTasksRuntime.getTasks();
+  const allCompleted = tasks.length > 0 && tasks.every(t => t.completed);
+  if (allCompleted) {
+    unlockAchievement('allTasks', '完成所有每日任务');
   }
 }
 
@@ -1781,7 +1802,11 @@ function update() {
     roundFoodsEaten += 1;
     // Update daily task progress
     if (dailyTasksRuntime) {
-      dailyTasksRuntime.updateTaskProgressByType('eatFood', roundFoodsEaten);
+      const result = dailyTasksRuntime.updateTaskProgressByType('eatFood', roundFoodsEaten);
+      if (result && result.completed) {
+        unlockAchievement('firstTask', '完成首个每日任务');
+        checkAllTasksCompleted();
+      }
       refreshDailyTasksUI();
     }
     if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
@@ -1951,7 +1976,11 @@ function update() {
     roundMaxCombo = Math.max(roundMaxCombo, combo);
     // Update achieveCombo daily task progress
     if (dailyTasksRuntime) {
-      dailyTasksRuntime.updateTaskProgressByType('achieveCombo', combo);
+      const result = dailyTasksRuntime.updateTaskProgressByType('achieveCombo', combo);
+      if (result && result.completed) {
+        unlockAchievement('firstTask', '完成首个每日任务');
+        checkAllTasksCompleted();
+      }
     }
     addScore((combo - 1) * 2 * scoreMultiplier, 'comboChain');
     comboEl.textContent = `x${combo}`;
