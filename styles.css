@@ -529,3 +529,113 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   color: #fbbf24;
   font-weight: 700;
 }
+
+.challenges-list,
+.challenges-history {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.challenge-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.challenge-item.pending {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.challenge-item.won {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.challenge-item.lost {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.challenge-info {
+  flex: 1;
+}
+
+.challenge-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.challenge-details {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.challenge-score {
+  font-size: 0.8rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.challenge-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.challenge-actions button {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.challenge-actions button.accept {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+
+.challenge-actions button.decline {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: #fff;
+}
+
+.challenge-actions button.complete {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+}
+
+.challenge-actions button.claim {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+}
+
+.challenge-status {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.challenge-status.pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.challenge-status.won {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.challenge-status.lost {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}

@@ -108,6 +108,11 @@ const leaderboardPeriodEl = document.getElementById('leaderboardPeriod');
 const weeklyLeaderboardBtn = document.getElementById('weeklyLeaderboard');
 const monthlyLeaderboardBtn = document.getElementById('monthlyLeaderboard');
 const friendsLeaderboardListEl = document.getElementById('friendsLeaderboardList');
+const challengeStatsEl = document.getElementById('challengeStats');
+const challengeTargetSelect = document.getElementById('challengeTarget');
+const sendChallengeBtn = document.getElementById('sendChallenge');
+const activeChallengesEl = document.getElementById('activeChallenges');
+const challengeHistoryEl = document.getElementById('challengeHistory');
 
 const GAME_VERSION = '1.2.0';
 const gridSize = 20;
@@ -384,6 +389,12 @@ const friendsLeaderboardRuntime = window.SnakeFriendsLeaderboard.createFriendsLe
   storage,
   friendsRuntime,
   getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
+});
+
+// 初始化好友挑战系统
+const friendsChallengeRuntime = window.SnakeFriendsChallenge.createFriendsChallengeModule({
+  storage,
+  getCurrentPlayerId: () => activeAccount || 'self'
 });
 
 let discoveredCodex = {};
@@ -1428,6 +1439,170 @@ function switchLeaderboardType(type) {
   }
 }
 
+function updateChallengeTargetSelect() {
+  if (!challengeTargetSelect || !friendsRuntime) return;
+  
+  const friends = friendsRuntime.getFriends();
+  const currentValue = challengeTargetSelect.value;
+  
+  let html = '<option value="">选择好友挑战</option>';
+  friends.forEach(friend => {
+    html += `<option value="${friend.id}">${friend.username} (${friend.bestScore}分)</option>`;
+  });
+  
+  challengeTargetSelect.innerHTML = html;
+  challengeTargetSelect.value = currentValue;
+}
+
+function refreshChallengesUI() {
+  if (!friendsChallengeRuntime || !activeChallengesEl || !challengeHistoryEl) return;
+  
+  // Update stats
+  const stats = friendsChallengeRuntime.getChallengeStats();
+  if (challengeStatsEl) {
+    challengeStatsEl.textContent = `胜率 ${stats.winRate}%`;
+  }
+  
+  // Update target select
+  updateChallengeTargetSelect();
+  
+  // Active challenges
+  const activeChallenges = friendsChallengeRuntime.getActiveChallenges();
+  if (activeChallenges.length === 0) {
+    activeChallengesEl.innerHTML = '<p class="tips">暂无进行中的挑战</p>';
+  } else {
+    const html = activeChallenges.map(challenge => {
+      const isChallenger = challenge.challengerId === (activeAccount || 'self');
+      const statusClass = challenge.status;
+      const statusText = challenge.status === 'pending' ? '等待接受' : '进行中';
+      
+      return `
+        <div class="challenge-item ${statusClass}">
+          <div class="challenge-info">
+            <div class="challenge-title">${isChallenger ? '你发起的挑战' : '向你发起的挑战'}</div>
+            <div class="challenge-details">${statusText} · 模式: ${challenge.mode}</div>
+          </div>
+          <div class="challenge-score">${challenge.challengerScore}分</div>
+          ${challenge.status === 'pending' && !isChallenger ? `
+            <div class="challenge-actions">
+              <button class="accept" onclick="acceptChallenge('${challenge.id}')">接受</button>
+              <button class="decline" onclick="declineChallenge('${challenge.id}')">拒绝</button>
+            </div>
+          ` : `
+            <div class="challenge-actions">
+              <button class="complete" onclick="completeChallenge('${challenge.id}')">完成</button>
+            </div>
+          `}
+        </div>
+      `;
+    }).join('');
+    activeChallengesEl.innerHTML = html;
+  }
+  
+  // Challenge history
+  const history = friendsChallengeRuntime.getChallengeHistory(5);
+  if (history.length === 0) {
+    challengeHistoryEl.innerHTML = '<p class="tips">暂无挑战记录</p>';
+  } else {
+    const html = history.map(challenge => {
+      const isWinner = challenge.winnerId === (activeAccount || 'self');
+      const isTie = challenge.winnerId === null;
+      const statusClass = isWinner ? 'won' : isTie ? '' : 'lost';
+      const statusText = isWinner ? '胜利' : isTie ? '平局' : '失败';
+      
+      return `
+        <div class="challenge-item ${statusClass}">
+          <div class="challenge-info">
+            <div class="challenge-title">挑战结果</div>
+            <div class="challenge-details">${challenge.mode}模式</div>
+          </div>
+          <div class="challenge-score">${challenge.challengerScore} vs ${challenge.targetScore || '?'}</div>
+          <div class="challenge-status ${statusClass.toLowerCase()}">${statusText}</div>
+          ${isWinner && !challenge.rewardClaimed ? `
+            <div class="challenge-actions">
+              <button class="claim" onclick="claimChallengeReward('${challenge.id}')">领奖</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+    challengeHistoryEl.innerHTML = html;
+  }
+}
+
+function handleSendChallenge() {
+  if (!friendsChallengeRuntime || !challengeTargetSelect) return;
+  
+  const targetId = challengeTargetSelect.value;
+  if (!targetId) {
+    showOverlay('<p><strong>选择好友</strong></p><p>请先选择一个好友发起挑战</p>');
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+    return;
+  }
+  
+  const result = friendsChallengeRuntime.createChallenge(targetId, mode, bestScore);
+  
+  if (result.success) {
+    challengeTargetSelect.value = '';
+    refreshChallengesUI();
+    showOverlay(`<p><strong>✓ 挑战发起成功</strong></p><p>等待好友接受挑战</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  } else {
+    showOverlay(`<p><strong>发起失败</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
+}
+
+function acceptChallenge(challengeId) {
+  if (!friendsChallengeRuntime) return;
+  
+  const result = friendsChallengeRuntime.acceptChallenge(challengeId);
+  if (result.success) {
+    refreshChallengesUI();
+  }
+}
+
+function declineChallenge(challengeId) {
+  if (!friendsChallengeRuntime) return;
+  
+  const result = friendsChallengeRuntime.declineChallenge(challengeId);
+  if (result.success) {
+    refreshChallengesUI();
+  }
+}
+
+function completeChallenge(challengeId) {
+  if (!friendsChallengeRuntime) return;
+  
+  const result = friendsChallengeRuntime.completeChallenge(challengeId, score);
+  if (result.success) {
+    refreshChallengesUI();
+    showOverlay(`<p><strong>${result.isWinner ? '🎉 恭喜获胜！' : result.isTie ? '🤝 平局！' : '😔 挑战失败'}</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 1200);
+  }
+}
+
+function claimChallengeReward(challengeId) {
+  if (!friendsChallengeRuntime) return;
+  
+  const result = friendsChallengeRuntime.claimReward(challengeId);
+  if (result.success) {
+    refreshChallengesUI();
+    showOverlay(`<p><strong>🎁 领取成功</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
+}
+
 function handleClaimDaily() {
   if (!dailyRewardsRuntime) return;
   
@@ -2255,6 +2430,10 @@ if (monthlyLeaderboardBtn) {
   monthlyLeaderboardBtn.addEventListener('click', () => switchLeaderboardType('monthly'));
 }
 
+if (sendChallengeBtn) {
+  sendChallengeBtn.addEventListener('click', handleSendChallenge);
+}
+
 difficultySelect.addEventListener('change', () => {
   saveSettings();
   baseSpeed = Number(difficultySelect.value);
@@ -2566,6 +2745,7 @@ refreshDailyRewardsUI();
 refreshDailyTasksUI();
 refreshFriendsUI();
 refreshFriendsLeaderboardUI();
+refreshChallengesUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();

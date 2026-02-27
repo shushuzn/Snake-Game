@@ -137,6 +137,24 @@
         </div>
       </section>
 
+      <section class="panel" aria-label="挑战模式">
+        <h2>挑战模式 <small id="challengeStats">胜率 0%</small></h2>
+        <p class="tips">向好友发起挑战，击败他们的最高分！</p>
+        <div class="controls-group">
+          <select id="challengeTarget">
+            <option value="">选择好友挑战</option>
+          </select>
+          <button id="sendChallenge" type="button">发起挑战</button>
+        </div>
+        <div id="activeChallenges" class="challenges-list">
+          <p class="tips">暂无进行中的挑战</p>
+        </div>
+        <h3>挑战历史</h3>
+        <div id="challengeHistory" class="challenges-history">
+          <p class="tips">暂无挑战记录</p>
+        </div>
+      </section>
+
       <section class="panel" aria-label="创意工坊">
         <h2>创意工坊（规则分享）</h2>
         <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
@@ -314,6 +332,7 @@
     <script src="src/modules/daily_tasks.js"></script>
     <script src="src/modules/friends.js"></script>
     <script src="src/modules/friends_leaderboard.js"></script>
+    <script src="src/modules/friends_challenge.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
