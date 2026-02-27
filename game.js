@@ -89,6 +89,7 @@ const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const dlcPackSelect = document.getElementById('dlcPack');
 const modeSelect = document.getElementById('mode');
+const aiDifficultySelect = document.getElementById('aiDifficulty');
 const wrapModeInput = document.getElementById('wrapMode');
 const obstacleModeInput = document.getElementById('obstacleMode');
 const hardcoreModeInput = document.getElementById('hardcoreMode');
@@ -129,7 +130,7 @@ const updateProfileNameBtn = document.getElementById('updateProfileName');
 const shareScoreBtn = document.getElementById('shareScore');
 const shareAchievementBtn = document.getElementById('shareAchievement');
 
-const GAME_VERSION = '1.2.0';
+const GAME_VERSION = '1.4.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -155,7 +156,7 @@ const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
 
-const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
+const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle'];
 const validDifficulties = ['140', '110', '80'];
 const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
 const dlcMeta = {
@@ -203,6 +204,7 @@ function isValidSwipeThresholdValue(value) {
 
 
 const versionEvents = [
+  { version: '1.4.0', notes: ['v1.4.0发布：AI对战与多人模式系统上线', 'AI对战模式：支持简单/普通/困难/地狱四个难度级别', 'AI采用智能寻路算法，会根据难度调整反应速度和决策能力', '新增AI对战排行榜，记录各难度下的最佳战绩'] },
   { version: '1.2.0', notes: ['正式版发布：性能优化与渲染优化，添加网格缓存减少重复绘制', '创作与分享体验整合优化，新增预设和随机障碍生成，地图分享流程优化', '新手指引导航系统完整实现，地图分享质量校验闭环', '复盘建议路径提示，新手引导分层首版上线'] },
   { version: '0.99.0', notes: ['渲染性能优化：添加网格缓存减少重复绘制'] },
   { version: '0.98.0', notes: ['工坊体验优化：新增预设和随机障碍生成，地图分享流程优化'] },
@@ -373,6 +375,11 @@ let comboGuardUntil = 0;
 let currentChallenge = SnakeModes.dailyChallengeOptions[0];
 let obstacleModePreference = obstacleModeInput.checked;
 let modePreference = modeSelect.value;
+
+// AI对战模式变量
+let aiBattleController = null;
+let aiBattleDifficulty = 'normal';
+let aiBattleScores = { player: 0, ai: [] };
 
 const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   snakeModes: SnakeModes,
@@ -2106,6 +2113,12 @@ function loadCustomRocks() {
 }
 
 function resetGame(showStartOverlay = true) {
+  // AI对战模式特殊处理
+  if (mode === 'ai-battle') {
+    resetAIBattle(showStartOverlay);
+    return;
+  }
+
   const roundMeta = resetPrepareRuntime.prepareRound();
   settlement.resetRound(roundMeta.startBonusSeconds);
   resetFlowRuntime.applyResetRound({
@@ -2115,6 +2128,105 @@ function resetGame(showStartOverlay = true) {
   });
   roundStartTime = Date.now();
   pushRoundKeyframe('开局', `模式 ${SnakeModes.getModeLabel(mode)}，DLC ${getDlcStatusText()}`);
+}
+
+// AI对战模式重置
+function resetAIBattle(showStartOverlay = true) {
+  aiBattleDifficulty = aiDifficultySelect.value || 'normal';
+
+  // 初始化AI对战控制器
+  aiBattleController = window.SnakeAIBattle.createAIBattleController({
+    canvas,
+    gridSize,
+    tileCount: { x: tileCount, y: tileCount },
+    onGameOver: handleAIBattleGameOver,
+    onScoreUpdate: handleAIBattleScoreUpdate
+  });
+
+  aiBattleController.init(aiBattleDifficulty, 1);
+
+  // 重置游戏状态
+  score = 0;
+  running = true;
+  paused = false;
+  updateScoreText();
+  refreshStateText();
+
+  if (showStartOverlay) {
+    overlay.innerHTML = '<p><strong>AI对战模式</strong></p><p>击败AI获得胜利！</p><p style="font-size:12px;color:#888;">点击任意处或按空格开始</p>';
+    overlay.classList.remove('hidden');
+  } else {
+    overlay.classList.add('hidden');
+    startLoop();
+  }
+
+  roundStartTime = Date.now();
+  pushRoundKeyframe('AI对战开局', `难度: ${aiBattleDifficulty}`);
+}
+
+// AI对战更新函数
+function updateAIBattle() {
+  if (!aiBattleController || !aiBattleController.isGameRunning()) return;
+
+  // 更新玩家方向
+  const currentDirKey = Object.keys({UP: {x:0,y:-1}, DOWN: {x:0,y:1}, LEFT: {x:-1,y:0}, RIGHT: {x:1,y:0}}).find(
+    key => ({UP: {x:0,y:-1}, DOWN: {x:0,y:1}, LEFT: {x:-1,y:0}, RIGHT: {x:1,y:0}})[key].x === direction.x && ({UP: {x:0,y:-1}, DOWN: {x:0,y:1}, LEFT: {x:-1,y:0}, RIGHT: {x:1,y:0}})[key].y === direction.y
+  ) || 'RIGHT';
+
+  aiBattleController.update(currentDirKey);
+}
+
+// AI对战游戏结束处理
+function handleAIBattleGameOver(result) {
+  running = false;
+  loopTimersRuntime.stopAll();
+
+  const playerWon = result.win;
+  const title = playerWon ? '🎉 胜利！' : '💥 被击败了！';
+  const message = playerWon
+    ? `恭喜击败AI！得分: ${result.playerScore}`
+    : `最终得分: ${result.playerScore}`;
+
+  overlay.innerHTML = `<p><strong>${title}</strong></p><p>${message}</p><p style="font-size:12px;margin-top:8px;">按空格或点击重新开始</p>`;
+  overlay.classList.remove('hidden');
+
+  // 记录战绩
+  recordAIBattleResult(result);
+}
+
+// AI对战分数更新
+function handleAIBattleScoreUpdate(scores) {
+  score = scores.player;
+  updateScoreText();
+
+  // 显示AI分数
+  const aiScoreText = scores.ai.map(a => `${a.name}: ${a.score}`).join(' | ');
+  if (multiplierEl) {
+    multiplierEl.textContent = aiScoreText;
+  }
+}
+
+// 记录AI对战结果
+function recordAIBattleResult(result) {
+  const record = {
+    date: new Date().toISOString(),
+    difficulty: aiBattleDifficulty,
+    playerScore: result.playerScore,
+    win: result.win,
+    mode: 'ai-battle'
+  };
+
+  const history = storage.readJson('snake-ai-battle-history', []);
+  history.unshift(record);
+  if (history.length > 50) history.pop();
+  storage.writeJson('snake-ai-battle-history', history);
+
+  // 更新最佳成绩
+  const bestKey = `snake-ai-best-${aiBattleDifficulty}`;
+  const currentBest = Number(storage.readText(bestKey, '0'));
+  if (result.playerScore > currentBest) {
+    storage.writeText(bestKey, String(result.playerScore));
+  }
 }
 
 function isOnSnake(cell) { return snake.some(seg => seg.x === cell.x && seg.y === cell.y); }
@@ -2227,6 +2339,12 @@ function update() {
   const now = performance.now();
   const elapsed = lastTickMs ? (now - lastTickMs) / 1000 : 0;
   lastTickMs = now;
+
+  // AI对战模式更新
+  if (mode === 'ai-battle' && aiBattleController) {
+    updateAIBattle();
+    return;
+  }
 
   if (isTimerMode()) {
     remainingTime -= elapsed;
@@ -2540,6 +2658,11 @@ function update() {
   }
 
   renderer.draw();
+
+  // AI对战模式额外渲染
+  if (mode === 'ai-battle' && aiBattleController) {
+    aiBattleController.renderBattle(ctx);
+  }
 }
 
 const renderer = SnakeRender.createRenderer({
