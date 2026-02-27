@@ -157,7 +157,7 @@ const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
 
-const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate'];
+const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate', 'daily-challenge'];
 const validDifficulties = ['140', '110', '80'];
 const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
 const dlcMeta = {
@@ -392,6 +392,10 @@ let spectateType = 'ai-battle'; // 'ai-battle', 'multiplayer', 'replay'
 
 // 皮肤商店模块
 let shopRuntime = null;
+
+// 每日限时挑战模块
+let dailyChallengeModeRuntime = null;
+let dailyChallengeModifiers = null;
 
 const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   snakeModes: SnakeModes,
@@ -2155,6 +2159,12 @@ function resetGame(showStartOverlay = true) {
     return;
   }
 
+  // 每日限时挑战特殊处理
+  if (mode === 'daily-challenge') {
+    resetDailyChallenge(showStartOverlay);
+    return;
+  }
+
   const roundMeta = resetPrepareRuntime.prepareRound();
   settlement.resetRound(roundMeta.startBonusSeconds);
   resetFlowRuntime.applyResetRound({
@@ -2415,6 +2425,61 @@ function updateSpectate() {
   // 观战模式自动更新，不需要手动调用
 }
 
+// 每日限时挑战更新
+function updateDailyChallenge() {
+  if (!dailyChallengeModeRuntime) return;
+
+  // 检查剩余时间
+  const remainingTime = dailyChallengeModeRuntime.getRemainingTime();
+  if (remainingTime <= 0) {
+    // 时间到
+    completeDailyChallenge(true);
+    return;
+  }
+
+  // 更新显示
+  const seconds = Math.ceil(remainingTime / 1000);
+  if (timeEl) {
+    timeEl.textContent = `⏱️ ${seconds}s`;
+  }
+}
+
+// 每日限时挑战渲染
+function renderDailyChallenge(ctx) {
+  if (!dailyChallengeModifiers) return;
+
+  // 绘制镜像效果
+  if (dailyChallengeModifiers.mirror) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.translate(-canvas.width, 0);
+  }
+
+  // 绘制传送门
+  if (dailyChallengeModifiers.teleporters && dailyChallengeModifiers.teleporterPositions) {
+    ctx.fillStyle = '#9932CC';
+    for (const tp of dailyChallengeModifiers.teleporterPositions) {
+      ctx.beginPath();
+      ctx.arc(
+        tp.x * gridSize + gridSize / 2,
+        tp.y * gridSize + gridSize / 2,
+        gridSize / 2,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // 恢复镜像
+  if (dailyChallengeModifiers.mirror) {
+    ctx.restore();
+  }
+}
+
 // 初始化皮肤选择器
 function initSkinSelector() {
   if (!shopRuntime) return;
@@ -2488,6 +2553,93 @@ function buySkin(skinId) {
   } else {
     alert(result.message);
     return false;
+  }
+}
+
+// 每日限时挑战重置
+function resetDailyChallenge(showStartOverlay = true) {
+  // 初始化每日挑战模块
+  if (!dailyChallengeModeRuntime) {
+    dailyChallengeModeRuntime = window.SnakeDailyChallengeMode.createDailyChallengeMode(storage);
+  }
+
+  // 加载今日挑战
+  const challenge = dailyChallengeModeRuntime.loadDailyChallenge();
+
+  // 检查是否已完成
+  if (challenge.completed) {
+    overlay.innerHTML = '<p><strong>今日挑战已完成</strong></p><p>请明日再来挑战新的规则！</p><p style="font-size:12px;color:#888;">点击返回其他模式</p>';
+    overlay.classList.remove('hidden');
+    return;
+  }
+
+  // 开始挑战
+  const startResult = dailyChallengeModeRuntime.startChallenge();
+  if (!startResult.success) {
+    overlay.innerHTML = `<p><strong>无法开始挑战</strong></p><p>${startResult.message}</p>`;
+    overlay.classList.remove('hidden');
+    return;
+  }
+
+  // 应用挑战修饰符
+  dailyChallengeModifiers = dailyChallengeModeRuntime.applyModifiers({});
+
+  // 重置游戏状态
+  score = 0;
+  running = true;
+  paused = false;
+  updateScoreText();
+  refreshStateText();
+
+  // 显示挑战信息
+  const rulesHtml = challenge.rules.map(r => `<div style="margin:4px 0;">• ${r.name}: ${r.description}</div>`).join('');
+
+  if (showStartOverlay) {
+    overlay.innerHTML = `
+      <p><strong>每日限时挑战</strong></p>
+      <p style="font-size:11px;color:#FFD700;">难度: ${challenge.difficulty.toUpperCase()} | 奖励: ${challenge.reward}肉鸽点</p>
+      <div style="font-size:11px;text-align:left;margin:8px 0;padding:8px;background:rgba(0,0,0,0.3);border-radius:4px;">
+        <strong>挑战规则:</strong>
+        ${rulesHtml}
+      </div>
+      <p style="font-size:12px;color:#888;">限时${challenge.timeLimit}秒 | 点击任意处开始</p>
+    `;
+    overlay.classList.remove('hidden');
+  } else {
+    overlay.classList.add('hidden');
+    startLoop();
+  }
+
+  roundStartTime = Date.now();
+  pushRoundKeyframe('每日挑战开始', `规则: ${challenge.rules.map(r => r.name).join(', ')}`);
+}
+
+// 完成每日挑战
+function completeDailyChallenge(survived) {
+  if (!dailyChallengeModeRuntime) return;
+
+  const result = dailyChallengeModeRuntime.completeChallenge(score, survived);
+
+  if (result.success) {
+    if (result.completed) {
+      // 获得奖励
+      roguePerks += result.reward;
+      saveRogueMeta();
+
+      overlay.innerHTML = `
+        <p><strong>🎉 挑战完成！</strong></p>
+        <p>得分: ${result.score}</p>
+        <p style="color:#FFD700;">获得奖励: ${result.reward} 肉鸽点</p>
+        <p style="font-size:12px;">按空格或点击返回</p>
+      `;
+    } else {
+      overlay.innerHTML = `
+        <p><strong>挑战失败</strong></p>
+        <p>得分: ${result.score}</p>
+        <p style="font-size:12px;">按空格或点击重试</p>
+      `;
+    }
+    overlay.classList.remove('hidden');
   }
 }
 
@@ -2641,6 +2793,12 @@ function update() {
   // 观战模式更新
   if (mode === 'spectate' && spectateController) {
     updateSpectate();
+    return;
+  }
+
+  // 每日限时挑战更新
+  if (mode === 'daily-challenge' && dailyChallengeModeRuntime) {
+    updateDailyChallenge();
     return;
   }
 
@@ -2970,6 +3128,11 @@ function update() {
   // 观战模式额外渲染
   if (mode === 'spectate' && spectateController) {
     spectateController.render(ctx);
+  }
+
+  // 每日限时挑战额外渲染
+  if (mode === 'daily-challenge' && dailyChallengeModeRuntime) {
+    renderDailyChallenge(ctx);
   }
 }
 
