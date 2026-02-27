@@ -10,16 +10,41 @@
       getState
     } = config;
 
+    // 缓存网格以提高性能
+    let gridCanvas = null;
+    let lastTileCount = 0;
+    let lastGridSize = 0;
+    let lastSkin = null;
+
     function drawGrid() {
       const skinThemes = getSkinThemes();
       const currentSkin = getCurrentSkin();
-      ctx.strokeStyle = skinThemes[currentSkin].grid;
-      ctx.lineWidth = 1;
+      
+      // 如果网格参数没变，使用缓存
+      if (gridCanvas && lastTileCount === tileCount && lastGridSize === gridSize && lastSkin === currentSkin) {
+        ctx.drawImage(gridCanvas, 0, 0);
+        return;
+      }
+
+      // 重建网格缓存
+      gridCanvas = document.createElement('canvas');
+      gridCanvas.width = canvas.width;
+      gridCanvas.height = canvas.height;
+      const gridCtx = gridCanvas.getContext('2d');
+      
+      gridCtx.strokeStyle = skinThemes[currentSkin].grid;
+      gridCtx.lineWidth = 1;
       for (let i = 0; i <= tileCount; i++) {
         const line = i * gridSize;
-        ctx.beginPath(); ctx.moveTo(line, 0); ctx.lineTo(line, canvas.height); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, line); ctx.lineTo(canvas.width, line); ctx.stroke();
+        gridCtx.beginPath(); gridCtx.moveTo(line, 0); gridCtx.lineTo(line, canvas.height); gridCtx.stroke();
+        gridCtx.beginPath(); gridCtx.moveTo(0, line); gridCtx.lineTo(canvas.width, line); gridCtx.stroke();
       }
+      
+      lastTileCount = tileCount;
+      lastGridSize = gridSize;
+      lastSkin = currentSkin;
+      
+      ctx.drawImage(gridCanvas, 0, 0);
     }
 
     function drawCell({ x, y }, color, radius = 4) {
