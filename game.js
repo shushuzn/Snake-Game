@@ -53,6 +53,7 @@ const applyRocksBtn = document.getElementById('applyRocks');
 const exportRocksBtn = document.getElementById('exportRocks');
 const genMapCodeBtn = document.getElementById('genMapCode');
 const applyMapCodeBtn = document.getElementById('applyMapCode');
+const copyMapCodeBtn = document.getElementById('copyMapCode');
 const clearRocksBtn = document.getElementById('clearRocks');
 const genRandomRocksBtn = document.getElementById('genRandomRocks');
 const mapSummaryEl = document.getElementById('mapSummary');
@@ -93,7 +94,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.98.0';
+const GAME_VERSION = '0.99.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -2157,6 +2158,23 @@ applyMapCodeBtn.addEventListener('click', () => {
   resetGame(true);
   showOverlay(`<p><strong>地图码已应用</strong></p><p>共 ${customRocks.length} 个障碍点</p><p>${quality}</p>`);
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+});
+
+copyMapCodeBtn.addEventListener('click', async () => {
+  const code = rockEditorInput.value.trim();
+  if (!code) {
+    showOverlay('<p><strong>请先输入地图码</strong></p><p>或点击生成地图码</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(code);
+    showOverlay('<p><strong>✅ 地图码已复制</strong></p><p>可发送给好友</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 800);
+  } catch {
+    showOverlay('<p><strong>复制失败</strong></p><p>请手动复制</p>');
+    setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+  }
 });
 
 clearRocksBtn.addEventListener('click', () => {
