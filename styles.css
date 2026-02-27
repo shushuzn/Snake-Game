@@ -639,3 +639,125 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
 }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.stat-card {
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.mode-stats {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.mode-stat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.mode-stat-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.mode-stat-bar {
+  flex: 1;
+  height: 6px;
+  background: #1f2937;
+  border-radius: 3px;
+  margin: 0 10px;
+  overflow: hidden;
+}
+
+.mode-stat-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #60a5fa, #93c5fd);
+  border-radius: 3px;
+}
+
+.mode-stat-value {
+  font-size: 0.8rem;
+  color: var(--muted);
+  min-width: 50px;
+  text-align: right;
+}
+
+.recent-games {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.recent-game-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.recent-game-mode {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.recent-game-score {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.recent-game-result {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.recent-game-result.win {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.recent-game-result.loss {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+@media (max-width: 760px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

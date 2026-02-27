@@ -113,6 +113,14 @@ const challengeTargetSelect = document.getElementById('challengeTarget');
 const sendChallengeBtn = document.getElementById('sendChallenge');
 const activeChallengesEl = document.getElementById('activeChallenges');
 const challengeHistoryEl = document.getElementById('challengeHistory');
+const statTotalGamesEl = document.getElementById('statTotalGames');
+const statWinRateEl = document.getElementById('statWinRate');
+const statAvgScoreEl = document.getElementById('statAvgScore');
+const statBestScoreEl = document.getElementById('statBestScore');
+const statHighestComboEl = document.getElementById('statHighestCombo');
+const statPlayTimeEl = document.getElementById('statPlayTime');
+const modeStatsEl = document.getElementById('modeStats');
+const recentGamesEl = document.getElementById('recentGames');
 
 const GAME_VERSION = '1.2.0';
 const gridSize = 20;
@@ -397,6 +405,9 @@ const friendsChallengeRuntime = window.SnakeFriendsChallenge.createFriendsChalle
   getCurrentPlayerId: () => activeAccount || 'self'
 });
 
+// 初始化游戏统计系统
+const statisticsRuntime = window.SnakeStatistics.createStatisticsModule({ storage });
+
 let discoveredCodex = {};
 let currentSkin = 'classic';
 let dlcPack = 'none';
@@ -410,6 +421,7 @@ let rogueScoreBonus = 0;
 let rogueComboWindowBonus = 0;
 let rogueStartShield = 0;
 let customRocks = [];
+let roundStartTime = 0;
 
 bestEl.textContent = String(bestScore);
 versionTag.textContent = `v${GAME_VERSION}`;
@@ -1603,6 +1615,73 @@ function claimChallengeReward(challengeId) {
   }
 }
 
+function refreshStatisticsUI() {
+  if (!statisticsRuntime) return;
+  
+  // Overall stats
+  const overall = statisticsRuntime.getOverallStats();
+  if (statTotalGamesEl) statTotalGamesEl.textContent = overall.totalGames;
+  if (statWinRateEl) statWinRateEl.textContent = overall.winRate + '%';
+  if (statAvgScoreEl) statAvgScoreEl.textContent = overall.averageScore;
+  if (statBestScoreEl) statBestScoreEl.textContent = overall.bestScore;
+  if (statHighestComboEl) statHighestComboEl.textContent = overall.highestCombo;
+  if (statPlayTimeEl) statPlayTimeEl.textContent = overall.totalPlayTime;
+  
+  // Mode stats
+  const modeStats = statisticsRuntime.getModeStats();
+  if (modeStatsEl) {
+    if (modeStats.length === 0) {
+      modeStatsEl.innerHTML = '<p class="tips">暂无数据</p>';
+    } else {
+      const html = modeStats.map(stat => `
+        <div class="mode-stat-item">
+          <div class="mode-stat-name">${stat.mode}</div>
+          <div class="mode-stat-bar">
+            <div class="mode-stat-fill" style="width: ${stat.percentage}%"></div>
+          </div>
+          <div class="mode-stat-value">${stat.games}场 (${stat.percentage}%)</div>
+        </div>
+      `).join('');
+      modeStatsEl.innerHTML = html;
+    }
+  }
+  
+  // Recent games
+  const recentGames = statisticsRuntime.getRecentGames(5);
+  if (recentGamesEl) {
+    if (recentGames.length === 0) {
+      recentGamesEl.innerHTML = '<p class="tips">暂无记录</p>';
+    } else {
+      const html = recentGames.map(game => {
+        const resultClass = game.result === 'win' ? 'win' : game.result === 'loss' ? 'loss' : '';
+        const resultText = game.result === 'win' ? '胜' : game.result === 'loss' ? '负' : '平';
+        return `
+          <div class="recent-game-item">
+            <div class="recent-game-mode">${game.mode}</div>
+            <div class="recent-game-score">${game.score}分</div>
+            <div class="recent-game-result ${resultClass}">${resultText}</div>
+          </div>
+        `;
+      }).join('');
+      recentGamesEl.innerHTML = html;
+    }
+  }
+}
+
+function recordGameStats(result) {
+  if (!statisticsRuntime) return;
+  
+  statisticsRuntime.recordGame({
+    mode: mode,
+    score: score,
+    combo: roundMaxCombo,
+    duration: Math.floor((Date.now() - roundStartTime) / 1000),
+    result: result
+  });
+  
+  refreshStatisticsUI();
+}
+
 function handleClaimDaily() {
   if (!dailyRewardsRuntime) return;
   
@@ -1952,6 +2031,7 @@ function resetGame(showStartOverlay = true) {
     snakeLength: snake.length,
     showStartOverlay
   });
+  roundStartTime = Date.now();
   pushRoundKeyframe('开局', `模式 ${SnakeModes.getModeLabel(mode)}，DLC ${getDlcStatusText()}`);
 }
 
@@ -2022,6 +2102,10 @@ function isCollision(head) {
 }
 
 function endGame(reasonText) {
+  // Record game statistics before finalizing
+  if (statisticsRuntime && roundStartTime > 0) {
+    recordGameStats('loss');
+  }
   endgameFlowRuntime.finalize(reasonText);
 }
 
@@ -2746,6 +2830,7 @@ refreshDailyTasksUI();
 refreshFriendsUI();
 refreshFriendsLeaderboardUI();
 refreshChallengesUI();
+refreshStatisticsUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();

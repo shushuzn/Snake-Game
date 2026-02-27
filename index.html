@@ -155,6 +155,44 @@
         </div>
       </section>
 
+      <section class="panel" aria-label="游戏统计">
+        <h2>游戏统计</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="statTotalGames">0</div>
+            <div class="stat-label">总场次</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statWinRate">0%</div>
+            <div class="stat-label">胜率</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statAvgScore">0</div>
+            <div class="stat-label">平均分</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statBestScore">0</div>
+            <div class="stat-label">最高分</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statHighestCombo">0</div>
+            <div class="stat-label">最高连击</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statPlayTime">0:00</div>
+            <div class="stat-label">游戏时长</div>
+          </div>
+        </div>
+        <h3>模式偏好</h3>
+        <div id="modeStats" class="mode-stats">
+          <p class="tips">暂无数据</p>
+        </div>
+        <h3>最近对局</h3>
+        <div id="recentGames" class="recent-games">
+          <p class="tips">暂无记录</p>
+        </div>
+      </section>
+
       <section class="panel" aria-label="创意工坊">
         <h2>创意工坊（规则分享）</h2>
         <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
@@ -333,6 +371,7 @@
     <script src="src/modules/friends.js"></script>
     <script src="src/modules/friends_leaderboard.js"></script>
     <script src="src/modules/friends_challenge.js"></script>
+    <script src="src/modules/statistics.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
