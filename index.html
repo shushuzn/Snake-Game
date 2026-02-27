@@ -114,6 +114,18 @@
         </div>
       </section>
 
+      <section class="panel" aria-label="好友系统">
+        <h2>好友系统 <small id="friendsCount">0</small></h2>
+        <p class="tips">添加好友，查看他们的游戏状态和最佳成绩</p>
+        <div class="controls-group">
+          <input id="friendInput" type="text" placeholder="输入好友用户名" maxlength="20" />
+          <button id="addFriend" type="button">添加好友</button>
+        </div>
+        <div id="friendsList" class="friends-list">
+          <p class="tips">暂无好友，添加一个开始互动吧！</p>
+        </div>
+      </section>
+
       <section class="panel" aria-label="创意工坊">
         <h2>创意工坊（规则分享）</h2>
         <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
@@ -289,6 +301,7 @@
     <script src="src/modules/guide.js"></script>
     <script src="src/modules/daily_rewards.js"></script>
     <script src="src/modules/daily_tasks.js"></script>
+    <script src="src/modules/friends.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

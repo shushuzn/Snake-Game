@@ -100,6 +100,10 @@ const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 const dailyTasksDateEl = document.getElementById('dailyTasksDate');
 const dailyTasksListEl = document.getElementById('dailyTasksList');
+const friendsCountEl = document.getElementById('friendsCount');
+const friendInput = document.getElementById('friendInput');
+const addFriendBtn = document.getElementById('addFriend');
+const friendsListEl = document.getElementById('friendsList');
 
 const GAME_VERSION = '1.2.0';
 const gridSize = 20;
@@ -367,6 +371,9 @@ const dailyRewards = window.SnakeDailyRewards.createDailyRewardsModule({ storage
 
 // 初始化每日任务系统
 const dailyTasksRuntime = window.SnakeDailyTasks.createDailyTasksModule({ storage });
+
+// 初始化好友系统
+const friendsRuntime = window.SnakeFriends.createFriendsModule({ storage });
 
 let discoveredCodex = {};
 let currentSkin = 'classic';
@@ -1286,6 +1293,78 @@ function refreshDailyTasksUI() {
   dailyTasksListEl.innerHTML = html;
 }
 
+function refreshFriendsUI() {
+  if (!friendsRuntime || !friendsListEl) return;
+  
+  const friends = friendsRuntime.getFriends();
+  
+  if (friendsCountEl) {
+    friendsCountEl.textContent = friends.length;
+  }
+  
+  if (friends.length === 0) {
+    friendsListEl.innerHTML = '<p class="tips">暂无好友，添加一个开始互动吧！</p>';
+    return;
+  }
+  
+  const html = friends.map(friend => {
+    const statusClass = friend.isOnline ? 'online' : 'offline';
+    const statusText = friend.isOnline ? '在线' : '离线';
+    const initial = friend.username.charAt(0).toUpperCase();
+    
+    return `
+      <div class="friend-item">
+        <div class="friend-info">
+          <div class="friend-avatar">${initial}</div>
+          <div class="friend-details">
+            <div class="friend-name">${friend.username}</div>
+            <div class="friend-status ${statusClass}">${statusText}</div>
+          </div>
+        </div>
+        <div class="friend-score">${friend.bestScore}分</div>
+        <div class="friend-actions">
+          <button class="danger" onclick="removeFriend('${friend.id}')">删除</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  friendsListEl.innerHTML = html;
+}
+
+function handleAddFriend() {
+  if (!friendsRuntime || !friendInput) return;
+  
+  const username = friendInput.value.trim();
+  if (!username) return;
+  
+  const result = friendsRuntime.addFriend(username);
+  
+  if (result.success) {
+    friendInput.value = '';
+    refreshFriendsUI();
+    showOverlay(`<p><strong>✓ 添加成功</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  } else {
+    showOverlay(`<p><strong>添加失败</strong></p><p>${result.message}</p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 800);
+  }
+}
+
+function removeFriend(friendId) {
+  if (!friendsRuntime) return;
+  
+  const result = friendsRuntime.removeFriend(friendId);
+  
+  if (result.success) {
+    refreshFriendsUI();
+  }
+}
+
 function handleClaimDaily() {
   if (!dailyRewardsRuntime) return;
   
@@ -2094,6 +2173,17 @@ if (claimDailyBtn) {
   claimDailyBtn.addEventListener('click', handleClaimDaily);
 }
 
+if (addFriendBtn) {
+  addFriendBtn.addEventListener('click', handleAddFriend);
+}
+
+if (friendInput) {
+  friendInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    handleAddFriend();
+  });
+}
+
 difficultySelect.addEventListener('change', () => {
   saveSettings();
   baseSpeed = Number(difficultySelect.value);
@@ -2403,6 +2493,7 @@ loadAchievements();
 loadAudioSetting();
 refreshDailyRewardsUI();
 refreshDailyTasksUI();
+refreshFriendsUI();
 loadBestByMode();
 loadSettings();
 renderDlcComparePanel();
