@@ -54,6 +54,7 @@ const exportRocksBtn = document.getElementById('exportRocks');
 const genMapCodeBtn = document.getElementById('genMapCode');
 const applyMapCodeBtn = document.getElementById('applyMapCode');
 const clearRocksBtn = document.getElementById('clearRocks');
+const genRandomRocksBtn = document.getElementById('genRandomRocks');
 const mapSummaryEl = document.getElementById('mapSummary');
 const historyListEl = document.getElementById('historyList');
 const leaderboardListEl = document.getElementById('leaderboardList');
@@ -92,7 +93,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.97.0';
+const GAME_VERSION = '0.98.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -2164,6 +2165,22 @@ clearRocksBtn.addEventListener('click', () => {
   resetGame(true);
   showOverlay('<p><strong>已清空自定义障碍</strong></p><p>后续局将恢复默认障碍生成</p>');
   setTimeout(() => { if (running && !paused) hideOverlay(); }, 900);
+});
+
+genRandomRocksBtn.addEventListener('click', () => {
+  const randomCode = workshopRuntime.generateRandomMap(15, true);
+  if (randomCode) {
+    rockEditorInput.value = randomCode;
+    const parsed = parseMapCode(randomCode);
+    if (parsed && parsed.rocks) {
+      customRocks = normalizeRockList(parsed.rocks);
+      const quality = buildRockQualityTip(analyzeRockQuality(randomCode), customRocks.length);
+      saveCustomRocks();
+      resetGame(true);
+      showOverlay(`<p><strong>🎲 已生成随机障碍</strong></p><p>${quality}</p>`);
+      setTimeout(() => { if (running && !paused) hideOverlay(); }, 1200);
+    }
+  }
 });
 
 accountRuntime.loadFromStorage();

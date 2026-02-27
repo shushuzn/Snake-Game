@@ -31,7 +31,9 @@
     } = config;
 
     const presets = {
+      'classic-beginner': { mode: 'classic', difficulty: '140', skin: 'classic', dlcPack: 'none', wrapMode: false, obstacleMode: false, hardcoreMode: false, contrastMode: false, miniHudMode: false, autoPauseMode: true },
       'timed-rush': { mode: 'timed', difficulty: '80', skin: 'neon', dlcPack: 'chrono', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
+      'blitz-fury': { mode: 'blitz', difficulty: '80', skin: 'neon', dlcPack: 'frenzy', wrapMode: false, obstacleMode: true, hardcoreMode: false, contrastMode: false, miniHudMode: true, autoPauseMode: true },
       'rogue-hardcore': { mode: 'roguelike', difficulty: '80', skin: 'pixel', wrapMode: false, obstacleMode: true, hardcoreMode: true, contrastMode: true, miniHudMode: true, autoPauseMode: true },
       'endless-relax': { mode: 'endless', difficulty: '140', skin: 'classic', wrapMode: true, obstacleMode: false, hardcoreMode: false, contrastMode: false, miniHudMode: false, autoPauseMode: true }
     };
@@ -148,7 +150,34 @@
       return { isTooEmpty: false, isTooCrowded: false, isBlocked: false };
     }
 
-    return { presets, generateCode, applyCode, applyPreset, analyzeRockQuality };
+    // 生成随机地图
+    function generateRandomMap(count = 15, avoidCenter = true) {
+      const rocks = [];
+      const centerX = 10;
+      const centerY = 10;
+      const spawnRadius = 3;
+      const maxAttempts = count * 10;
+      
+      for (let i = 0; i < maxAttempts && rocks.length < count; i++) {
+        const x = Math.floor(Math.random() * 20);
+        const y = Math.floor(Math.random() * 20);
+        
+        // 避免出生点区域
+        if (avoidCenter && Math.abs(x - centerX) <= spawnRadius && Math.abs(y - centerY) <= spawnRadius) {
+          continue;
+        }
+        
+        // 避免重复
+        const exists = rocks.some(r => r.x === x && r.y === y);
+        if (!exists) {
+          rocks.push({ x, y });
+        }
+      }
+      
+      return rocks.map(item => `${item.x},${item.y}`).join('\n');
+    }
+
+    return { presets, generateCode, applyCode, applyPreset, analyzeRockQuality, generateRandomMap };
   }
 
   global.SnakeWorkshop = { createWorkshopModule };
