@@ -3,9 +3,7 @@
 > 基于 AGENTS.md 指标驱动开发框架
 
 ## 当前版本
-- **Now (进行中)**: `v0.99` - 性能优化与bug修复
-- **Next (下一步)**: `v1.00` - 正式版发布
-- **Later (随后)**: `v1.01` - 社区功能扩展
+- **Now (进行中)**: `v1.0.0` - 正式版发布 ✅
 
 ## North Star Metric
 - **核心目标**: 提升游戏可玩性评分 (Gameplay Enjoyment Score)
