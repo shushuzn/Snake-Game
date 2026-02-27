@@ -92,7 +92,7 @@ const swipeThresholdSelect = document.getElementById('swipeThreshold');
 const mobilePad = document.querySelector('.mobile-pad');
 const versionTag = document.getElementById('versionTag');
 
-const GAME_VERSION = '0.95.0';
+const GAME_VERSION = '0.97.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
@@ -116,6 +116,7 @@ const customRocksKey = 'snake-custom-rocks-v1';
 const leaderboardKey = 'snake-leaderboard-v1';
 const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
+const guideKey = 'snake-guide-v1';
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
 const validDifficulties = ['140', '110', '80'];
@@ -403,6 +404,58 @@ function pushRoundKeyframe(label, detail) {
   if (duplicated) return;
   roundKeyframes.push({ label: safeLabel, detail: safeDetail });
   if (roundKeyframes.length > 8) roundKeyframes = roundKeyframes.slice(-8);
+}
+
+// 检测高风险转向和失误前状态
+let lastPathRiskKeyframe = 0;
+function detectPathRisk(head, direction) {
+  const now = Date.now();
+  // 每3秒最多记录一次路径风险提示
+  if (now - lastPathRiskKeyframe < 3000) return;
+  
+  const riskDistance = 2; // 检测范围
+  let nearWall = false;
+  let nearSelf = false;
+  let nearRock = false;
+  
+  // 检测是否靠近边界（在非环绕模式下）
+  if (!wrapModeInput.checked) {
+    if (head.x <= riskDistance || head.x >= tileCount - riskDistance ||
+        head.y <= riskDistance || head.y >= tileCount - riskDistance) {
+      nearWall = true;
+    }
+  }
+  
+  // 检测是否靠近自己的身体
+  for (let i = 4; i < snake.length; i++) {
+    const seg = snake[i];
+    const dist = Math.abs(head.x - seg.x) + Math.abs(head.y - seg.y);
+    if (dist <= riskDistance) {
+      nearSelf = true;
+      break;
+    }
+  }
+  
+  // 检测是否靠近障碍物
+  for (const rock of rocks) {
+    const dist = Math.abs(head.x - rock.x) + Math.abs(head.y - rock.y);
+    if (dist <= riskDistance) {
+      nearRock = true;
+      break;
+    }
+  }
+  
+  // 根据风险类型添加提示
+  if (nearWall && !wrapModeInput.checked) {
+    pushRoundKeyframe('⚠️ 高风险转向', '前方靠近墙壁，建议改变方向');
+    lastPathRiskKeyframe = now;
+  } else if (nearRock) {
+    pushRoundKeyframe('⚠️ 高风险转向', '前方有障碍物，注意躲避');
+    lastPathRiskKeyframe = now;
+  } else if (nearSelf) {
+    pushRoundKeyframe('⚠️ 失误前状态', '前方可能撞到自己，建议改变方向');
+    lastPathRiskKeyframe = now;
+  }
 }
 
 function renderDlcComparePanel() {
@@ -798,6 +851,11 @@ const recapRuntime = window.SnakeRecap.createRecapModule({
   onPersist: saveActiveAccountSnapshot
 });
 
+const guideRuntime = window.SnakeGuide.createGuideModule({
+  storage,
+  key: guideKey
+});
+
 
 const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   state: {
@@ -1075,6 +1133,7 @@ function saveHistory() {
 
 function addHistoryEntry(score, modeName) {
   recordsRuntime.addHistoryEntry(score, modeName);
+  guideRuntime.incrementGamesPlayed();
 }
 
 function renderHistory() {
@@ -1556,6 +1615,9 @@ function update() {
   direction = pendingDirection;
   const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
+  // 检测高风险转向和失误前状态
+  detectPathRisk(head, direction);
+
   if (wrapModeInput.checked) {
     if (head.x < 0) head.x = tileCount - 1;
     if (head.x >= tileCount) head.x = 0;
@@ -1903,7 +1965,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey, guideKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -1921,6 +1983,7 @@ clearDataBtn.addEventListener('click', () => {
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
   leaderboardRuntime.clear();
+  guideRuntime.reset();
   seasonRuntime.clear();
   recapRuntime.clear();
   refreshSeasonRewardPreview();
@@ -1962,8 +2025,45 @@ muteBtn.addEventListener('click', () => {
 helpBtn.addEventListener('click', () => toggleHelp(helpPanel.style.display === 'none'));
 tutorialBtn.addEventListener('click', () => {
   toggleHelp(true);
-  showOverlay('<p><strong>新手引导</strong></p><p>建议先用经典模式熟悉节奏，再尝试限时与肉鸽</p>');
-  setTimeout(() => { if (!running || paused) hideOverlay(); }, 1300);
+  const currentLayer = guideRuntime.getCurrentLayer();
+  const gamesPlayed = guideRuntime.getGamesPlayed();
+  let guideContent = '';
+  
+  if (currentLayer === window.SnakeGuide.GUIDE_LAYERS.BASIC) {
+    guideContent = `
+      <div style="text-align:left;max-width:320px;margin:0 auto;">
+        <h3>🎮 基础操作</h3>
+        <p>📌 使用方向键或 WASD 控制蛇的移动</p>
+        <p>📌 吃掉食物让蛇成长，蛇越长得分越高</p>
+        <p>📌 小心不要撞到墙壁或自己的身体</p>
+        <hr><p style="color:#888;">已玩 ${gamesPlayed} 局，距离下一阶段还需 ${Math.max(0, 3 - gamesPlayed)} 局</p>
+      </div>`;
+  } else if (currentLayer === window.SnakeGuide.GUIDE_LAYERS.ITEMS) {
+    guideContent = `
+      <div style="text-align:left;max-width:320px;margin:0 auto;">
+        <h3>🛡️ 道具认知</h3>
+        <p>🛡️ 护盾：可以抵挡一次碰撞</p>
+        <p>🚀 加速：提升移动速度</p>
+        <p>🧲 磁铁：吸引附近食物</p>
+        <p>🔥 连击：大幅提升连击倍数</p>
+        <p>❄️ 冻结：暂停所有障碍物</p>
+        <p>⏰ 时间：增加剩余时间</p>
+        <hr><p style="color:#888;">已玩 ${gamesPlayed} 局，距离下一阶段还需 ${Math.max(0, 10 - gamesPlayed)} 局</p>
+      </div>`;
+  } else {
+    guideContent = `
+      <div style="text-align:left;max-width:320px;margin:0 auto;">
+        <h3>🎯 模式策略</h3>
+        <p>🎯 经典模式：无限时间，尽可能获得最高分</p>
+        <p>⏱️ 计时模式：在限定时间内冲刺最高分</p>
+        <p>⚡ 闪电模式：极短时间，快速反应</p>
+        <p>📋 任务模式：完成目标挑战</p>
+        <hr><p style="color:#4ade80;">✅ 新手引导已全部完成！</p>
+      </div>`;
+  }
+  
+  showOverlay(guideContent);
+  setTimeout(() => { if (!running || paused) hideOverlay(); }, 3000);
 });
 closeHelpBtn.addEventListener('click', () => toggleHelp(false));
 

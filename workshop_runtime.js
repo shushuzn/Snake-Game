@@ -41,6 +41,31 @@ window.SnakeWorkshopRuntime = (() => {
     async function copyCode() {
       const code = controls.workshopCodeInput.value.trim() || workshop.generateCode(getStateSnapshot);
       if (!code) return;
+      
+      // 地图分享质量校验
+      const mapCode = getStateSnapshot().mapCode;
+      if (mapCode) {
+        const quality = workshop.analyzeRockQuality ? workshop.analyzeRockQuality(mapCode) : null;
+        if (quality) {
+          // 检查地图质量并给出提示
+          if (quality.isTooEmpty) {
+            ui.showOverlay('<p><strong>⚠️ 地图过简</strong></p><p>建议增加更多障碍物以提升趣味性</p>');
+            setTimeout(() => { if (ui.isRunning() && !ui.isPaused()) ui.hideOverlay(); }, 1500);
+            return;
+          }
+          if (quality.isTooCrowded) {
+            ui.showOverlay('<p><strong>⚠️ 地图过密</strong></p><p>建议减少障碍物以保证游戏空间</p>');
+            setTimeout(() => { if (ui.isRunning() && !ui.isPaused()) ui.hideOverlay(); }, 1500);
+            return;
+          }
+          if (quality.isBlocked) {
+            ui.showOverlay('<p><strong>❌ 地图无效</strong></p><p>障碍物阻挡了出生点，请调整后重试</p>');
+            setTimeout(() => { if (ui.isRunning() && !ui.isPaused()) ui.hideOverlay(); }, 1500);
+            return;
+          }
+        }
+      }
+      
       try {
         if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(code);
         ui.showOverlay('<p><strong>已复制工坊代码</strong></p><p>可直接发送给好友</p>');

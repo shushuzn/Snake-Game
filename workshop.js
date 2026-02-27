@@ -106,7 +106,49 @@
       return applyPayload(preset, applyToDom, snapshotCurrentState);
     }
 
-    return { presets, generateCode, applyCode, applyPreset };
+    // 分析地图质量 - 用于分享前校验
+    function analyzeRockQuality(mapCode) {
+      if (!mapCode) return null;
+      
+      const lines = mapCode.trim().split('\n');
+      const rocks = [];
+      for (const line of lines) {
+        const parts = line.trim().split(',');
+        if (parts.length === 2) {
+          const x = parseInt(parts[0], 10);
+          const y = parseInt(parts[1], 10);
+          if (!isNaN(x) && !isNaN(y)) {
+            rocks.push({ x, y });
+          }
+        }
+      }
+      
+      if (rocks.length === 0) {
+        return { isTooEmpty: true, isTooCrowded: false, isBlocked: false };
+      }
+      
+      // 检查是否过于密集 (超过20%)
+      const totalCells = 20 * 20; // tileCount * tileCount
+      const coveragePercent = (rocks.length / totalCells) * 100;
+      
+      if (coveragePercent > 20) {
+        return { isTooEmpty: false, isTooCrowded: true, isBlocked: false };
+      }
+      
+      // 检查是否阻挡了出生点 (假设中心区域)
+      const centerX = 10;
+      const centerY = 10;
+      const spawnRadius = 2;
+      for (const rock of rocks) {
+        if (Math.abs(rock.x - centerX) <= spawnRadius && Math.abs(rock.y - centerY) <= spawnRadius) {
+          return { isTooEmpty: false, isTooCrowded: false, isBlocked: true };
+        }
+      }
+      
+      return { isTooEmpty: false, isTooCrowded: false, isBlocked: false };
+    }
+
+    return { presets, generateCode, applyCode, applyPreset, analyzeRockQuality };
   }
 
   global.SnakeWorkshop = { createWorkshopModule };
