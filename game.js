@@ -341,6 +341,19 @@ let comboExpireAt = 0;
 let rocks = [];
 let score;
 const storage = window.SnakeStorage.createStorageModule(localStorage);
+
+// 初始化新的成就系统模块
+const achievementsModule = window.SnakeAchievements.createAchievementsModule({
+  storage,
+  storageKey: 'snake-achievements-v2',
+  onUnlock: (achievement) => {
+    showOverlay(`<p><strong>🏆 解锁成就</strong></p><p>${achievement.icon} ${achievement.name}</p><p><small>${achievement.description}</small></p>`);
+    setTimeout(() => {
+      if (running && !paused) hideOverlay();
+    }, 1500);
+  }
+});
+
 let bestScore = Number(storage.readText('snake-best', '0'));
 let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
@@ -363,7 +376,28 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let muted = false;
-let achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false, dailyStreak7: false, dailyStreak30: false, firstTask: false, allTasks: false };
+let achievements = {
+  // 基础成就 (v1.0.0)
+  score200: false, combo5: false, timedClear: false,
+  // 扩展成就 (v1.1.0)
+  score500: false, score1000: false, combo10: false, games10: false, games50: false,
+  // 日常成就 (v1.2.0)
+  dailyStreak7: false, dailyStreak30: false, firstTask: false, allTasks: false,
+  // AI对战成就 (v1.4.0)
+  aiWinEasy: false, aiWinNormal: false, aiWinHard: false, aiWinHell: false,
+  aiWinStreak3: false, aiWinStreak5: false,
+  // 多人对战成就 (v1.4.0)
+  multiplayerWin: false, multiplayerWin3: false, multiplayerWin10: false,
+  // 收集类成就 (v1.4.0)
+  collector5: false, collector10: false, collectorAll: false,
+  // 挑战类成就 (v1.4.0)
+  dailyChallengeWin: false, dailyChallengeStreak3: false, dailyChallengeStreak7: false,
+  // 社交类成就 (v1.4.0)
+  firstFriend: false, challengeWin: false, challengeWin3: false, challengeWin10: false,
+  // 极限挑战成就 (v1.4.0)
+  endlessLevel10: false, endlessLevel20: false, endlessLevel50: false,
+  noDeathWin: false, speedDemon: false, perfectionist: false
+};
 let roundMaxCombo = 1;
 let roundFoodsEaten = 0;
 let roundKeyframes = [];
@@ -1267,14 +1301,52 @@ function refreshLastResultText() {
 
 function loadAchievements() {
   const parsed = storage.readJson(achievementsKey, {});
+  // 基础成就
   achievements.score200 = Boolean(parsed.score200);
   achievements.combo5 = Boolean(parsed.combo5);
   achievements.timedClear = Boolean(parsed.timedClear);
+  // 扩展成就
   achievements.score500 = Boolean(parsed.score500);
   achievements.score1000 = Boolean(parsed.score1000);
   achievements.combo10 = Boolean(parsed.combo10);
   achievements.games10 = Boolean(parsed.games10);
   achievements.games50 = Boolean(parsed.games50);
+  // 日常成就
+  achievements.dailyStreak7 = Boolean(parsed.dailyStreak7);
+  achievements.dailyStreak30 = Boolean(parsed.dailyStreak30);
+  achievements.firstTask = Boolean(parsed.firstTask);
+  achievements.allTasks = Boolean(parsed.allTasks);
+  // AI对战成就 (v1.4.0)
+  achievements.aiWinEasy = Boolean(parsed.aiWinEasy);
+  achievements.aiWinNormal = Boolean(parsed.aiWinNormal);
+  achievements.aiWinHard = Boolean(parsed.aiWinHard);
+  achievements.aiWinHell = Boolean(parsed.aiWinHell);
+  achievements.aiWinStreak3 = Boolean(parsed.aiWinStreak3);
+  achievements.aiWinStreak5 = Boolean(parsed.aiWinStreak5);
+  // 多人对战成就 (v1.4.0)
+  achievements.multiplayerWin = Boolean(parsed.multiplayerWin);
+  achievements.multiplayerWin3 = Boolean(parsed.multiplayerWin3);
+  achievements.multiplayerWin10 = Boolean(parsed.multiplayerWin10);
+  // 收集类成就 (v1.4.0)
+  achievements.collector5 = Boolean(parsed.collector5);
+  achievements.collector10 = Boolean(parsed.collector10);
+  achievements.collectorAll = Boolean(parsed.collectorAll);
+  // 挑战类成就 (v1.4.0)
+  achievements.dailyChallengeWin = Boolean(parsed.dailyChallengeWin);
+  achievements.dailyChallengeStreak3 = Boolean(parsed.dailyChallengeStreak3);
+  achievements.dailyChallengeStreak7 = Boolean(parsed.dailyChallengeStreak7);
+  // 社交类成就 (v1.4.0)
+  achievements.firstFriend = Boolean(parsed.firstFriend);
+  achievements.challengeWin = Boolean(parsed.challengeWin);
+  achievements.challengeWin3 = Boolean(parsed.challengeWin3);
+  achievements.challengeWin10 = Boolean(parsed.challengeWin10);
+  // 极限挑战成就 (v1.4.0)
+  achievements.endlessLevel10 = Boolean(parsed.endlessLevel10);
+  achievements.endlessLevel20 = Boolean(parsed.endlessLevel20);
+  achievements.endlessLevel50 = Boolean(parsed.endlessLevel50);
+  achievements.noDeathWin = Boolean(parsed.noDeathWin);
+  achievements.speedDemon = Boolean(parsed.speedDemon);
+  achievements.perfectionist = Boolean(parsed.perfectionist);
   refreshAchievementsText();
 }
 
@@ -1284,9 +1356,16 @@ function saveAchievements() {
 }
 
 function refreshAchievementsText() {
+  // 使用旧系统统计（向后兼容）
   const keys = Object.keys(achievements);
   const count = keys.filter(k => achievements[k]).length;
-  achievementsEl.textContent = `${count}/${keys.length}`;
+  const total = keys.length;
+  
+  // 同时更新新成就模块的显示
+  const newUnlocked = Object.keys(achievementsModule.getUnlocked()).length;
+  const newTotal = Object.keys(achievementsModule.getAllDefinitions()).length;
+  
+  achievementsEl.textContent = `${count + newUnlocked}/${total + newTotal}`;
 }
 
 function refreshDailyRewardsUI() {
@@ -3288,7 +3367,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey, guideKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey, guideKey, 'snake-achievements-v2']);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -3302,6 +3381,7 @@ clearDataBtn.addEventListener('click', () => {
   playsEl.textContent = '0';
   streakEl.textContent = '0';
   achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false };
+  achievementsModule.reset(); // 重置新成就系统
   refreshAchievementsText();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
