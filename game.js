@@ -363,21 +363,26 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let muted = false;
+const ACHIEVEMENT_KEYS = [
+  'score200',
+  'combo5',
+  'timedClear',
+  'score500',
+  'score1000',
+  'combo10',
+  'games10',
+  'games50',
+  'dailyStreak7',
+  'dailyStreak30',
+  'firstTask',
+  'allTasks'
+];
+
 function createDefaultAchievements() {
-  return {
-    score200: false,
-    combo5: false,
-    timedClear: false,
-    score500: false,
-    score1000: false,
-    combo10: false,
-    games10: false,
-    games50: false,
-    dailyStreak7: false,
-    dailyStreak30: false,
-    firstTask: false,
-    allTasks: false
-  };
+  return ACHIEVEMENT_KEYS.reduce((acc, key) => {
+    acc[key] = false;
+    return acc;
+  }, {});
 }
 
 let achievements = createDefaultAchievements();
@@ -1284,8 +1289,8 @@ function refreshLastResultText() {
 
 function loadAchievements() {
   const parsed = storage.readJson(achievementsKey, {});
-  const keys = Object.keys(achievements);
-  keys.forEach((key) => {
+  achievements = createDefaultAchievements();
+  ACHIEVEMENT_KEYS.forEach((key) => {
     achievements[key] = Boolean(parsed[key]);
   });
   refreshAchievementsText();
@@ -1834,7 +1839,7 @@ function handleClaimDaily() {
 }
 
 function unlockAchievement(key, label) {
-  if (achievements[key]) return;
+  if (!Object.prototype.hasOwnProperty.call(achievements, key) || achievements[key]) return;
   achievements[key] = true;
   saveAchievements();
   refreshAchievementsText();
