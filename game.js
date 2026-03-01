@@ -363,7 +363,24 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let muted = false;
-let achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false, dailyStreak7: false, dailyStreak30: false, firstTask: false, allTasks: false };
+function createDefaultAchievements() {
+  return {
+    score200: false,
+    combo5: false,
+    timedClear: false,
+    score500: false,
+    score1000: false,
+    combo10: false,
+    games10: false,
+    games50: false,
+    dailyStreak7: false,
+    dailyStreak30: false,
+    firstTask: false,
+    allTasks: false
+  };
+}
+
+let achievements = createDefaultAchievements();
 let roundMaxCombo = 1;
 let roundFoodsEaten = 0;
 let roundKeyframes = [];
@@ -1267,14 +1284,10 @@ function refreshLastResultText() {
 
 function loadAchievements() {
   const parsed = storage.readJson(achievementsKey, {});
-  achievements.score200 = Boolean(parsed.score200);
-  achievements.combo5 = Boolean(parsed.combo5);
-  achievements.timedClear = Boolean(parsed.timedClear);
-  achievements.score500 = Boolean(parsed.score500);
-  achievements.score1000 = Boolean(parsed.score1000);
-  achievements.combo10 = Boolean(parsed.combo10);
-  achievements.games10 = Boolean(parsed.games10);
-  achievements.games50 = Boolean(parsed.games50);
+  const keys = Object.keys(achievements);
+  keys.forEach((key) => {
+    achievements[key] = Boolean(parsed[key]);
+  });
   refreshAchievementsText();
 }
 
@@ -3301,7 +3314,7 @@ clearDataBtn.addEventListener('click', () => {
   foodsEl.textContent = '0';
   playsEl.textContent = '0';
   streakEl.textContent = '0';
-  achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false };
+  achievements = createDefaultAchievements();
   refreshAchievementsText();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
