@@ -79,6 +79,8 @@ const eventPanelEl = document.getElementById('eventPanel');
 const jumpToEventPanelBtn = document.getElementById('jumpToEventPanel');
 const tabButtons = document.querySelectorAll('[data-tab-target]');
 const tabPanels = document.querySelectorAll('[data-tab-panel]');
+const tabButtonList = Array.from(tabButtons);
+const tabPanelList = Array.from(tabPanels);
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
@@ -159,6 +161,7 @@ const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
 const activeTabKey = 'snake-active-tab-v1';
+const defaultTabName = 'game';
 let tabsInitialized = false;
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate', 'daily-challenge'];
@@ -218,36 +221,42 @@ function saveActiveTab(tabName) {
 function loadActiveTab() {
   try {
     const storedTab = localStorage.getItem(activeTabKey);
-    return Array.from(tabButtons).some((button) => button.dataset.tabTarget === storedTab) ? storedTab : 'game';
+    return tabButtonList.some((button) => button.dataset.tabTarget === storedTab) ? storedTab : defaultTabName;
   } catch {
-    return 'game';
+    return defaultTabName;
   }
 }
 
 function getTabButtonByName(tabName) {
-  return Array.from(tabButtons).find((button) => button.dataset.tabTarget === tabName) ?? null;
+  return tabButtonList.find((button) => button.dataset.tabTarget === tabName) ?? null;
+}
+
+function getTabPanelByName(tabName) {
+  return tabPanelList.find((panel) => panel.dataset.tabPanel === tabName) ?? null;
 }
 
 function setActiveTab(tabName, options = {}) {
   const { focusButton = false, ensureVisible = false } = options;
-  let activatedButton = null;
+  const normalizedTabName = getTabButtonByName(tabName) ? tabName : defaultTabName;
+  const activatedButton = getTabButtonByName(normalizedTabName);
+  const activatedPanel = getTabPanelByName(normalizedTabName);
 
-  tabButtons.forEach((button) => {
-    const isActive = button.dataset.tabTarget === tabName;
+  if (!activatedButton || !activatedPanel) return;
+
+  tabButtonList.forEach((button) => {
+    const isActive = button.dataset.tabTarget === normalizedTabName;
     button.setAttribute('aria-selected', String(isActive));
     button.tabIndex = isActive ? 0 : -1;
-    if (isActive) activatedButton = button;
   });
 
-  tabPanels.forEach((panel) => {
-    const isActive = panel.dataset.tabPanel === tabName;
+  tabPanelList.forEach((panel) => {
+    const isActive = panel.dataset.tabPanel === normalizedTabName;
     panel.classList.toggle('is-active', isActive);
     panel.hidden = !isActive;
     panel.setAttribute('aria-hidden', String(!isActive));
   });
 
-  if (!activatedButton) return;
-  saveActiveTab(tabName);
+  saveActiveTab(normalizedTabName);
   if (ensureVisible) {
     activatedButton.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
   }
@@ -261,19 +270,18 @@ function focusTabByName(tabName) {
 }
 
 function focusAdjacentTab(currentButton, direction) {
-  const buttons = Array.from(tabButtons);
-  const currentIndex = buttons.indexOf(currentButton);
-  if (currentIndex === -1 || buttons.length === 0) return;
-  const nextIndex = (currentIndex + direction + buttons.length) % buttons.length;
-  const nextButton = buttons[nextIndex];
+  const currentIndex = tabButtonList.indexOf(currentButton);
+  if (currentIndex === -1 || tabButtonList.length === 0) return;
+  const nextIndex = (currentIndex + direction + tabButtonList.length) % tabButtonList.length;
+  const nextButton = tabButtonList[nextIndex];
   setActiveTab(nextButton.dataset.tabTarget, { focusButton: true, ensureVisible: true });
 }
 
 function initTabs() {
-  if (!tabButtons.length || !tabPanels.length) return;
+  if (!tabButtonList.length || !tabPanelList.length) return;
 
   if (!tabsInitialized) {
-    tabButtons.forEach((button) => {
+    tabButtonList.forEach((button) => {
       button.addEventListener('click', () => setActiveTab(button.dataset.tabTarget, { focusButton: false }));
       button.addEventListener('keydown', (event) => {
         if (event.key === 'ArrowRight') {
@@ -286,11 +294,11 @@ function initTabs() {
         }
         if (event.key === 'Home') {
           event.preventDefault();
-          focusTabByName(tabButtons[0]?.dataset.tabTarget);
+          focusTabByName(tabButtonList[0]?.dataset.tabTarget);
         }
         if (event.key === 'End') {
           event.preventDefault();
-          focusTabByName(tabButtons[tabButtons.length - 1]?.dataset.tabTarget);
+          focusTabByName(tabButtonList[tabButtonList.length - 1]?.dataset.tabTarget);
         }
       });
     });
