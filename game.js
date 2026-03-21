@@ -224,8 +224,12 @@ function loadActiveTab() {
   }
 }
 
+function getTabButtonByName(tabName) {
+  return Array.from(tabButtons).find((button) => button.dataset.tabTarget === tabName) ?? null;
+}
+
 function setActiveTab(tabName, options = {}) {
-  const { focusButton = false } = options;
+  const { focusButton = false, ensureVisible = false } = options;
   let activatedButton = null;
 
   tabButtons.forEach((button) => {
@@ -244,8 +248,16 @@ function setActiveTab(tabName, options = {}) {
 
   if (!activatedButton) return;
   saveActiveTab(tabName);
-  activatedButton.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  if (ensureVisible) {
+    activatedButton.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  }
   if (focusButton) activatedButton.focus();
+}
+
+function focusTabByName(tabName) {
+  const targetButton = getTabButtonByName(tabName);
+  if (!targetButton) return;
+  setActiveTab(tabName, { focusButton: true, ensureVisible: true });
 }
 
 function focusAdjacentTab(currentButton, direction) {
@@ -254,7 +266,7 @@ function focusAdjacentTab(currentButton, direction) {
   if (currentIndex === -1 || buttons.length === 0) return;
   const nextIndex = (currentIndex + direction + buttons.length) % buttons.length;
   const nextButton = buttons[nextIndex];
-  setActiveTab(nextButton.dataset.tabTarget, { focusButton: true });
+  setActiveTab(nextButton.dataset.tabTarget, { focusButton: true, ensureVisible: true });
 }
 
 function initTabs() {
@@ -274,11 +286,11 @@ function initTabs() {
         }
         if (event.key === 'Home') {
           event.preventDefault();
-          focusAdjacentTab(tabButtons[0], 0);
+          focusTabByName(tabButtons[0]?.dataset.tabTarget);
         }
         if (event.key === 'End') {
           event.preventDefault();
-          focusAdjacentTab(tabButtons[tabButtons.length - 1], 0);
+          focusTabByName(tabButtons[tabButtons.length - 1]?.dataset.tabTarget);
         }
       });
     });
