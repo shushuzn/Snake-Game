@@ -113,6 +113,9 @@ body {
   border-radius: 14px;
   background: rgba(2, 6, 23, 0.42);
   border: 1px solid var(--border);
+  position: sticky;
+  top: 10px;
+  z-index: 5;
 }
 
 .tab-button {
@@ -145,6 +148,18 @@ body {
 
 .tab-panel.is-active {
   display: grid;
+  animation: tab-panel-fade 0.18s ease-out;
+}
+
+@keyframes tab-panel-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 button,
@@ -269,6 +284,7 @@ body.high-contrast .tab-button {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: thin;
+    top: 8px;
   }
   .tab-button {
     flex: 1 0 auto;

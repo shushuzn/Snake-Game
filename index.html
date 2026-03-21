@@ -111,7 +111,7 @@
         <button id="tab-events" type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-panel-events" tabindex="-1" data-tab-target="events">活动</button>
       </div>
 
-      <div id="tab-panel-game" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-game" data-tab-panel="game">
+      <div id="tab-panel-game" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-game" aria-hidden="false" data-tab-panel="game">
         <section class="panel" aria-label="本地排行榜">
           <h2>排行榜（Top 20，本地/远端）</h2>
           <p class="tips" id="leaderboardStatus">本地榜：暂无数据</p>
@@ -157,7 +157,7 @@
         </section>
       </div>
 
-      <div id="tab-panel-social" class="tab-panel" role="tabpanel" aria-labelledby="tab-social" data-tab-panel="social" hidden>
+      <div id="tab-panel-social" class="tab-panel" role="tabpanel" aria-labelledby="tab-social" aria-hidden="true" data-tab-panel="social" hidden>
         <section class="panel" aria-label="本地账号">
           <h2>本地账号</h2>
           <div class="controls-group account-row">
@@ -228,7 +228,7 @@
         </section>
       </div>
 
-      <div id="tab-panel-growth" class="tab-panel" role="tabpanel" aria-labelledby="tab-growth" data-tab-panel="growth" hidden>
+      <div id="tab-panel-growth" class="tab-panel" role="tabpanel" aria-labelledby="tab-growth" aria-hidden="true" data-tab-panel="growth" hidden>
         <section class="panel" aria-label="每日任务">
           <h2>每日任务 <small id="dailyTasksDate">--</small></h2>
           <p class="tips">完成3个任务获得经验值奖励，每日0点刷新</p>
@@ -294,7 +294,7 @@
         </section>
       </div>
 
-      <div id="tab-panel-creative" class="tab-panel" role="tabpanel" aria-labelledby="tab-creative" data-tab-panel="creative" hidden>
+      <div id="tab-panel-creative" class="tab-panel" role="tabpanel" aria-labelledby="tab-creative" aria-hidden="true" data-tab-panel="creative" hidden>
         <section class="panel" aria-label="创意工坊">
           <h2>创意工坊（规则分享）</h2>
           <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
@@ -342,7 +342,7 @@
         </section>
       </div>
 
-      <div id="tab-panel-events" class="tab-panel" role="tabpanel" aria-labelledby="tab-events" data-tab-panel="events" hidden>
+      <div id="tab-panel-events" class="tab-panel" role="tabpanel" aria-labelledby="tab-events" aria-hidden="true" data-tab-panel="events" hidden>
         <section class="panel" id="eventPanel" aria-label="活动挑战包">
           <h2>活动挑战包</h2>
           <p class="tips">当前活动：<b id="eventLabel">无活动</b></p>

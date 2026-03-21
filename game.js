@@ -159,6 +159,7 @@ const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
 const activeTabKey = 'snake-active-tab-v1';
+let tabsInitialized = false;
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate', 'daily-challenge'];
 const validDifficulties = ['140', '110', '80'];
@@ -238,10 +239,12 @@ function setActiveTab(tabName, options = {}) {
     const isActive = panel.dataset.tabPanel === tabName;
     panel.classList.toggle('is-active', isActive);
     panel.hidden = !isActive;
+    panel.setAttribute('aria-hidden', String(!isActive));
   });
 
   if (!activatedButton) return;
   saveActiveTab(tabName);
+  activatedButton.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
   if (focusButton) activatedButton.focus();
 }
 
@@ -257,19 +260,30 @@ function focusAdjacentTab(currentButton, direction) {
 function initTabs() {
   if (!tabButtons.length || !tabPanels.length) return;
 
-  tabButtons.forEach((button) => {
-    button.addEventListener('click', () => setActiveTab(button.dataset.tabTarget, { focusButton: false }));
-    button.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        focusAdjacentTab(button, 1);
-      }
-      if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        focusAdjacentTab(button, -1);
-      }
+  if (!tabsInitialized) {
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => setActiveTab(button.dataset.tabTarget, { focusButton: false }));
+      button.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          focusAdjacentTab(button, 1);
+        }
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          focusAdjacentTab(button, -1);
+        }
+        if (event.key === 'Home') {
+          event.preventDefault();
+          focusAdjacentTab(tabButtons[0], 0);
+        }
+        if (event.key === 'End') {
+          event.preventDefault();
+          focusAdjacentTab(tabButtons[tabButtons.length - 1], 0);
+        }
+      });
     });
-  });
+    tabsInitialized = true;
+  }
 
   setActiveTab(loadActiveTab());
 }
