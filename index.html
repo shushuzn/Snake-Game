@@ -103,166 +103,265 @@
         </div>
       </section>
 
-      <section class="panel" aria-label="本地账号">
-        <h2>本地账号</h2>
-        <div class="controls-group account-row">
-          <span>当前：<b id="accountName">游客</b></span>
-          <input id="accountInput" type="text" placeholder="输入账号名" maxlength="20" />
-          <button id="loginAccount" type="button" class="secondary">登录/切换</button>
-          <button id="logoutAccount" type="button" class="secondary">退出账号</button>
-          <button id="exportSave" type="button" class="secondary">导出存档</button>
-          <label class="file-btn" for="importSave">导入存档</label>
-          <input id="importSave" type="file" accept="application/json" />
-        </div>
-      </section>
+      <div class="tabs-nav" role="tablist" aria-label="扩展面板导航">
+        <button id="tab-game" type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="tab-panel-game" tabindex="0" data-tab-target="game">游戏</button>
+        <button id="tab-social" type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-panel-social" tabindex="-1" data-tab-target="social">社交</button>
+        <button id="tab-growth" type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-panel-growth" tabindex="-1" data-tab-target="growth">成长</button>
+        <button id="tab-creative" type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-panel-creative" tabindex="-1" data-tab-target="creative">创作</button>
+        <button id="tab-events" type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-panel-events" tabindex="-1" data-tab-target="events">活动</button>
+      </div>
 
-      <section class="panel" aria-label="每日任务">
-        <h2>每日任务 <small id="dailyTasksDate">--</small></h2>
-        <p class="tips">完成3个任务获得经验值奖励，每日0点刷新</p>
-        <div id="dailyTasksList" class="daily-tasks-list">
-          <p class="tips">加载中...</p>
-        </div>
-      </section>
+      <div id="tab-panel-game" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-game" data-tab-panel="game">
+        <section class="panel" aria-label="本地排行榜">
+          <h2>排行榜（Top 20，本地/远端）</h2>
+          <p class="tips" id="leaderboardStatus">本地榜：暂无数据</p>
+          <div class="controls-group">
+            <button id="toggleLeaderboardSource" type="button" class="secondary">切换到远端榜</button>
+            <span class="tips" id="leaderboardSourceTag">当前来源：本地榜</span>
+          </div>
+          <div class="controls-group">
+            <label class="label-inline" for="leaderboardDimension">榜单维度
+              <select id="leaderboardDimension">
+                <option value="all" selected>综合榜</option>
+                <option value="classic">经典榜</option>
+                <option value="timed">限时榜</option>
+                <option value="blitz">冲刺榜</option>
+                <option value="endless">无尽榜</option>
+                <option value="roguelike">肉鸽榜</option>
+                <option value="daily">每日挑战榜</option>
+                <option value="dlc-frenzy">DLC-狂热榜</option>
+                <option value="dlc-guardian">DLC-守护榜</option>
+                <option value="dlc-chrono">DLC-时序榜</option>
+              </select>
+            </label>
+          </div>
+          <ol id="leaderboardList"></ol>
+        </section>
 
-      <section class="panel" aria-label="好友系统">
-        <h2>好友系统 <small id="friendsCount">0</small></h2>
-        <p class="tips">添加好友，查看他们的游戏状态和最佳成绩</p>
-        <div class="controls-group">
-          <input id="friendInput" type="text" placeholder="输入好友用户名" maxlength="20" />
-          <button id="addFriend" type="button">添加好友</button>
-        </div>
-        <div id="friendsList" class="friends-list">
-          <p class="tips">暂无好友，添加一个开始互动吧！</p>
-        </div>
-      </section>
+        <section class="panel" aria-label="最近战绩">
+          <h2>最近战绩（最近 5 局）</h2>
+          <ol id="historyList"></ol>
+        </section>
 
-      <section class="panel" aria-label="好友排行榜">
-        <h2>好友排行榜 <small id="leaderboardPeriod">--</small></h2>
-        <div class="controls-group">
-          <button id="weeklyLeaderboard" type="button" class="secondary">周榜</button>
-          <button id="monthlyLeaderboard" type="button" class="secondary">月榜</button>
-        </div>
-        <div id="friendsLeaderboardList" class="friends-leaderboard-list">
-          <p class="tips">添加好友后查看排行榜</p>
-        </div>
-      </section>
+        <section class="panel" aria-label="对局复盘摘要">
+          <h2>对局复盘摘要（最近一局）</h2>
+          <p class="tips" id="recapSummary">暂无复盘数据</p>
+          <ul id="recapList"></ul>
+          <h3>关键帧时间线</h3>
+          <ol id="recapTimelineList"></ol>
+        </section>
 
-      <section class="panel" aria-label="挑战模式">
-        <h2>挑战模式 <small id="challengeStats">胜率 0%</small></h2>
-        <p class="tips">向好友发起挑战，击败他们的最高分！</p>
-        <div class="controls-group">
-          <select id="challengeTarget">
-            <option value="">选择好友挑战</option>
-          </select>
-          <button id="sendChallenge" type="button">发起挑战</button>
-        </div>
-        <div id="activeChallenges" class="challenges-list">
-          <p class="tips">暂无进行中的挑战</p>
-        </div>
-        <h3>挑战历史</h3>
-        <div id="challengeHistory" class="challenges-history">
-          <p class="tips">暂无挑战记录</p>
-        </div>
-      </section>
+        <section class="panel" aria-label="结算明细">
+          <h2>结算明细（最近一局）</h2>
+          <ul id="settlementList"></ul>
+        </section>
+      </div>
 
-      <section class="panel" aria-label="游戏统计">
-        <h2>游戏统计</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value" id="statTotalGames">0</div>
-            <div class="stat-label">总场次</div>
+      <div id="tab-panel-social" class="tab-panel" role="tabpanel" aria-labelledby="tab-social" data-tab-panel="social" hidden>
+        <section class="panel" aria-label="本地账号">
+          <h2>本地账号</h2>
+          <div class="controls-group account-row">
+            <span>当前：<b id="accountName">游客</b></span>
+            <input id="accountInput" type="text" placeholder="输入账号名" maxlength="20" />
+            <button id="loginAccount" type="button" class="secondary">登录/切换</button>
+            <button id="logoutAccount" type="button" class="secondary">退出账号</button>
+            <button id="exportSave" type="button" class="secondary">导出存档</button>
+            <label class="file-btn" for="importSave">导入存档</label>
+            <input id="importSave" type="file" accept="application/json" />
           </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statWinRate">0%</div>
-            <div class="stat-label">胜率</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statAvgScore">0</div>
-            <div class="stat-label">平均分</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statBestScore">0</div>
-            <div class="stat-label">最高分</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statHighestCombo">0</div>
-            <div class="stat-label">最高连击</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statPlayTime">0:00</div>
-            <div class="stat-label">游戏时长</div>
-          </div>
-        </div>
-        <h3>模式偏好</h3>
-        <div id="modeStats" class="mode-stats">
-          <p class="tips">暂无数据</p>
-        </div>
-        <h3>最近对局</h3>
-        <div id="recentGames" class="recent-games">
-          <p class="tips">暂无记录</p>
-        </div>
-      </section>
+        </section>
 
-      <section class="panel" aria-label="个人资料">
-        <h2>个人资料</h2>
-        <div class="profile-card">
-          <div class="profile-avatar" id="profileAvatar">?</div>
-          <div class="profile-info">
-            <div class="profile-name" id="profileName">玩家</div>
-            <div class="profile-level" id="profileLevel">等级 1</div>
+        <section class="panel" aria-label="好友系统">
+          <h2>好友系统 <small id="friendsCount">0</small></h2>
+          <p class="tips">添加好友，查看他们的游戏状态和最佳成绩</p>
+          <div class="controls-group">
+            <input id="friendInput" type="text" placeholder="输入好友用户名" maxlength="20" />
+            <button id="addFriend" type="button">添加好友</button>
           </div>
-        </div>
-        <div class="controls-group">
-          <input id="profileNameInput" type="text" placeholder="设置显示名称" maxlength="20" />
-          <button id="updateProfileName" type="button">更新名称</button>
-        </div>
-      </section>
+          <div id="friendsList" class="friends-list">
+            <p class="tips">暂无好友，添加一个开始互动吧！</p>
+          </div>
+        </section>
 
-      <section class="panel" aria-label="创意工坊">
-        <h2>创意工坊（规则分享）</h2>
-        <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
-        <textarea id="workshopCode" class="workshop-code" rows="3" placeholder="粘贴创意工坊代码"></textarea>
-        <div class="controls-group">
-          <label class="label-inline" for="workshopPreset">预设
-            <select id="workshopPreset">
-              <option value="">选择工坊预设</option>
-              <option value="timed-rush">限时冲分</option>
-              <option value="rogue-hardcore">肉鸽硬核</option>
-              <option value="endless-relax">无尽练习</option>
+        <section class="panel" aria-label="好友排行榜">
+          <h2>好友排行榜 <small id="leaderboardPeriod">--</small></h2>
+          <div class="controls-group">
+            <button id="weeklyLeaderboard" type="button" class="secondary">周榜</button>
+            <button id="monthlyLeaderboard" type="button" class="secondary">月榜</button>
+          </div>
+          <div id="friendsLeaderboardList" class="friends-leaderboard-list">
+            <p class="tips">添加好友后查看排行榜</p>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="挑战模式">
+          <h2>挑战模式 <small id="challengeStats">胜率 0%</small></h2>
+          <p class="tips">向好友发起挑战，击败他们的最高分！</p>
+          <div class="controls-group">
+            <select id="challengeTarget">
+              <option value="">选择好友挑战</option>
             </select>
-          </label>
-          <button id="applyWorkshopPreset" type="button" class="secondary">应用预设</button>
-        </div>
-        <div class="controls-group">
-          <button id="genWorkshop" type="button" class="secondary">生成代码</button>
-          <button id="copyWorkshop" type="button" class="secondary">复制代码</button>
-          <button id="applyWorkshop" type="button">应用代码</button>
-        </div>
-        <h3>分享功能</h3>
-        <div class="controls-group">
-          <button id="shareScore" type="button" class="secondary">📤 分享成绩</button>
-          <button id="shareAchievement" type="button" class="secondary">🏆 分享成就</button>
-        </div>
-      </section>
+            <button id="sendChallenge" type="button">发起挑战</button>
+          </div>
+          <div id="activeChallenges" class="challenges-list">
+            <p class="tips">暂无进行中的挑战</p>
+          </div>
+          <h3>挑战历史</h3>
+          <div id="challengeHistory" class="challenges-history">
+            <p class="tips">暂无挑战记录</p>
+          </div>
+        </section>
 
-      <section class="panel" aria-label="障碍编辑器">
-        <h2>障碍编辑器（实验）</h2>
-        <p class="tips">每行一个坐标：<code>x,y</code>（范围 0-24），可导出当前障碍布局。</p>
-        <p class="tips" id="mapSummary">地图摘要：--</p>
-        <textarea id="rockEditor" class="workshop-code" rows="4" placeholder="例如：
+        <section class="panel" aria-label="个人资料">
+          <h2>个人资料</h2>
+          <div class="profile-card">
+            <div class="profile-avatar" id="profileAvatar">?</div>
+            <div class="profile-info">
+              <div class="profile-name" id="profileName">玩家</div>
+              <div class="profile-level" id="profileLevel">等级 1</div>
+            </div>
+          </div>
+          <div class="controls-group">
+            <input id="profileNameInput" type="text" placeholder="设置显示名称" maxlength="20" />
+            <button id="updateProfileName" type="button">更新名称</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="tab-panel-growth" class="tab-panel" role="tabpanel" aria-labelledby="tab-growth" data-tab-panel="growth" hidden>
+        <section class="panel" aria-label="每日任务">
+          <h2>每日任务 <small id="dailyTasksDate">--</small></h2>
+          <p class="tips">完成3个任务获得经验值奖励，每日0点刷新</p>
+          <div id="dailyTasksList" class="daily-tasks-list">
+            <p class="tips">加载中...</p>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="游戏统计">
+          <h2>游戏统计</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="statTotalGames">0</div>
+              <div class="stat-label">总场次</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statWinRate">0%</div>
+              <div class="stat-label">胜率</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statAvgScore">0</div>
+              <div class="stat-label">平均分</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statBestScore">0</div>
+              <div class="stat-label">最高分</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statHighestCombo">0</div>
+              <div class="stat-label">最高连击</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statPlayTime">0:00</div>
+              <div class="stat-label">游戏时长</div>
+            </div>
+          </div>
+          <h3>模式偏好</h3>
+          <div id="modeStats" class="mode-stats">
+            <p class="tips">暂无数据</p>
+          </div>
+          <h3>最近对局</h3>
+          <div id="recentGames" class="recent-games">
+            <p class="tips">暂无记录</p>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="赛季信息">
+          <h2>赛季信息</h2>
+          <p class="tips">当前赛季 <b id="seasonId">--</b>，剩余 <b id="seasonRemaining">--</b></p>
+          <p class="tips">赛季最佳：<b id="seasonBest">--</b></p>
+          <p class="tips">赛季奖励预览：<b id="seasonReward">--</b></p>
+          <p class="tips">赛季进度：<b id="seasonProgressText">--</b></p>
+          <div class="season-progress-bar">
+            <div id="seasonProgressFill" class="season-progress-fill"></div>
+          </div>
+          <h3>历史赛季（最近 6 期）</h3>
+          <ol id="seasonHistoryList"></ol>
+        </section>
+
+        <section class="panel" aria-label="道具图鉴">
+          <h2>道具图鉴（已发现 <b id="codexProgress">0/10</b>）</h2>
+          <ol id="codexList"></ol>
+        </section>
+      </div>
+
+      <div id="tab-panel-creative" class="tab-panel" role="tabpanel" aria-labelledby="tab-creative" data-tab-panel="creative" hidden>
+        <section class="panel" aria-label="创意工坊">
+          <h2>创意工坊（规则分享）</h2>
+          <p class="tips">生成当前规则代码分享给好友，或粘贴代码一键应用。</p>
+          <textarea id="workshopCode" class="workshop-code" rows="3" placeholder="粘贴创意工坊代码"></textarea>
+          <div class="controls-group">
+            <label class="label-inline" for="workshopPreset">预设
+              <select id="workshopPreset">
+                <option value="">选择工坊预设</option>
+                <option value="timed-rush">限时冲分</option>
+                <option value="rogue-hardcore">肉鸽硬核</option>
+                <option value="endless-relax">无尽练习</option>
+              </select>
+            </label>
+            <button id="applyWorkshopPreset" type="button" class="secondary">应用预设</button>
+          </div>
+          <div class="controls-group">
+            <button id="genWorkshop" type="button" class="secondary">生成代码</button>
+            <button id="copyWorkshop" type="button" class="secondary">复制代码</button>
+            <button id="applyWorkshop" type="button">应用代码</button>
+          </div>
+          <h3>分享功能</h3>
+          <div class="controls-group">
+            <button id="shareScore" type="button" class="secondary">📤 分享成绩</button>
+            <button id="shareAchievement" type="button" class="secondary">🏆 分享成就</button>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="障碍编辑器">
+          <h2>障碍编辑器（实验）</h2>
+          <p class="tips">每行一个坐标：<code>x,y</code>（范围 0-24），可导出当前障碍布局。</p>
+          <p class="tips" id="mapSummary">地图摘要：--</p>
+          <textarea id="rockEditor" class="workshop-code" rows="4" placeholder="例如：
 12,8
 13,8
 14,8"></textarea>
-        <div class="controls-group">
-          <button id="applyRocks" type="button" class="secondary">应用障碍</button>
-          <button id="exportRocks" type="button" class="secondary">导出当前障碍</button>
-          <button id="genMapCode" type="button" class="secondary">生成地图码</button>
-          <button id="copyMapCode" type="button">复制地图码</button>
-          <button id="applyMapCode" type="button" class="secondary">应用地图码</button>
-          <button id="clearRocks" type="button">清空自定义障碍</button>
-          <button id="genRandomRocks" type="button" class="secondary">🎲 随机障碍</button>
-        </div>
-      </section>
+          <div class="controls-group">
+            <button id="applyRocks" type="button" class="secondary">应用障碍</button>
+            <button id="exportRocks" type="button" class="secondary">导出当前障碍</button>
+            <button id="genMapCode" type="button" class="secondary">生成地图码</button>
+            <button id="copyMapCode" type="button">复制地图码</button>
+            <button id="applyMapCode" type="button" class="secondary">应用地图码</button>
+            <button id="clearRocks" type="button">清空自定义障碍</button>
+            <button id="genRandomRocks" type="button" class="secondary">🎲 随机障碍</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="tab-panel-events" class="tab-panel" role="tabpanel" aria-labelledby="tab-events" data-tab-panel="events" hidden>
+        <section class="panel" id="eventPanel" aria-label="活动挑战包">
+          <h2>活动挑战包</h2>
+          <p class="tips">当前活动：<b id="eventLabel">无活动</b></p>
+          <p class="tips" id="eventSummary">当前无活动加成</p>
+        </section>
+
+        <section class="panel" aria-label="DLC 风险收益对比">
+          <h2>DLC 风险收益对比（阶段 2）</h2>
+          <ul id="dlcCompareList"></ul>
+        </section>
+
+        <section class="panel" aria-label="版本大事件">
+          <h2>版本大事件（最近 8 条）</h2>
+          <div class="controls-group">
+            <button id="jumpToEventPanel" type="button" class="secondary">活动入口：跳转到活动面板</button>
+          </div>
+          <ol id="versionEventsList"></ol>
+        </section>
+      </div>
 
       <section class="panel" id="helpPanel" aria-label="玩法帮助" style="display:none;">
         <h2>玩法帮助</h2>
@@ -284,92 +383,6 @@
         <button data-dir="ArrowRight" aria-label="右">➡️</button>
       </div>
 
-
-      <section class="panel" aria-label="本地排行榜">
-        <h2>排行榜（Top 20，本地/远端）</h2>
-        <p class="tips" id="leaderboardStatus">本地榜：暂无数据</p>
-        <div class="controls-group">
-          <button id="toggleLeaderboardSource" type="button" class="secondary">切换到远端榜</button>
-          <span class="tips" id="leaderboardSourceTag">当前来源：本地榜</span>
-        </div>
-        <div class="controls-group">
-          <label class="label-inline" for="leaderboardDimension">榜单维度
-            <select id="leaderboardDimension">
-              <option value="all" selected>综合榜</option>
-              <option value="classic">经典榜</option>
-              <option value="timed">限时榜</option>
-              <option value="blitz">冲刺榜</option>
-              <option value="endless">无尽榜</option>
-              <option value="roguelike">肉鸽榜</option>
-              <option value="daily">每日挑战榜</option>
-              <option value="dlc-frenzy">DLC-狂热榜</option>
-              <option value="dlc-guardian">DLC-守护榜</option>
-              <option value="dlc-chrono">DLC-时序榜</option>
-            </select>
-          </label>
-        </div>
-        <ol id="leaderboardList"></ol>
-      </section>
-
-
-      <section class="panel" aria-label="赛季信息">
-        <h2>赛季信息</h2>
-        <p class="tips">当前赛季 <b id="seasonId">--</b>，剩余 <b id="seasonRemaining">--</b></p>
-        <p class="tips">赛季最佳：<b id="seasonBest">--</b></p>
-        <p class="tips">赛季奖励预览：<b id="seasonReward">--</b></p>
-        <p class="tips">赛季进度：<b id="seasonProgressText">--</b></p>
-        <div class="season-progress-bar">
-          <div id="seasonProgressFill" class="season-progress-fill"></div>
-        </div>
-        <h3>历史赛季（最近 6 期）</h3>
-        <ol id="seasonHistoryList"></ol>
-      </section>
-
-
-      <section class="panel" id="eventPanel" aria-label="活动挑战包">
-        <h2>活动挑战包</h2>
-        <p class="tips">当前活动：<b id="eventLabel">无活动</b></p>
-        <p class="tips" id="eventSummary">当前无活动加成</p>
-      </section>
-
-      <section class="panel" aria-label="最近战绩">
-        <h2>最近战绩（最近 5 局）</h2>
-        <ol id="historyList"></ol>
-      </section>
-
-      <section class="panel" aria-label="道具图鉴">
-        <h2>道具图鉴（已发现 <b id="codexProgress">0/10</b>）</h2>
-        <ol id="codexList"></ol>
-      </section>
-
-
-
-      <section class="panel" aria-label="对局复盘摘要">
-        <h2>对局复盘摘要（最近一局）</h2>
-        <p class="tips" id="recapSummary">暂无复盘数据</p>
-        <ul id="recapList"></ul>
-        <h3>关键帧时间线</h3>
-        <ol id="recapTimelineList"></ol>
-      </section>
-
-      <section class="panel" aria-label="结算明细">
-        <h2>结算明细（最近一局）</h2>
-        <ul id="settlementList"></ul>
-      </section>
-
-
-      <section class="panel" aria-label="DLC 风险收益对比">
-        <h2>DLC 风险收益对比（阶段 2）</h2>
-        <ul id="dlcCompareList"></ul>
-      </section>
-
-      <section class="panel" aria-label="版本大事件">
-        <h2>版本大事件（最近 8 条）</h2>
-        <div class="controls-group">
-          <button id="jumpToEventPanel" type="button" class="secondary">活动入口：跳转到活动面板</button>
-        </div>
-        <ol id="versionEventsList"></ol>
-      </section>
     </main>
 
     <script src="src/modules/workshop.js"></script>

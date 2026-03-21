@@ -105,6 +105,48 @@ body {
 
 .control-panel { display: grid; gap: 10px; }
 
+.tabs-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid var(--border);
+}
+
+.tab-button {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.82);
+  color: var(--text);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.tab-button:hover,
+.tab-button:focus-visible {
+  border-color: rgba(96, 165, 250, 0.7);
+  outline: none;
+}
+
+.tab-button[aria-selected="true"] {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.28), rgba(96, 165, 250, 0.28));
+  border-color: rgba(52, 211, 153, 0.8);
+  color: #ecfeff;
+  transform: translateY(-1px);
+}
+
+.tab-panel {
+  display: none;
+  gap: 14px;
+}
+
+.tab-panel.is-active {
+  display: grid;
+}
+
 button,
 select,
 input[type="text"],
@@ -208,7 +250,9 @@ body.high-contrast .label-inline,
 body.high-contrast .panel,
 body.high-contrast .board-panel,
 body.high-contrast .control-panel,
-body.high-contrast .topbar {
+body.high-contrast .topbar,
+body.high-contrast .tabs-nav,
+body.high-contrast .tab-button {
   background: #000;
 }
 
@@ -221,6 +265,15 @@ body.high-contrast .topbar {
   .controls-group > * { flex: 1 1 auto; }
   .label-inline { justify-content: space-between; width: 100%; }
   .account-row span { width: 100%; }
+  .tabs-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .tab-button {
+    flex: 1 0 auto;
+    white-space: nowrap;
+  }
 }
 
 @media (min-width: 780px) {

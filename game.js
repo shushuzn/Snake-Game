@@ -77,6 +77,8 @@ const eventLabelEl = document.getElementById('eventLabel');
 const eventSummaryEl = document.getElementById('eventSummary');
 const eventPanelEl = document.getElementById('eventPanel');
 const jumpToEventPanelBtn = document.getElementById('jumpToEventPanel');
+const tabButtons = document.querySelectorAll('[data-tab-target]');
+const tabPanels = document.querySelectorAll('[data-tab-panel]');
 const codexListEl = document.getElementById('codexList');
 const codexProgressEl = document.getElementById('codexProgress');
 const versionEventsListEl = document.getElementById('versionEventsList');
@@ -156,6 +158,7 @@ const leaderboardKey = 'snake-leaderboard-v1';
 const seasonMetaKey = 'snake-season-meta-v1';
 const recapKey = 'snake-recap-v1';
 const guideKey = 'snake-guide-v1';
+const activeTabKey = 'snake-active-tab-v1';
 
 const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate', 'daily-challenge'];
 const validDifficulties = ['140', '110', '80'];
@@ -201,6 +204,74 @@ function isValidDlcPackValue(value) {
 
 function isValidSwipeThresholdValue(value) {
   return ['12', '18', '24', '32'].includes(String(value));
+}
+
+function saveActiveTab(tabName) {
+  try {
+    localStorage.setItem(activeTabKey, tabName);
+  } catch {
+    // Ignore storage write failures to avoid blocking the UI.
+  }
+}
+
+function loadActiveTab() {
+  try {
+    const storedTab = localStorage.getItem(activeTabKey);
+    return Array.from(tabButtons).some((button) => button.dataset.tabTarget === storedTab) ? storedTab : 'game';
+  } catch {
+    return 'game';
+  }
+}
+
+function setActiveTab(tabName, options = {}) {
+  const { focusButton = false } = options;
+  let activatedButton = null;
+
+  tabButtons.forEach((button) => {
+    const isActive = button.dataset.tabTarget === tabName;
+    button.setAttribute('aria-selected', String(isActive));
+    button.tabIndex = isActive ? 0 : -1;
+    if (isActive) activatedButton = button;
+  });
+
+  tabPanels.forEach((panel) => {
+    const isActive = panel.dataset.tabPanel === tabName;
+    panel.classList.toggle('is-active', isActive);
+    panel.hidden = !isActive;
+  });
+
+  if (!activatedButton) return;
+  saveActiveTab(tabName);
+  if (focusButton) activatedButton.focus();
+}
+
+function focusAdjacentTab(currentButton, direction) {
+  const buttons = Array.from(tabButtons);
+  const currentIndex = buttons.indexOf(currentButton);
+  if (currentIndex === -1 || buttons.length === 0) return;
+  const nextIndex = (currentIndex + direction + buttons.length) % buttons.length;
+  const nextButton = buttons[nextIndex];
+  setActiveTab(nextButton.dataset.tabTarget, { focusButton: true });
+}
+
+function initTabs() {
+  if (!tabButtons.length || !tabPanels.length) return;
+
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', () => setActiveTab(button.dataset.tabTarget, { focusButton: false }));
+    button.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        focusAdjacentTab(button, 1);
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        focusAdjacentTab(button, -1);
+      }
+    });
+  });
+
+  setActiveTab(loadActiveTab());
 }
 
 
@@ -3288,7 +3359,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 clearDataBtn.addEventListener('click', () => {
-  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey, guideKey]);
+  storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey, guideKey, activeTabKey]);
   bestScore = 0;
   bestEl.textContent = '0';
   bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
@@ -3319,6 +3390,7 @@ clearDataBtn.addEventListener('click', () => {
   customRocks = [];
   saveCustomRocks();
   saveActiveAccountSnapshot();
+  setActiveTab('game');
   resetGame(true);
 });
 
@@ -3417,9 +3489,12 @@ rockEditorInput?.addEventListener('input', () => {
 });
 
 jumpToEventPanelBtn?.addEventListener('click', () => {
-  eventPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  eventPanelEl?.classList.add('highlight');
-  setTimeout(() => eventPanelEl?.classList.remove('highlight'), 1200);
+  setActiveTab('events');
+  requestAnimationFrame(() => {
+    eventPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    eventPanelEl?.classList.add('highlight');
+    setTimeout(() => eventPanelEl?.classList.remove('highlight'), 1200);
+  });
 });
 
 applyRocksBtn.addEventListener('click', () => {
@@ -3547,6 +3622,7 @@ loadRogueMeta();
   initSkinSelector();
 
 loadLastResult();
+initTabs();
 loadAchievements();
 loadAudioSetting();
 refreshDailyRewardsUI();
