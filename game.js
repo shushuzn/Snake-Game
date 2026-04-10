@@ -616,6 +616,9 @@ const profileRuntime = window.SnakeProfile.createProfileModule({
 // 初始化称号系统
 const titlesRuntime = window.SnakeTitles.createTitlesModule({ storage });
 
+// 初始化成就展示系统
+const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchievementShowcaseModule({ storage });
+
 let discoveredCodex = {};
 let currentSkin = 'classic';
 let dlcPack = 'none';
@@ -1570,6 +1573,377 @@ function dismissTitleNotification() {
   if (!titlesRuntime) return;
   titlesRuntime.clearRecentlyUnlocked();
   renderTitlesList();
+}
+
+function renderAchievementShowcase() {
+  if (!achievementShowcaseRuntime) return;
+
+  const categories = achievementShowcaseRuntime.getCategories();
+  const rarities = achievementShowcaseRuntime.getRarities();
+
+  // Get current stats for progress calculation
+  const currentStats = {
+    bestScore: bestScore,
+    highestCombo: roundMaxCombo,
+    totalGames: totalPlays,
+    totalFoodsEaten: totalFoods,
+    streakWins: streakWins,
+    dailyStreak: dailyStreakCount,
+    endlessLevel: 0,
+    modeBestScores: bestByMode || {},
+    codexDiscovered: Object.keys(discoveredCodex).length
+  };
+
+  const allAchievements = achievementShowcaseRuntime.getAllAchievements(currentStats);
+  const recentlyUnlocked = achievementShowcaseRuntime.getRecentlyUnlocked();
+  const totalCount = achievementShowcaseRuntime.getTotalCount();
+  const unlockedCount = achievementShowcaseRuntime.getUnlockedCount();
+
+  let html = '';
+
+  // Show notification if there's a recently unlocked achievement
+  if (recentlyUnlocked) {
+    const rarity = rarities[recentlyUnlocked.rarity];
+    html += `<div class="achievement-notification" style="background: linear-gradient(135deg, ${rarity.color}dd 0%, ${rarity.color}88 100%);">
+      <span class="achievement-notification-icon">${recentlyUnlocked.icon}</span>
+      <div class="achievement-notification-content">
+        <span class="achievement-notification-title">解锁新成就！</span>
+        <span class="achievement-notification-name"><strong>${recentlyUnlocked.name}</strong></span>
+        <span class="achievement-notification-desc">${recentlyUnlocked.description}</span>
+      </div>
+      <span class="achievement-notification-rarity" style="color: ${rarity.color};">${rarity.icon} ${rarity.name}</span>
+      <button onclick="dismissAchievementNotification()" class="achievement-notification-close">×</button>
+    </div>`;
+  }
+
+  // Achievement stats summary
+  html += `<div class="achievement-summary">
+    <div class="achievement-summary-item">
+      <span class="achievement-summary-value">${unlockedCount}/${totalCount}</span>
+      <span class="achievement-summary-label">已解锁</span>
+    </div>
+    <div class="achievement-summary-item">
+      <span class="achievement-summary-value">${Math.round((unlockedCount / totalCount) * 100)}%</span>
+      <span class="achievement-summary-label">完成度</span>
+    </div>
+  </div>`;
+
+  // Category tabs
+  html += `<div class="achievement-tabs">`;
+  html += `<button class="achievement-tab active" data-category="all">全部</button>`;
+  for (const category of categories) {
+    html += `<button class="achievement-tab" data-category="${category.id}">${category.icon} ${category.name}</button>`;
+  }
+  html += `</div>`;
+
+  // Achievement grid
+  html += `<div class="achievement-grid">`;
+
+  for (const achievement of allAchievements) {
+    const rarity = rarities[achievement.rarity];
+    const isUnlocked = achievement.unlocked;
+
+    let itemClass = 'achievement-item';
+    if (!isUnlocked) itemClass += ' locked';
+    itemClass += ` rarity-${achievement.rarity}`;
+
+    html += `<div class="${itemClass}" data-id="${achievement.id}" title="${achievement.description}">
+      <div class="achievement-icon" style="${isUnlocked ? `text-shadow: 0 0 10px ${rarity.glow};` : ''}">${isUnlocked ? achievement.icon : '?'}</div>
+      <div class="achievement-info">
+        <div class="achievement-name">${isUnlocked ? achievement.name : '???'}</div>
+        <div class="achievement-desc">${achievement.description}</div>
+        <div class="achievement-progress-bar">
+          <div class="achievement-progress-fill" style="width: ${achievement.percentage}%; background: ${rarity.color};"></div>
+        </div>
+        <div class="achievement-progress-text">${achievement.progress}/${achievement.target}</div>
+      </div>
+      <div class="achievement-rarity-badge" style="background: ${rarity.color};">${rarity.icon} ${rarity.name}</div>
+      ${isUnlocked ? '<div class="achievement-unlocked-badge">已解锁</div>' : ''}
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  // Share button
+  html += `<div class="achievement-share-section">
+    <button class="achievement-share-btn" onclick="shareAchievementShowcase()">📤 分享成就进度</button>
+  </div>`;
+
+  // Add CSS if not already present
+  if (!document.getElementById('achievement-showcase-style')) {
+    const style = document.createElement('style');
+    style.id = 'achievement-showcase-style';
+    style.textContent = `
+      .achievement-notification {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        color: white;
+        animation: achievementUnlockAnim 0.5s ease-out;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      }
+      @keyframes achievementUnlockAnim {
+        0% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+        50% { transform: scale(1.05) translateY(0); }
+        100% { transform: scale(1) translateY(0); opacity: 1; }
+      }
+      .achievement-notification-icon { font-size: 32px; }
+      .achievement-notification-content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+      .achievement-notification-title { font-size: 12px; opacity: 0.9; }
+      .achievement-notification-name { font-size: 16px; }
+      .achievement-notification-desc { font-size: 11px; opacity: 0.8; }
+      .achievement-notification-rarity { font-size: 12px; font-weight: bold; }
+      .achievement-notification-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1; }
+      .achievement-notification-close:hover { background: rgba(255,255,255,0.3); }
+
+      .achievement-summary {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .achievement-summary-item {
+        background: rgba(255,255,255,0.1);
+        padding: 12px 20px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .achievement-summary-value { font-size: 24px; font-weight: bold; color: #4CAF50; }
+      .achievement-summary-label { font-size: 12px; color: #888; }
+
+      .achievement-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .achievement-tab {
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 20px;
+        color: #ccc;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+      .achievement-tab:hover { background: rgba(255,255,255,0.15); }
+      .achievement-tab.active { background: rgba(100,200,100,0.2); border-color: #4CAF50; color: #4CAF50; }
+
+      .achievement-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 8px;
+      }
+      .achievement-grid::-webkit-scrollbar { width: 6px; }
+      .achievement-grid::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 3px; }
+      .achievement-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+      .achievement-item {
+        position: relative;
+        background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+      }
+      .achievement-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+      .achievement-item.locked { opacity: 0.5; }
+      .achievement-item.rarity-rare { border-color: rgba(33,150,243,0.4); }
+      .achievement-item.rarity-epic { border-color: rgba(156,39,176,0.4); }
+      .achievement-item.rarity-legendary { border-color: rgba(255,152,0,0.4); box-shadow: 0 0 15px rgba(255,152,0,0.2); }
+
+      .achievement-icon { font-size: 36px; }
+      .achievement-info { width: 100%; text-align: center; }
+      .achievement-name { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+      .achievement-desc { font-size: 11px; color: #888; margin-bottom: 8px; line-height: 1.3; }
+      .achievement-progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+      .achievement-progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+      .achievement-progress-text { font-size: 10px; color: #888; margin-top: 4px; }
+      .achievement-rarity-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; padding: 2px 6px; border-radius: 10px; color: white; }
+      .achievement-unlocked-badge { position: absolute; bottom: 8px; font-size: 10px; color: #4CAF50; }
+
+      .achievement-share-section { margin-top: 16px; text-align: center; }
+      .achievement-share-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+      .achievement-share-btn:hover { opacity: 0.9; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Get or create the showcase panel
+  let showcasePanel = document.getElementById('achievementShowcasePanel');
+  if (!showcasePanel) {
+    showcasePanel = document.createElement('div');
+    showcasePanel.id = 'achievementShowcasePanel';
+    showcasePanel.className = 'achievement-showcase-container';
+    showcasePanel.innerHTML = `
+      <div class="achievement-showcase-backdrop"></div>
+      <div class="achievement-showcase-content">
+        <div class="achievement-showcase-header">
+          <h3>🏆 成就展示</h3>
+          <button class="achievement-showcase-close" aria-label="关闭">×</button>
+        </div>
+        <div class="achievement-showcase-body"></div>
+      </div>
+    `;
+    document.body.appendChild(showcasePanel);
+
+    // Add styles for the panel
+    const panelStyle = document.createElement('style');
+    panelStyle.id = 'achievement-showcase-panel-style';
+    panelStyle.textContent = `
+      .achievement-showcase-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .achievement-showcase-container.active { display: flex; }
+      .achievement-showcase-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+      }
+      .achievement-showcase-content {
+        position: relative;
+        width: 90%;
+        max-width: 700px;
+        max-height: 80vh;
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .achievement-showcase-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        background: rgba(255,255,255,0.05);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+      .achievement-showcase-header h3 { margin: 0; font-size: 18px; color: #fff; }
+      .achievement-showcase-close {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+      }
+      .achievement-showcase-close:hover { background: rgba(255,255,255,0.2); }
+      .achievement-showcase-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .achievement-showcase-body::-webkit-scrollbar { width: 8px; }
+      .achievement-showcase-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+      .achievement-showcase-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+    `;
+    document.head.appendChild(panelStyle);
+
+    // Add event listeners
+    const backdrop = showcasePanel.querySelector('.achievement-showcase-backdrop');
+    const closeBtn = showcasePanel.querySelector('.achievement-showcase-close');
+    backdrop.addEventListener('click', closeAchievementShowcase);
+    closeBtn.addEventListener('click', closeAchievementShowcase);
+
+    // Tab switching
+    showcasePanel.addEventListener('click', (e) => {
+      if (e.target.classList.contains('achievement-tab')) {
+        const category = e.target.dataset.category;
+        showcasePanel.querySelectorAll('.achievement-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+
+        const grid = showcasePanel.querySelector('.achievement-grid');
+        const items = grid.querySelectorAll('.achievement-item');
+        items.forEach(item => {
+          if (category === 'all' || item.dataset.category === category) {
+            item.style.display = 'flex';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      }
+    });
+  }
+
+  showcasePanel.querySelector('.achievement-showcase-body').innerHTML = html;
+  showcasePanel.classList.add('active');
+
+  // Hide the item category from dataset since achievements don't have it stored
+  const items = showcasePanel.querySelectorAll('.achievement-item');
+  items.forEach(item => {
+    const achievement = allAchievements.find(a => a.id === item.dataset.id);
+    if (achievement) {
+      item.dataset.category = achievement.category;
+    }
+  });
+}
+
+function closeAchievementShowcase() {
+  const showcasePanel = document.getElementById('achievementShowcasePanel');
+  if (showcasePanel) {
+    showcasePanel.classList.remove('active');
+  }
+}
+
+function dismissAchievementNotification() {
+  if (!achievementShowcaseRuntime) return;
+  achievementShowcaseRuntime.clearRecentlyUnlocked();
+  const notification = document.querySelector('.achievement-notification');
+  if (notification) {
+    notification.remove();
+  }
+}
+
+function shareAchievementShowcase() {
+  if (!achievementShowcaseRuntime) return;
+
+  const currentStats = {
+    bestScore: bestScore,
+    highestCombo: roundMaxCombo,
+    totalGames: totalPlays,
+    totalFoodsEaten: totalFoods,
+    streakWins: streakWins,
+    dailyStreak: dailyStreakCount
+  };
+
+  const shareText = achievementShowcaseRuntime.generateShareText(currentStats);
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(shareText).then(() => {
+      showOverlay('<p>✅ 成就进度已复制到剪贴板！</p>', 2000);
+    }).catch(() => {
+      showOverlay('<p>❌ 复制失败，请手动复制</p><p>' + shareText + '</p>', 3000);
+    });
+  } else {
+    showOverlay('<p>📋 成就进度</p><pre style="text-align:left;font-size:12px;max-height:200px;overflow:auto;">' + shareText + '</pre>', 4000);
+  }
 }
 
 function checkAndUnlockTitles() {
@@ -3615,6 +3989,15 @@ pauseBtn.addEventListener('click', togglePause);
 
 if (claimDailyBtn) {
   claimDailyBtn.addEventListener('click', handleClaimDaily);
+}
+
+if (achievementsEl) {
+  achievementsEl.style.cursor = 'pointer';
+  achievementsEl.parentElement.style.cursor = 'pointer';
+  achievementsEl.parentElement.addEventListener('click', (e) => {
+    e.stopPropagation();
+    renderAchievementShowcase();
+  });
 }
 
 if (addFriendBtn) {
