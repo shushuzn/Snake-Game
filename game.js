@@ -130,10 +130,12 @@ const recentGamesEl = document.getElementById('recentGames');
 const profileAvatarEl = document.getElementById('profileAvatar');
 const profileNameEl = document.getElementById('profileName');
 const profileLevelEl = document.getElementById('profileLevel');
+const profileTitleEl = document.getElementById('profileTitle');
 const profileNameInput = document.getElementById('profileNameInput');
 const updateProfileNameBtn = document.getElementById('updateProfileName');
 const shareScoreBtn = document.getElementById('shareScore');
 const shareAchievementBtn = document.getElementById('shareAchievement');
+const titlesListEl = document.getElementById('titlesList');
 
 const GAME_VERSION = '1.4.0';
 const gridSize = 20;
@@ -255,6 +257,12 @@ function setActiveTab(tabName, options = {}) {
     panel.hidden = !isActive;
     panel.setAttribute('aria-hidden', String(!isActive));
   });
+
+  // Refresh titles when switching to social tab
+  if (normalizedTabName === 'social') {
+    refreshProfileTitle();
+    renderTitlesList();
+  }
 
   saveActiveTab(normalizedTabName);
   if (ensureVisible) {
@@ -469,18 +477,51 @@ let streakWins = 0;
 let playCountedThisRound = false;
 let muted = false;
 const ACHIEVEMENT_KEYS = [
+  // 分数类成就
   'score200',
-  'combo5',
-  'timedClear',
   'score500',
   'score1000',
+  'score2000',
+  // 连击类成就
+  'combo5',
   'combo10',
+  'combo15',
+  // 限时模式成就
+  'timedClear',
+  // 游戏次数成就
   'games10',
   'games50',
+  'games100',
+  // 每日签到成就
   'dailyStreak7',
   'dailyStreak30',
+  // 每日任务成就
   'firstTask',
-  'allTasks'
+  'allTasks',
+  // 对战类成就 - AI对战
+  'aiBeatEasy',
+  'aiBeatNormal',
+  'aiBeatHard',
+  'aiBeatHell',
+  // 对战类成就 - 多人对战
+  'multiplayerWin2',
+  'multiplayerWin3',
+  'multiplayerWin4',
+  // 对战类成就 - 观战
+  'spectate5',
+  'spectate20',
+  // 收集类成就 - 食物收集
+  'foods100',
+  'foods500',
+  'foods1000',
+  // 收集类成就 - 图鉴收集
+  'codex5',
+  'codex10',
+  'allCodex',
+  // 无尽模式成就
+  'endlessLevel5',
+  'endlessLevel10',
+  'endlessLevel20'
 ];
 
 function createDefaultAchievements() {
@@ -516,6 +557,7 @@ let multiplayerPlayerCount = 2;
 // 观战模式变量
 let spectateController = null;
 let spectateType = 'ai-battle'; // 'ai-battle', 'multiplayer', 'replay'
+let spectateCount = 0; // 观战次数统计
 
 // 皮肤商店模块
 let shopRuntime = null;
@@ -570,6 +612,9 @@ const profileRuntime = window.SnakeProfile.createProfileModule({
   storage, 
   getActiveAccount: () => activeAccount 
 });
+
+// 初始化称号系统
+const titlesRuntime = window.SnakeTitles.createTitlesModule({ storage });
 
 let discoveredCodex = {};
 let currentSkin = 'classic';
@@ -1217,7 +1262,13 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     getLevel: () => level,
     getRemainingTime: () => remainingTime,
     getRoundMaxCombo: () => roundMaxCombo,
-    getGamesPlayed: () => guideRuntime.getGamesPlayed()
+    getGamesPlayed: () => guideRuntime.getGamesPlayed(),
+    getFoodsEaten: () => foodsEaten,
+    getSpectateCount: () => spectateCount,
+    getAIBattleDifficulty: () => aiBattleDifficulty,
+    getMultiplayerPlayerCount: () => multiplayerPlayerCount,
+    getDiscoveredCodexCount: () => Object.values(discoveredCodex).filter(Boolean).length,
+    getTotalCodexCount: () => codexCatalog.length
   },
   stats: {
     getStreak: () => streakWins,
@@ -1225,6 +1276,8 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
       streakWins = value;
       streakEl.textContent = String(streakWins);
     },
+    getFoodsEaten: () => foodsEaten,
+    getSpectateCount: () => spectateCount,
     persist: saveLifetimeStats
   },
   bests: {
@@ -1410,6 +1463,144 @@ function refreshAchievementsText() {
   const keys = Object.keys(achievements);
   const count = keys.filter(k => achievements[k]).length;
   achievementsEl.textContent = `${count}/${keys.length}`;
+}
+
+function refreshProfileTitle() {
+  if (!titlesRuntime || !profileTitleEl) return;
+  const equipped = titlesRuntime.getEquippedTitle();
+  if (equipped) {
+    profileTitleEl.textContent = `${equipped.icon} ${equipped.name}`;
+    profileTitleEl.style.display = 'block';
+  } else {
+    profileTitleEl.textContent = '暂无称号';
+  }
+}
+
+function renderTitlesList() {
+  if (!titlesRuntime || !titlesListEl) return;
+
+  const categories = titlesRuntime.getCategories();
+  const allTitles = titlesRuntime.getAllTitles();
+  const equipped = titlesRuntime.getEquippedTitle();
+  const equippedId = equipped ? equipped.id : null;
+  const recentlyUnlocked = titlesRuntime.getRecentlyUnlocked();
+
+  let html = '';
+
+  // Show notification if there's a recently unlocked title
+  if (recentlyUnlocked) {
+    html += `<div class="title-notification">
+      <span class="title-notification-icon">${recentlyUnlocked.icon}</span>
+      <span>解锁新称号：<strong>${recentlyUnlocked.name}</strong></span>
+      <button onclick="dismissTitleNotification()" class="title-notification-close">×</button>
+    </div>`;
+  }
+
+  html += '<div class="titles-grid">';
+
+  for (const category of categories) {
+    const categoryTitles = allTitles.filter(t => t.category === category.id);
+    if (categoryTitles.length === 0) continue;
+
+    const unlockedCount = categoryTitles.filter(t => t.unlocked).length;
+    html += `<div class="titles-category">
+      <h4>${category.icon} ${category.name} <span class="titles-count">(${unlockedCount}/${categoryTitles.length})</span></h4>
+      <div class="titles-items">`;
+
+    for (const title of categoryTitles) {
+      const isEquipped = title.id === equippedId;
+      const isUnlocked = title.unlocked;
+
+      let itemClass = 'title-item';
+      if (!isUnlocked) itemClass += ' locked';
+      if (isEquipped) itemClass += ' equipped';
+
+      html += `<div class="${itemClass}" data-title-id="${title.id}" title="${title.description}">
+        <span class="title-icon">${isUnlocked ? title.icon : '?'}</span>
+        <span class="title-name">${isUnlocked ? title.name : '???'}</span>
+        ${isEquipped ? '<span class="title-equipped-badge">已装备</span>' : ''}
+        ${isUnlocked && !isEquipped ? `<button class="title-equip-btn" onclick="equipTitle('${title.id}')">装备</button>` : ''}
+      </div>`;
+    }
+
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+
+  // Add CSS for titles if not already present
+  if (!document.getElementById('titles-style')) {
+    const style = document.createElement('style');
+    style.id = 'titles-style';
+    style.textContent = `
+      .titles-grid { display: flex; flex-direction: column; gap: 16px; }
+      .titles-category { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; }
+      .titles-category h4 { margin: 0 0 8px 0; font-size: 14px; }
+      .titles-count { font-weight: normal; color: #888; font-size: 12px; }
+      .titles-items { display: flex; flex-wrap: wrap; gap: 8px; }
+      .title-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 12px; }
+      .title-item.locked { opacity: 0.5; background: rgba(255,255,255,0.05); }
+      .title-item.equipped { background: rgba(100,200,100,0.2); border: 1px solid rgba(100,200,100,0.4); }
+      .title-icon { font-size: 16px; }
+      .title-name { white-space: nowrap; }
+      .title-equipped-badge { background: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px; }
+      .title-equip-btn { background: #2196F3; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; margin-left: 4px; }
+      .title-equip-btn:hover { background: #1976D2; }
+      .title-notification { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+      .title-notification-icon { font-size: 24px; }
+      .title-notification-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; }
+      .profile-title { color: #888; font-size: 12px; margin-top: 4px; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  titlesListEl.innerHTML = html;
+}
+
+function equipTitle(titleId) {
+  if (!titlesRuntime) return;
+  const result = titlesRuntime.equipTitle(titleId);
+  if (result.success) {
+    refreshProfileTitle();
+    renderTitlesList();
+  }
+}
+
+function dismissTitleNotification() {
+  if (!titlesRuntime) return;
+  titlesRuntime.clearRecentlyUnlocked();
+  renderTitlesList();
+}
+
+function checkAndUnlockTitles() {
+  if (!titlesRuntime) return;
+
+  // Get current stats for title checking
+  const stats = {
+    totalGames: totalPlays,
+    bestScore: bestScore,
+    highestCombo: roundMaxCombo,
+    maxSurvivalTime: Math.floor((Date.now() - roundStartTime) / 1000),
+    modeStats: {}
+  };
+
+  // Get mode-specific stats
+  for (const mode of validModes) {
+    stats.modeStats[mode] = {
+      bestScore: bestByMode[mode] || 0
+    };
+  }
+
+  const newlyUnlocked = titlesRuntime.checkAndUnlockTitles(stats);
+
+  if (newlyUnlocked.length > 0) {
+    renderTitlesList();
+    // Show notification for new title
+    const notification = titlesRuntime.getRecentlyUnlocked();
+    if (notification && running && !paused) {
+      showOverlay(`<p><strong>🎉 解锁新称号！</strong></p><p>${notification.icon} ${notification.name}</p><p>${notification.description}</p>`, 2000);
+    }
+  }
 }
 
 function refreshDailyRewardsUI() {
@@ -2862,6 +3053,8 @@ function endGame(reasonText) {
     recordGameStats('loss');
   }
   endgameFlowRuntime.finalize(reasonText);
+  // Check and unlock titles after game ends
+  checkAndUnlockTitles();
 }
 
 function canMagnetCollect(head, pickup, now, range = 2) {

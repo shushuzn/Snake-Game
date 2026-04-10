@@ -219,11 +219,16 @@
             <div class="profile-info">
               <div class="profile-name" id="profileName">玩家</div>
               <div class="profile-level" id="profileLevel">等级 1</div>
+              <div class="profile-title" id="profileTitle">暂无称号</div>
             </div>
           </div>
           <div class="controls-group">
             <input id="profileNameInput" type="text" placeholder="设置显示名称" maxlength="20" />
             <button id="updateProfileName" type="button">更新名称</button>
+          </div>
+          <h3>称号系统</h3>
+          <div id="titlesList" class="titles-list">
+            <p class="tips">加载中...</p>
           </div>
         </section>
       </div>
@@ -421,6 +426,7 @@
     <script src="src/modules/replay.js"></script>
     <script src="src/modules/spectate.js"></script>
     <script src="src/modules/shop.js"></script>
+    <script src="src/modules/titles.js"></script>
     <script src="src/modules/daily_challenge_mode.js"></script>
     <script src="game.js"></script>
   </body>
