@@ -1,0 +1,29 @@
+{
+  "name": "snake-game",
+  "version": "1.0.0",
+  "description": "这是一个**无需构建工具、无需安装依赖**的贪吃蛇网页项目，现已从单文件结构发展为多文件结构。",
+  "main": "game.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shushuzn/Snake-Game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shushuzn/Snake-Game/issues"
+  },
+  "homepage": "https://github.com/shushuzn/Snake-Game#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}
