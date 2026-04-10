@@ -18,6 +18,7 @@
           <span>时间 <b id="time" class="warn">--</b></span>
           <span>关卡 <b id="level">--</b></span>
           <span>最高关 <b id="bestLevel">0</b></span>
+          <span>段位 <b id="levelRankDisplay">🥉 青铜</b></span>
           <span>肉鸽点 <b id="roguePerks">0</b></span>
           <span>词条 <b id="rogueMutator">--</b></span>
           <span>连击 <b id="combo">x1</b></span>
@@ -66,14 +67,22 @@
           <button id="claimDaily" type="button" class="secondary">🎁 签到</button>
           <button id="help" type="button" class="secondary">帮助</button>
           <button id="tutorial" type="button" class="secondary">新手引导</button>
+          <button id="openSkillTree" type="button" class="secondary">🎯 技能树</button>
+          <button id="toggleLevelProgress" type="button" class="secondary">🏆 关卡进度</button>
         </div>
+
+        <!-- 关卡解锁进度区 -->
+        <div id="levelProgressContainer" class="level-progress-container" style="display:none; padding: 8px 12px; margin-bottom: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);"></div>
 
         <div class="controls-group setting-row">
           <label class="label-inline" for="mode">模式
             <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="blitz">冲刺 45 秒</option><option value="endless">无尽关卡</option><option value="roguelike">肉鸽模式</option><option value="ai-battle">AI对战</option><option value="multiplayer">多人对战</option><option value="spectate">观战模式</option><option value="daily-challenge">每日挑战</option></select>
           </label>
           <label class="label-inline" for="difficulty">难度
-            <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option></select>
+            <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option><option value="60">地狱</option></select>
+          </label>
+          <label class="label-inline" for="levelSelect">关卡
+            <select id="levelSelect"><option value="easy">🥉 简单</option></select>
           </label>
           <label class="label-inline" for="skin">皮肤
             <select id="skin"><option value="classic-green" selected>经典绿</option></select>
@@ -379,6 +388,81 @@
         <div class="controls-group"><button id="closeHelp" type="button" class="secondary">关闭帮助</button></div>
       </section>
 
+      <!-- 技能树面板 -->
+      <div id="skillTreePanel" class="skill-tree-container" style="display:none;">
+        <div class="skill-tree-header">
+          <h3>🎯 技能树</h3>
+          <div class="skill-points-badge">
+            <span class="skill-points-icon">💎</span>
+            <span id="skillPointsValue">0</span>
+            <span>技能点</span>
+          </div>
+          <button id="closeSkillTree" type="button" class="secondary">关闭</button>
+        </div>
+        <div id="skillTreeContent" class="skill-tree-body">
+          <div class="skill-section">
+            <h4>主动技能</h4>
+            <div id="activeSkillsList" class="skill-list"></div>
+          </div>
+          <div class="skill-section">
+            <h4>被动技能</h4>
+            <div id="passiveSkillsList" class="skill-list"></div>
+          </div>
+          <div class="skill-tree-actions">
+            <button id="resetSkillTree" type="button" class="secondary">重置技能</button>
+            <span class="skill-hint">每100分获得1技能点</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 召回面板 -->
+      <div id="recallPanel" class="recall-panel" style="display:none;">
+        <div class="recall-backdrop"></div>
+        <div class="recall-content">
+          <div class="recall-header">
+            <h3>🎁 回归奖励</h3>
+            <button id="closeRecall" type="button" class="recall-close" aria-label="关闭">×</button>
+          </div>
+          <div class="recall-body">
+            <div id="recallInactiveInfo" class="recall-inactive-info">
+              <span id="recallInactiveDays">沉寂 1 天</span>
+            </div>
+            <div id="recallRewardSection" class="recall-reward-section">
+              <div class="recall-reward-card" id="recallTierCard">
+                <div class="recall-reward-title" id="recallTierTitle">回归登录奖励</div>
+                <div class="recall-reward-items" id="recallRewardItems">
+                  <div class="recall-reward-item"><span class="recall-reward-icon">🏆</span><span id="recallScoreReward">+50</span> 分数</div>
+                </div>
+                <button id="claimRecallReward" type="button" class="recall-claim-btn">领取奖励</button>
+              </div>
+            </div>
+            <div id="recallStreakSection" class="recall-streak-section">
+              <h4>连续登录奖励</h4>
+              <div class="recall-streak-list">
+                <div class="recall-streak-item" id="recallStreak3">
+                  <div class="recall-streak-info">
+                    <span class="recall-streak-name">连续3天登录</span>
+                    <span class="recall-streak-reward">+100 分数</span>
+                  </div>
+                  <button id="claimStreak3" type="button" class="recall-streak-btn secondary" disabled>未达成</button>
+                </div>
+                <div class="recall-streak-item" id="recallStreak7">
+                  <div class="recall-streak-info">
+                    <span class="recall-streak-name">连续7天登录</span>
+                    <span class="recall-streak-reward">+300 分数 + 1 技能点</span>
+                  </div>
+                  <button id="claimStreak7" type="button" class="recall-streak-btn secondary" disabled>未达成</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="recall-footer">
+            <div id="recallMessage" class="recall-message"></div>
+            <button id="closeRecallBtn" type="button" class="secondary">稍后领取</button>
+          </div>
+        </div>
+      </div>
+
       <div class="mobile-pad" aria-label="移动控制">
         <button class="empty" tabindex="-1"></button>
         <button data-dir="ArrowUp" aria-label="上">⬆️</button>
@@ -386,6 +470,36 @@
         <button data-dir="ArrowLeft" aria-label="左">⬅️</button>
         <button data-dir="ArrowDown" aria-label="下">⬇️</button>
         <button data-dir="ArrowRight" aria-label="右">➡️</button>
+      </div>
+
+      <!-- 新手引导UI元素 -->
+      <div id="guideOverlay" class="guide-overlay" hidden>
+        <div id="guideHighlightMask" class="guide-highlight-mask"></div>
+        <div id="guideArrow" class="guide-arrow" hidden>
+          <span id="guideArrowText"></span>
+          <div class="guide-arrow-pointer"></div>
+        </div>
+      </div>
+      <div id="guidePanel" class="guide-panel" hidden>
+        <div class="guide-header">
+          <span id="guideIcon" class="guide-icon">🎮</span>
+          <span id="guideTitle" class="guide-title">基础操作</span>
+          <span id="guideProgress" class="guide-progress">0%</span>
+        </div>
+        <div id="guideProgressBar" class="guide-progress-bar">
+          <div id="guideProgressFill" class="guide-progress-fill" style="width: 0%"></div>
+        </div>
+        <p id="guideIntro" class="guide-intro">学习游戏基本操作</p>
+        <div id="guideTasks" class="guide-tasks"></div>
+        <div class="guide-actions">
+          <button id="guideSkipBtn" type="button" class="guide-skip-btn">跳过引导</button>
+        </div>
+      </div>
+      <div id="guideReward" class="guide-reward" hidden>
+        <div class="guide-reward-content">
+          <span class="guide-reward-icon">🎁</span>
+          <span id="guideRewardText" class="guide-reward-text">奖励：+100分</span>
+        </div>
       </div>
 
     </main>
@@ -414,6 +528,7 @@
     <script src="src/modules/render.js"></script>
     <script src="src/modules/settlement.js"></script>
     <script src="src/modules/guide.js"></script>
+    <script src="src/modules/skill_tree.js"></script>
     <script src="src/modules/daily_rewards.js"></script>
     <script src="src/modules/daily_tasks.js"></script>
     <script src="src/modules/friends.js"></script>
@@ -428,6 +543,9 @@
     <script src="src/modules/shop.js"></script>
     <script src="src/modules/titles.js"></script>
     <script src="src/modules/daily_challenge_mode.js"></script>
+    <script src="src/modules/recall.js"></script>
+    <script src="src/modules/level_unlock.js"></script>
+    <script src="src/modules/first_milestone.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

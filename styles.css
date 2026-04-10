@@ -853,3 +853,771 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+/* ===== 新手引导UI样式 ===== */
+
+/* 引导遮罩层 */
+.guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.guide-highlight-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+/* 引导箭头 */
+.guide-arrow {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+  z-index: 1001;
+  animation: guide-arrow-bounce 1s ease-in-out infinite;
+}
+
+.guide-arrow-pointer {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 12px solid #fbbf24;
+}
+
+.guide-arrow.down .guide-arrow-pointer {
+  border-top: none;
+  border-bottom: 12px solid #fbbf24;
+}
+
+.guide-arrow.left .guide-arrow-pointer {
+  transform: rotate(-90deg);
+}
+
+.guide-arrow.right .guide-arrow-pointer {
+  transform: rotate(90deg);
+}
+
+.guide-arrow-text {
+  background: #fbbf24;
+  color: #1e1b4b;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+}
+
+@keyframes guide-arrow-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 引导面板 */
+.guide-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.guide-icon {
+  font-size: 1.4rem;
+}
+
+.guide-title {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.guide-progress {
+  font-size: 0.85rem;
+  color: #34d399;
+  font-weight: 600;
+}
+
+.guide-progress-bar {
+  height: 6px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.guide-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #10b981);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.guide-intro {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.guide-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.guide-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(2, 6, 23, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.guide-task.completed {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.guide-task.in-progress {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.guide-task-check {
+  font-size: 1rem;
+}
+
+.guide-task-desc {
+  flex: 1;
+  color: #e2e8f0;
+}
+
+.guide-task-progress {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.guide-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.guide-skip-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #94a3b8;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guide-skip-btn:hover {
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #e2e8f0;
+}
+
+/* 引导奖励提示 */
+.guide-reward {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1002;
+  animation: guide-reward-pop 0.4s ease-out;
+}
+
+.guide-reward-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(16, 185, 129, 0.2));
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  padding: 12px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.3);
+}
+
+.guide-reward-icon {
+  font-size: 1.4rem;
+}
+
+.guide-reward-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #34d399;
+}
+
+@keyframes guide-reward-pop {
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  70% { transform: translateX(-50%) scale(1.1); }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* 技能树面板样式 */
+.skill-tree-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 380px;
+  max-width: 500px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.skill-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-tree-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.skill-points-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.skill-points-icon {
+  font-size: 1rem;
+}
+
+#skillPointsValue {
+  font-weight: 700;
+  color: #34d399;
+  font-size: 1.1rem;
+}
+
+.skill-tree-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.skill-section {
+  margin-bottom: 16px;
+}
+
+.skill-section h4 {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.skill-item.locked {
+  opacity: 0.6;
+}
+
+.skill-item.unlocked {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.skill-item.on-cooldown {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.skill-icon {
+  font-size: 1.8rem;
+  width: 40px;
+  text-align: center;
+}
+
+.skill-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.skill-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.skill-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.skill-level {
+  font-size: 0.85rem;
+  color: #fbbf24;
+  letter-spacing: 1px;
+}
+
+.skill-cooldown {
+  font-size: 0.75rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.skill-action-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #070b14;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.skill-action-btn:hover:not(:disabled) {
+  background: #6ee7b7;
+  transform: translateY(-1px);
+}
+
+.skill-action-btn:disabled {
+  background: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.skill-tree-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.skill-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* 召回面板样式 */
+.recall-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: recallFadeIn 0.3s ease;
+}
+
+.recall-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 11, 20, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.recall-content {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(420px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: recallSlideUp 0.3s ease;
+}
+
+.recall-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.recall-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fbbf24;
+}
+
+.recall-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.recall-close:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.recall-body {
+  padding: 20px;
+}
+
+.recall-inactive-info {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+#recallInactiveDays {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid #fbbf24;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.recall-reward-section {
+  margin-bottom: 20px;
+}
+
+.recall-reward-card {
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.recall-reward-title {
+  font-size: 0.95rem;
+  color: #93c5fd;
+  margin-bottom: 12px;
+}
+
+.recall-reward-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.recall-reward-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #86efac;
+}
+
+.recall-reward-icon {
+  font-size: 1rem;
+}
+
+.recall-claim-btn {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #032015;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recall-claim-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.recall-claim-btn:disabled {
+  background: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.recall-streak-section h4 {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.recall-streak-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recall-streak-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(2, 6, 23, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.recall-streak-item.claimed {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.recall-streak-item.claimed .recall-streak-name {
+  color: #10b981;
+}
+
+.recall-streak-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recall-streak-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.recall-streak-reward {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.recall-streak-btn {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.recall-streak-btn:disabled {
+  background: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.recall-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.recall-message {
+  font-size: 0.85rem;
+  color: #86efac;
+  text-align: center;
+  min-height: 20px;
+}
+
+.recall-message.error {
+  color: #f87171;
+}
+
+.recall-message.success {
+  color: #86efac;
+  animation: recallRewardPop 0.4s ease;
+}
+
+@keyframes recallFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes recallSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes recallRewardPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+  .guide-panel {
+    width: calc(100% - 20px);
+    right: 10px;
+    bottom: 80px;
+  }
+}
+
+/* 关卡解锁进度条样式 */
+.level-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.level-progress-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+.level-progress-item.unlocked {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.level-progress-item.locked {
+  opacity: 0.75;
+}
+
+.level-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.level-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.level-rank {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.level-best {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.level-progress-bar-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.level-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 100%);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.level-progress-item.unlocked .level-progress-bar-fill {
+  background: linear-gradient(90deg, #34d399 0%, #60a5fa 100%);
+}
+
+.level-progress-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.level-req {
+  color: var(--muted);
+}
+
+.level-status.unlocked {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.level-status.locked {
+  color: #f87171;
+}
+
+#levelUnlockAnim {
+  animation: levelUnlockPop 0.4s ease-out;
+}
+
+@keyframes levelUnlockPop {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  70% { transform: translate(-50%, -50%) scale(1.1); }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
