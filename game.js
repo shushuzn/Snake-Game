@@ -363,7 +363,29 @@ let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
 let muted = false;
-let achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false, dailyStreak7: false, dailyStreak30: false, firstTask: false, allTasks: false };
+const ACHIEVEMENT_KEYS = [
+  'score200',
+  'combo5',
+  'timedClear',
+  'score500',
+  'score1000',
+  'combo10',
+  'games10',
+  'games50',
+  'dailyStreak7',
+  'dailyStreak30',
+  'firstTask',
+  'allTasks'
+];
+
+function createDefaultAchievements() {
+  return ACHIEVEMENT_KEYS.reduce((acc, key) => {
+    acc[key] = false;
+    return acc;
+  }, {});
+}
+
+let achievements = createDefaultAchievements();
 let roundMaxCombo = 1;
 let roundFoodsEaten = 0;
 let roundKeyframes = [];
@@ -1267,14 +1289,10 @@ function refreshLastResultText() {
 
 function loadAchievements() {
   const parsed = storage.readJson(achievementsKey, {});
-  achievements.score200 = Boolean(parsed.score200);
-  achievements.combo5 = Boolean(parsed.combo5);
-  achievements.timedClear = Boolean(parsed.timedClear);
-  achievements.score500 = Boolean(parsed.score500);
-  achievements.score1000 = Boolean(parsed.score1000);
-  achievements.combo10 = Boolean(parsed.combo10);
-  achievements.games10 = Boolean(parsed.games10);
-  achievements.games50 = Boolean(parsed.games50);
+  achievements = createDefaultAchievements();
+  ACHIEVEMENT_KEYS.forEach((key) => {
+    achievements[key] = Boolean(parsed[key]);
+  });
   refreshAchievementsText();
 }
 
@@ -1821,7 +1839,7 @@ function handleClaimDaily() {
 }
 
 function unlockAchievement(key, label) {
-  if (achievements[key]) return;
+  if (!Object.prototype.hasOwnProperty.call(achievements, key) || achievements[key]) return;
   achievements[key] = true;
   saveAchievements();
   refreshAchievementsText();
@@ -3301,7 +3319,7 @@ clearDataBtn.addEventListener('click', () => {
   foodsEl.textContent = '0';
   playsEl.textContent = '0';
   streakEl.textContent = '0';
-  achievements = { score200: false, combo5: false, timedClear: false, score500: false, score1000: false, combo10: false, games10: false, games50: false };
+  achievements = createDefaultAchievements();
   refreshAchievementsText();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
