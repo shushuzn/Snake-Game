@@ -1603,6 +1603,105 @@ function checkAndUnlockTitles() {
   }
 }
 
+/**
+ * 根据速度值获取对应的关卡 ID
+ * @param {number} speed - 游戏速度（ms/帧）
+ * @returns {string} levelId
+ */
+function getLevelIdBySpeed(speed) {
+  const mapping = [
+    { speed: 140, levelId: 'easy' },
+    { speed: 110, levelId: 'normal' },
+    { speed: 80, levelId: 'hard' },
+    { speed: 60, levelId: 'hell' }
+  ];
+  const found = mapping.find(m => m.speed === speed);
+  return found ? found.levelId : 'easy';
+}
+
+/**
+ * 游戏结束后检查并解锁新的难度等级
+ */
+function checkAndUnlockLevel() {
+  if (!window.SnakeLevelUnlock) return;
+
+  const currentSpeed = baseSpeed;
+  const levelId = getLevelIdBySpeed(currentSpeed);
+  const currentScore = score;
+
+  // 检查并更新解锁状态
+  const newlyUnlocked = SnakeLevelUnlock.checkAndUnlock(storage, levelId, currentScore);
+
+  // 刷新 UI
+  SnakeLevelUnlock.refreshAll(storage);
+
+  // 如果有新解锁的难度，播放动画
+  if (newlyUnlocked.length > 0 && running) {
+    const newLevel = newlyUnlocked[0];
+    SnakeLevelUnlock.playUnlockAnimation();
+    // 显示解锁提示（延迟一点，等结算动画过去）
+    setTimeout(() => {
+      if (running) {
+        showOverlay(`<p><strong>🎉 新难度解锁！</strong></p><p>${newLevel.rankIcon} ${newLevel.label}（${newLevel.rank}）已解锁</p><p>最高速度：${newLevel.speed}ms/帧</p>`, 3000);
+      }
+    }, 800);
+  }
+}
+
+/**
+ * 初始化关卡解锁系统（页面加载时调用）
+ */
+function initLevelUnlockSystem() {
+  if (!window.SnakeLevelUnlock) return;
+
+  const levelSelect = document.getElementById('levelSelect');
+  const rankDisplay = document.getElementById('levelRankDisplay');
+  const progressContainer = document.getElementById('levelProgressContainer');
+
+  SnakeLevelUnlock.init({
+    store: storage,
+    levelSelect: levelSelect,
+    rankDisplay: rankDisplay,
+    progressContainer: progressContainer
+  });
+
+  // 绑定进度条显示/隐藏按钮
+  const toggleBtn = document.getElementById('toggleLevelProgress');
+  if (toggleBtn && progressContainer) {
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = progressContainer.style.display === 'none';
+      progressContainer.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) {
+        SnakeLevelUnlock.refreshProgressBars(storage);
+      }
+    });
+  }
+}
+
+/**
+ * 当难度选择改变时，同步更新关卡选中状态
+ */
+function syncLevelWithDifficulty() {
+  if (!window.SnakeLevelUnlock) return;
+  const levelId = getLevelIdBySpeed(baseSpeed);
+  // 如果当前 levelId 未解锁，则强制切换回已解锁的
+  if (!SnakeLevelUnlock.isLevelUnlocked(storage, levelId)) {
+    const selectedId = SnakeLevelUnlock.getSelectedLevelId(storage);
+    const selectedSpeed = SnakeLevelUnlock.getSpeedForLevel(selectedId);
+    baseSpeed = selectedSpeed;
+    // 同步到 difficulty select
+    const diffSelect = document.getElementById('difficulty');
+    if (diffSelect) {
+      for (let i = 0; i < diffSelect.options.length; i++) {
+        if (Number(diffSelect.options[i].value) === selectedSpeed) {
+          diffSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  }
+}
+
 function refreshDailyRewardsUI() {
   if (!dailyRewardsRuntime || !dailyStreakEl || !playerLevelEl) return;
   
@@ -2552,6 +2651,11 @@ function handleAIBattleGameOver(result) {
 
   // 记录战绩
   recordAIBattleResult(result);
+
+  // 检查首次击败AI里程碑
+  if (playerWon && window.SnakeFirstMilestone) {
+    window.SnakeFirstMilestone.checkBeatAIMilestone((reward) => addScore(reward, 'beatAIMilestone'));
+  }
 }
 
 // AI对战分数更新
@@ -3055,6 +3159,14 @@ function endGame(reasonText) {
   endgameFlowRuntime.finalize(reasonText);
   // Check and unlock titles after game ends
   checkAndUnlockTitles();
+  // Check and unlock levels after game ends
+  checkAndUnlockLevel();
+  // 检查首次通关所有模式里程碑
+  if (window.SnakeFirstMilestone) {
+    const allModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
+    const completedModes = allModes.filter(m => (bestByMode[m] || 0) > 0);
+    window.SnakeFirstMilestone.checkAllModesMilestone(completedModes, (reward) => addScore(reward, 'allModesMilestone'));
+  }
 }
 
 function canMagnetCollect(head, pickup, now, range = 2) {
@@ -3187,6 +3299,10 @@ function update() {
     }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
+    // 检查首次吃食物里程碑
+    if (window.SnakeFirstMilestone) {
+      window.SnakeFirstMilestone.checkFoodsMilestone(foodsEaten, (reward) => addScore(reward, 'foodsMilestone'));
+    }
     food = randomFoodPosition();
     itemSpawnRuntime.spawnOnFoodEat(now);
     discoverCodex('food', '基础果');
@@ -3204,6 +3320,10 @@ function update() {
     }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
+    // 检查首次吃食物里程碑
+    if (window.SnakeFirstMilestone) {
+      window.SnakeFirstMilestone.checkFoodsMilestone(foodsEaten, (reward) => addScore(reward, 'foodsMilestone'));
+    }
     bonusFood = null;
     discoverCodex('bonus', '奖励果');
     beep('bonus');
@@ -3347,6 +3467,10 @@ function update() {
     const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
     combo = eatDelta <= comboWindow ? Math.min(combo + 1, 9) : 1;
     roundMaxCombo = Math.max(roundMaxCombo, combo);
+    // 检查首次连击里程碑
+    if (window.SnakeFirstMilestone) {
+      window.SnakeFirstMilestone.checkComboMilestone(roundMaxCombo, (reward) => addScore(reward, 'comboMilestone'));
+    }
     // Update achieveCombo daily task progress
     if (dailyTasksRuntime) {
       const result = dailyTasksRuntime.updateTaskProgressByType('achieveCombo', combo);
@@ -3879,6 +4003,7 @@ refreshStatisticsUI();
 refreshProfileUI();
 loadBestByMode();
 loadSettings();
+initLevelUnlockSystem();
 renderDlcComparePanel();
 loadCustomRocks();
 refreshMapSummary(customRocks);
