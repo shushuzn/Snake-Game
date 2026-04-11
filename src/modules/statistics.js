@@ -157,6 +157,40 @@ window.SnakeStatistics = (() => {
     return trend;
   }
 
+  function getAchievementStats(storage) {
+    // Get achievement data from achievements storage
+    const achievementData = storage.readJson('snake-achievements-data', null);
+    const ACHIEVEMENT_KEYS = [
+      'score200', 'score500', 'score1000', 'score2000',
+      'combo5', 'combo10', 'combo15',
+      'timedClear',
+      'aiBeatEasy', 'aiBeatNormal', 'aiBeatHard', 'aiBeatHell',
+      'multiplayerWin2', 'multiplayerWin3', 'multiplayerWin4',
+      'spectate5', 'spectate20',
+      'foods100', 'foods500', 'foods1000',
+      'codex5', 'codex10', 'allCodex',
+      'games10', 'games50', 'games100',
+      'dailyStreak7', 'dailyStreak30',
+      'firstTask', 'allTasks',
+      'endlessLevel5', 'endlessLevel10', 'endlessLevel20'
+    ];
+    
+    let unlockedCount = 0;
+    if (achievementData) {
+      unlockedCount = Object.values(achievementData).filter(Boolean).length;
+    }
+    
+    const totalCount = ACHIEVEMENT_KEYS.length;
+    const completionRate = totalCount > 0 ? (unlockedCount / totalCount * 100).toFixed(1) : 0;
+    
+    return {
+      total: totalCount,
+      unlocked: unlockedCount,
+      completionRate: completionRate,
+      locked: totalCount - unlockedCount
+    };
+  }
+
   function getRecentGames(storage, limit = 10) {
     const stats = loadStats(storage);
     return stats.recentGames.slice(0, limit);
@@ -195,6 +229,7 @@ window.SnakeStatistics = (() => {
       getBestTimeOfDay: () => getBestTimeOfDay(storage),
       getScoreTrend: (days) => getScoreTrend(storage, days),
       getRecentGames: (limit) => getRecentGames(storage, limit),
+      getAchievementStats: () => getAchievementStats(storage),
       clearStats: () => clearStats(storage)
     };
   }

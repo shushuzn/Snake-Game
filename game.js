@@ -125,6 +125,7 @@ const statAvgScoreEl = document.getElementById('statAvgScore');
 const statBestScoreEl = document.getElementById('statBestScore');
 const statHighestComboEl = document.getElementById('statHighestCombo');
 const statPlayTimeEl = document.getElementById('statPlayTime');
+const statAchievementRateEl = document.getElementById('statAchievementRate');
 const modeStatsEl = document.getElementById('modeStats');
 const recentGamesEl = document.getElementById('recentGames');
 const profileAvatarEl = document.getElementById('profileAvatar');
@@ -2428,6 +2429,12 @@ function refreshStatisticsUI() {
   if (statBestScoreEl) statBestScoreEl.textContent = overall.bestScore;
   if (statHighestComboEl) statHighestComboEl.textContent = overall.highestCombo;
   if (statPlayTimeEl) statPlayTimeEl.textContent = overall.totalPlayTime;
+  
+  // Achievement stats
+  const achievementStats = statisticsRuntime.getAchievementStats();
+  if (statAchievementRateEl) {
+    statAchievementRateEl.textContent = achievementStats.unlocked + '/' + achievementStats.total;
+  }
   
   // Mode stats
   const modeStats = statisticsRuntime.getModeStats();

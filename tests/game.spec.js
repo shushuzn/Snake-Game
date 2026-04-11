@@ -58,3 +58,20 @@ test.describe('Snake Game E2E Tests', () => {
     await expect(shopButton).toBeVisible();
   });
 });
+
+
+  test('achievement stats element exists with correct data', async ({ page }) => {
+    await page.goto('index.html');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Check statAchievementRate element exists in DOM
+    const achievementRateEl = page.locator('#statAchievementRate');
+    await expect(achievementRateEl).toHaveCount(1);
+    
+    // It should show format like "0/33" (unlocked/total)
+    const text = await achievementRateEl.textContent();
+    expect(text).toMatch(/^\d+\/\d+$/);
+    
+    // Should show 0/33 (0 unlocked out of 33 total for fresh game)
+    expect(text).toBe('0/33');
+  });
