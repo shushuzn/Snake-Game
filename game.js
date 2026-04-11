@@ -4821,6 +4821,7 @@ refreshMapSummary(customRocks);
 currentSkin = skinSelect.value;
 mode = modeSelect.value;
 updateLevelText();
+updateModeTrialUI();
 baseSpeed = Number(difficultySelect.value);
 refreshModeBestText();
 maybeShowOnboarding();
