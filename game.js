@@ -524,6 +524,9 @@ const ACHIEVEMENT_KEYS = [
   'endlessLevel20'
 ];
 
+// Expose ACHIEVEMENT_KEYS for achievement showcase module
+window.ACHIEVEMENT_KEYS = ACHIEVEMENT_KEYS;
+
 function createDefaultAchievements() {
   return ACHIEVEMENT_KEYS.reduce((acc, key) => {
     acc[key] = false;
@@ -1586,9 +1589,9 @@ function renderAchievementShowcase() {
     bestScore: bestScore,
     highestCombo: roundMaxCombo,
     totalGames: totalPlays,
-    totalFoodsEaten: totalFoods,
+    totalFoodsEaten: foodsEaten,
     streakWins: streakWins,
-    dailyStreak: dailyStreakCount,
+    dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0,
     endlessLevel: 0,
     modeBestScores: bestByMode || {},
     codexDiscovered: Object.keys(discoveredCodex).length
@@ -1904,9 +1907,9 @@ function shareAchievementShowcase() {
     bestScore: bestScore,
     highestCombo: roundMaxCombo,
     totalGames: totalPlays,
-    totalFoodsEaten: totalFoods,
+    totalFoodsEaten: foodsEaten,
     streakWins: streakWins,
-    dailyStreak: dailyStreakCount
+    dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
   };
 
   const shareText = achievementShowcaseRuntime.generateShareText(achievements, currentStats);
