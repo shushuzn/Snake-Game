@@ -150,6 +150,8 @@ const detailTitleEl = document.getElementById('detailTitle');
 const detailDescriptionEl = document.getElementById('detailDescription');
 const detailProgressEl = document.getElementById('detailProgress');
 const detailTipsEl = document.getElementById('detailTips');
+const achievementSearchInput = document.getElementById('achievementSearchInput');
+const achievementSortSelect = document.getElementById('achievementSortSelect');
 const modeStatsEl = document.getElementById('modeStats');
 const recentGamesEl = document.getElementById('recentGames');
 const profileAvatarEl = document.getElementById('profileAvatar');
@@ -1809,6 +1811,15 @@ function renderAchievementShowcase() {
           <h3>🏆 成就展示</h3>
           <button class="achievement-showcase-close" aria-label="关闭">×</button>
         </div>
+        <div class="achievement-showcase-toolbar" style="display:flex; gap:8px; padding:10px; border-bottom:1px solid #333;">
+          <input type="text" id="achievementSearchInput" placeholder="搜索成就..." style="flex:1; padding:6px 10px; border-radius:6px; border:1px solid #444; background:#1a1a2e; color:#fff;">
+          <select id="achievementSortSelect" style="padding:6px 10px; border-radius:6px; border:1px solid #444; background:#1a1a2e; color:#fff;">
+            <option value="progress">按进度</option>
+            <option value="name">按名称</option>
+            <option value="category">按分类</option>
+            <option value="difficulty">按难度</option>
+          </select>
+        </div>
         <div class="achievement-showcase-body"></div>
       </div>
     `;
@@ -1912,6 +1923,9 @@ function renderAchievementShowcase() {
   showcasePanel.querySelector('.achievement-showcase-body').innerHTML = html;
   showcasePanel.classList.add('active');
 
+  // Setup search and sort handlers
+  setupAchievementSearchSort();
+
   // Hide the item category from dataset since achievements don't have it stored
   const items = showcasePanel.querySelectorAll('.achievement-item');
   items.forEach(item => {
@@ -1926,6 +1940,75 @@ function closeAchievementShowcase() {
   const showcasePanel = document.getElementById('achievementShowcasePanel');
   if (showcasePanel) {
     showcasePanel.classList.remove('active');
+  }
+}
+
+// Achievement search and sort handlers
+function setupAchievementSearchSort() {
+  const searchInput = document.getElementById('achievementSearchInput');
+  const sortSelect = document.getElementById('achievementSortSelect');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value;
+      if (achievementShowcaseRuntime) {
+        const searchModule = window.SnakeAchievementSearch?.createAchievementSearchModule?.({ storage });
+        if (searchModule) {
+          const filtered = searchModule.searchAchievements(query);
+          const sortBy = sortSelect?.value || 'progress';
+          const sorted = searchModule.sortAchievements(filtered, sortBy);
+          // Re-render with filtered results - trigger showcase update
+          const showcasePanel = document.getElementById('achievementShowcasePanel');
+          if (showcasePanel && showcasePanel.classList.contains('active')) {
+            // Update body content
+            const body = showcasePanel.querySelector('.achievement-showcase-body');
+            if (body && window.achievementShowcaseRuntime) {
+              const currentStats = {
+                bestScore: bestScore,
+                highestCombo: roundMaxCombo,
+                totalGames: totalPlays,
+                totalFoodsEaten: foodsEaten,
+                streakWins: streakWins,
+                dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
+              };
+              const items = achievementShowcaseRuntime.renderAchievementItems(sorted, currentStats);
+              body.innerHTML = items;
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      const sortBy = e.target.value;
+      if (achievementShowcaseRuntime) {
+        const searchModule = window.SnakeAchievementSearch?.createAchievementSearchModule?.({ storage });
+        if (searchModule) {
+          const query = searchInput?.value || '';
+          let filtered = searchModule.searchAchievements(query);
+          const sorted = searchModule.sortAchievements(filtered, sortBy);
+          // Re-render
+          const showcasePanel = document.getElementById('achievementShowcasePanel');
+          if (showcasePanel && showcasePanel.classList.contains('active')) {
+            const body = showcasePanel.querySelector('.achievement-showcase-body');
+            if (body && window.achievementShowcaseRuntime) {
+              const currentStats = {
+                bestScore: bestScore,
+                highestCombo: roundMaxCombo,
+                totalGames: totalPlays,
+                totalFoodsEaten: foodsEaten,
+                streakWins: streakWins,
+                dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
+              };
+              const items = achievementShowcaseRuntime.renderAchievementItems(sorted, currentStats);
+              body.innerHTML = items;
+            }
+          }
+        }
+      }
+    });
   }
 }
 
