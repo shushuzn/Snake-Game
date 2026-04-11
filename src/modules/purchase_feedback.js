@@ -1,17 +1,22 @@
 /**
- * 购买反馈系统 v1.18.0
+ * 购买反馈系统 v1.21.0 (优化版)
  * 
  * 规范遵循:
  * - 统一返回类型: { success, data/error }
  * - 公开函数不超过 5 个
+ * 
+ * 改进:
+ * - 使用 CSS 类而非内联样式
+ * - 复用 achievement_toast 的全局样式
  */
 (function() {
   'use strict';
 
+  const TOAST_DURATION = 3000;
+  const STORAGE_KEY = 'purchaseHistory';
+
   function createPurchaseFeedbackModule({ storage }) {
     if (!storage) return null;
-
-    const TOAST_DURATION = 3000;
 
     // 私有: 创建 toast 元素
     function createToast(content) {
@@ -30,7 +35,7 @@
     // 公开: 获取数据 (主入口)
     function getData() {
       try {
-        const purchaseHistory = storage.get('purchaseHistory') || [];
+        const purchaseHistory = storage.get(STORAGE_KEY) || [];
         return {
           success: true,
           data: {
@@ -51,22 +56,22 @@
         const icon = icons[itemType] || '🎁';
 
         const content = `
-          <div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border:2px solid #22c55e; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.4); min-width:220px; animation:slideIn 0.3s ease-out;">
-            <div style="font-size:28px;">${icon}</div>
-            <div style="flex:1;">
-              <div style="color:#22c55e; font-weight:bold; font-size:13px;">购买成功</div>
-              <div style="color:#fff; font-size:14px;">${itemName}</div>
+          <div class="toast-inner toast-purchase">
+            <div class="toast-icon">${icon}</div>
+            <div class="toast-content">
+              <div class="toast-title">购买成功</div>
+              <div class="toast-name">${itemName}</div>
             </div>
-            <div style="color:#ffd700; font-size:14px;">-${cost}金币</div>
+            <div class="toast-reward">-${cost}金币</div>
           </div>
         `;
 
         createToast(content);
 
         // Save to history
-        const history = storage.get('purchaseHistory') || [];
+        const history = storage.get(STORAGE_KEY) || [];
         history.push({ itemName, cost, itemType, timestamp: Date.now() });
-        storage.set('purchaseHistory', history.slice(-50));
+        storage.set(STORAGE_KEY, history.slice(-50));
 
         return { success: true, result: { purchased: true } };
       } catch (e) {
