@@ -103,6 +103,7 @@ const recapTimelineListEl = document.getElementById('recapTimelineList');
 const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const openShopBtn = document.getElementById('openShop');
+const showPurchaseHistoryBtn = document.getElementById('showPurchaseHistory');
 const dlcPackSelect = document.getElementById('dlcPack');
 const modeSelect = document.getElementById('mode');
 const modeTrialContainer = document.getElementById('modeTrialContainer');
@@ -4847,6 +4848,45 @@ skinSelect.addEventListener('change', () => {
 // 商店按钮
 if (openShopBtn) {
   openShopBtn.addEventListener('click', openSkinShop);
+}
+
+// 购买历史按钮
+if (showPurchaseHistoryBtn) {
+  showPurchaseHistoryBtn.addEventListener('click', () => {
+    if (window.SnakePurchaseFeedback) {
+      const feedback = SnakePurchaseFeedback.createPurchaseFeedbackModule({ storage });
+      const { data } = feedback.getData();
+
+      let html = `
+        <div style="padding:15px; color:#fff; min-width:250px;">
+          <h4 style="margin:0 0 15px; color:#f59e0b;">📦 购买历史</h4>
+      `;
+
+      if (data.recentPurchases.length === 0) {
+        html += `<p style="color:#9ca3af;">暂无购买记录</p>`;
+      } else {
+        data.recentPurchases.slice().reverse().forEach(p => {
+          const date = new Date(p.timestamp).toLocaleDateString();
+          const icons = { skin: '👕', boost: '⚡', unlock: '🔓', other: '🎁' };
+          const icon = icons[p.itemType] || '🎁';
+          html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:#0f0f1a; border-radius:6px; margin-bottom:6px;">
+              <span>${icon} ${p.itemName}</span>
+              <span style="color:#ffd700;">-${p.cost}</span>
+            </div>
+          `;
+        });
+      }
+
+      html += `
+        <p style="color:#9ca3af; margin-top:15px; font-size:12px;">总计: ${data.totalSpent} 金币</p>
+        <button onclick="this.closest('.overlay-content').parentElement.style.display='none'" style="margin-top:10px; padding:8px 16px; border-radius:6px; border:none; background:#444; color:#fff; cursor:pointer; width:100%;">关闭</button>
+      `;
+      html += `</div>`;
+
+      showOverlay(html, 10000);
+    }
+  });
 }
 
 dlcPackSelect.addEventListener('change', () => {
