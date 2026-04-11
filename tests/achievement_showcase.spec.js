@@ -13,6 +13,12 @@ test.describe('Achievement Showcase Tests', () => {
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
 
+    // Hide recall panel if it appears
+    await page.evaluate(() => {
+      const panel = document.getElementById('recallPanel');
+      if (panel) panel.style.display = 'none';
+    });
+
     // Verify achievements element exists
     const achievementsEl = page.locator('#achievements');
     await expect(achievementsEl).toBeVisible();
@@ -39,6 +45,12 @@ test.describe('Achievement Showcase Tests', () => {
 
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
+
+    // Hide recall panel if it appears
+    await page.evaluate(() => {
+      const panel = document.getElementById('recallPanel');
+      if (panel) panel.style.display = 'none';
+    });
 
     // Open showcase
     await page.click('#achievements');
@@ -68,6 +80,12 @@ test.describe('Achievement Showcase Tests', () => {
 
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
+
+    // Hide recall panel if it appears
+    await page.evaluate(() => {
+      const panel = document.getElementById('recallPanel');
+      if (panel) panel.style.display = 'none';
+    });
 
     // Open showcase
     await page.click('#achievements');
@@ -99,6 +117,12 @@ test.describe('Achievement Showcase Tests', () => {
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
 
+    // Hide recall panel if it appears
+    await page.evaluate(() => {
+      const panel = document.getElementById('recallPanel');
+      if (panel) panel.style.display = 'none';
+    });
+
     // Open showcase
     await page.click('#achievements');
     await page.waitForTimeout(500);
@@ -110,7 +134,7 @@ test.describe('Achievement Showcase Tests', () => {
 
     // Click on combo tab if it exists
     const comboTab = page.locator('.achievement-tab[data-category="combo"]');
-    if (await comboTab.isVisible()) {
+    if (await comboTab.isVisible({ timeout: 500 }).catch(() => false)) {
       await comboTab.click();
       await page.waitForTimeout(200);
       // Check that items are filtered

@@ -74,6 +74,16 @@ const seasonHistoryListEl = document.getElementById('seasonHistoryList');
 const seasonProgressTextEl = document.getElementById('seasonProgressText');
 const seasonProgressFillEl = document.getElementById('seasonProgressFill');
 const seasonTasksEl = document.getElementById('seasonTasksList');
+const recallPanelEl = document.getElementById('recallPanel');
+const recallInactiveDaysEl = document.getElementById('recallInactiveDays');
+const recallRewardItemsEl = document.getElementById('recallRewardItems');
+const recallTierCardEl = document.getElementById('recallTierCard');
+const recallMessageEl = document.getElementById('recallMessage');
+const claimRecallRewardBtn = document.getElementById('claimRecallReward');
+const claimStreak3Btn = document.getElementById('claimStreak3');
+const claimStreak7Btn = document.getElementById('claimStreak7');
+const closeRecallBtn = document.getElementById('closeRecallBtn');
+const closeRecallBtnX = document.getElementById('closeRecall');
 const eventLabelEl = document.getElementById('eventLabel');
 const eventSummaryEl = document.getElementById('eventSummary');
 const eventPanelEl = document.getElementById('eventPanel');
@@ -1090,6 +1100,7 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
   }
 });
 
+const recallRuntime = window.SnakeRecall.createRecallModule({ storage });
 
 const seasonRuntime = window.SnakeSeason.createSeasonModule({
   storage,
@@ -2692,6 +2703,134 @@ function refreshStatisticsUI() {
       }).join('');
       recentGamesEl.innerHTML = html;
     }
+  }
+}
+
+function initRecallPanel() {
+  // Get recall panel info
+  const recallInfo = recallRuntime.getRecallPanelInfo();
+
+  // Check if we should show the panel
+  if (!recallInfo.showPanel) {
+    return;
+  }
+
+  // Update inactive days text
+  if (recallInactiveDaysEl) {
+    if (recallInfo.inactiveDays > 0) {
+      recallInactiveDaysEl.textContent = `沉寂 ${recallInfo.inactiveDays} 天`;
+    } else {
+      recallInactiveDaysEl.textContent = '首次登录';
+    }
+  }
+
+  // Update reward items
+  if (recallRewardItemsEl && recallInfo.inactiveStatus.tier) {
+    const tier = recallInfo.inactiveStatus.tier;
+    const items = [];
+    if (tier.reward.score) items.push(`<span class="recall-reward-icon">🏆</span><span>+${tier.reward.score}</span> 分数`);
+    if (tier.reward.items) items.push(`<span class="recall-reward-icon">📦</span><span>+${tier.reward.items}</span> 道具`);
+    if (tier.reward.skillPoints) items.push(`<span class="recall-reward-icon">⚡</span><span>+${tier.reward.skillPoints}</span> 技能点`);
+    recallRewardItemsEl.innerHTML = items.join('');
+  }
+
+  // Update streak buttons
+  if (claimStreak3Btn) {
+    if (recallInfo.streakStatus.canClaim3Day) {
+      claimStreak3Btn.textContent = '领取';
+      claimStreak3Btn.disabled = false;
+      claimStreak3Btn.className = 'recall-streak-btn';
+    } else if (recallInfo.streakStatus.claimed3Day) {
+      claimStreak3Btn.textContent = '已领取';
+      claimStreak3Btn.disabled = true;
+      claimStreak3Btn.className = 'recall-streak-btn secondary';
+    } else {
+      claimStreak3Btn.textContent = `${recallInfo.streakStatus.consecutiveDays}/3`;
+      claimStreak3Btn.disabled = true;
+      claimStreak3Btn.className = 'recall-streak-btn secondary';
+    }
+  }
+
+  if (claimStreak7Btn) {
+    if (recallInfo.streakStatus.canClaim7Day) {
+      claimStreak7Btn.textContent = '领取';
+      claimStreak7Btn.disabled = false;
+      claimStreak7Btn.className = 'recall-streak-btn';
+    } else if (recallInfo.streakStatus.claimed7Day) {
+      claimStreak7Btn.textContent = '已领取';
+      claimStreak7Btn.disabled = true;
+      claimStreak7Btn.className = 'recall-streak-btn secondary';
+    } else {
+      claimStreak7Btn.textContent = `${recallInfo.streakStatus.consecutiveDays}/7`;
+      claimStreak7Btn.disabled = true;
+      claimStreak7Btn.className = 'recall-streak-btn secondary';
+    }
+  }
+
+  // Show panel
+  if (recallPanelEl) {
+    recallPanelEl.style.display = 'flex';
+  }
+
+  // Bind events
+  if (claimRecallRewardBtn) {
+    claimRecallRewardBtn.onclick = () => {
+      const result = recallRuntime.claimRecallReward();
+      if (result.success) {
+        if (recallMessageEl) recallMessageEl.textContent = result.message;
+        if (claimRecallRewardBtn) {
+          claimRecallRewardBtn.textContent = '已领取';
+          claimRecallRewardBtn.disabled = true;
+        }
+        refreshProfileUI();
+      } else {
+        if (recallMessageEl) recallMessageEl.textContent = result.message;
+      }
+    };
+  }
+
+  if (claimStreak3Btn) {
+    claimStreak3Btn.onclick = () => {
+      const result = recallRuntime.claimStreakReward(3);
+      if (result.success) {
+        if (recallMessageEl) recallMessageEl.textContent = result.message;
+        if (claimStreak3Btn) {
+          claimStreak3Btn.textContent = '已领取';
+          claimStreak3Btn.disabled = true;
+        }
+        refreshProfileUI();
+      } else {
+        if (recallMessageEl) recallMessageEl.textContent = result.message;
+      }
+    };
+  }
+
+  if (claimStreak7Btn) {
+    claimStreak7Btn.onclick = () => {
+      const result = recallRuntime.claimStreakReward(7);
+      if (result.success) {
+        if (recallMessageEl) recallMessageEl.textContent = result.message;
+        if (claimStreak7Btn) {
+          claimStreak7Btn.textContent = '已领取';
+          claimStreak7Btn.disabled = true;
+        }
+        refreshProfileUI();
+      } else {
+        if (recallMessageEl) recallMessageEl.textContent = result.message;
+      }
+    };
+  }
+
+  if (closeRecallBtn) {
+    closeRecallBtn.onclick = () => {
+      if (recallPanelEl) recallPanelEl.style.display = 'none';
+    };
+  }
+
+  if (closeRecallBtnX) {
+    closeRecallBtnX.onclick = () => {
+      if (recallPanelEl) recallPanelEl.style.display = 'none';
+    };
   }
 }
 
@@ -4587,6 +4726,7 @@ refreshFriendsUI();
 refreshFriendsLeaderboardUI();
 refreshChallengesUI();
 refreshStatisticsUI();
+initRecallPanel();
 refreshProfileUI();
 loadBestByMode();
 loadSettings();
