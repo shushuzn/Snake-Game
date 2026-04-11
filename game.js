@@ -4779,6 +4779,7 @@ function updateTrialTimer() {
   trialTimerEl.textContent = `剩余 ${remainingSec}s`;
 }
 
+setInterval(() => updateTrialTimer(), 1000);
 setInterval(() => seasonRuntime.refreshRemainingOnly(), 60000);
 setInterval(() => {
   eventsRuntime.refresh();
