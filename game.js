@@ -478,6 +478,7 @@ let paused = false;
 let baseSpeed = Number(difficultySelect.value);
 let speed = baseSpeed;
 let mode = modeSelect.value;
+let trialStartTime = 0; // Trial mode start time
 let remainingTime = timedModeDuration;
 let level = 1;
 let levelTargetScore = 100;
