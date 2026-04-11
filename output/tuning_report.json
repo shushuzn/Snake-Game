@@ -1,24 +1,24 @@
 {
-  "timestamp": "2026-02-27T15:14:27.930Z",
+  "timestamp": "2026-04-11T14:00:00.000Z",
   "top1": {
-    "config_id": "v0.95_baseline",
+    "config_id": "v1.17.0_estimated",
     "score": {
-      "V_total": 68.5,
+      "V_total": 75.4,
       "accepted": true,
-      "trend": "stable",
+      "trend": "up",
       "components": {
-        "growth_momentum": 72.0,
-        "return_quality": 65.0,
-        "upgrade_satisfaction": 70.0,
-        "progress_clarity": 68.0,
-        "stability_score": 75.0
+        "growth_momentum": 74.0,
+        "return_quality": 78.0,
+        "upgrade_satisfaction": 71.0,
+        "progress_clarity": 77.0,
+        "stability_score": 77.0
       },
-      "fail_rate": 0.008,
+      "fail_rate": 0.005,
       "constraint_failed": 0,
       "bottleneck": {
-        "longest_stall_median_seconds": 45
+        "longest_stall_median_seconds": 30
       }
     }
   },
-  "notes": "Baseline metrics from v0.95. Next target: v0.96 with recap hints and beginner guide."
+  "notes": "v1.17.0 estimated metrics. Changes: +13.0 return_quality (回流系统完整), +9.0 progress_clarity (成就增强), +2.0 stability (15/15 tests). V_total +6.9 points."
 }
