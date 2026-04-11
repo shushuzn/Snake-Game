@@ -17,7 +17,8 @@ const INDEX_FILE = 'index.html';
 
 // 手动加载的模块 (不参与自动生成)
 const EXCLUDED_MODULES = [
-  'moduleRegistry.js'  // 基础设施，手动加载
+  'moduleRegistry.js',  // 注册表基础设施
+  'moduleLoader.js'     // 加载器基础设施
 ];
 
 // 发现所有模块
