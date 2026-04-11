@@ -111,6 +111,8 @@ const trialTimerEl = document.getElementById('trialTimer');
 const quickStartBtn = document.getElementById('quickStart');
 const showReturnCenterBtn = document.getElementById('showReturnCenter');
 const showReturnMissionsBtn = document.getElementById('showReturnMissions');
+const moreMenuBtn = document.getElementById('moreMenuBtn');
+const moreMenuDropdown = document.getElementById('moreMenuDropdown');
 const gameHintEl = document.getElementById('gameHint');
 const aiDifficultySelect = document.getElementById('aiDifficulty');
 const wrapModeInput = document.getElementById('wrapMode');
@@ -4706,6 +4708,29 @@ if (showReturnCenterBtn) {
 
       showOverlay(html, 10000);
     }
+  });
+}
+
+// More menu dropdown toggle
+if (moreMenuBtn && moreMenuDropdown) {
+  moreMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = moreMenuDropdown.style.display === 'block';
+    moreMenuDropdown.style.display = isOpen ? 'none' : 'block';
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!moreMenuDropdown.contains(e.target) && e.target !== moreMenuBtn) {
+      moreMenuDropdown.style.display = 'none';
+    }
+  });
+
+  // Close dropdown when a menu item is clicked
+  moreMenuDropdown.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      moreMenuDropdown.style.display = 'none';
+    });
   });
 }
 
