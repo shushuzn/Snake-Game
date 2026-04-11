@@ -3175,6 +3175,7 @@ function unlockAchievement(key, label) {
   achievements[key] = true;
   saveAchievements();
   refreshAchievementsText();
+  beep('achievement');
   if (running && !paused) {
     showOverlay(`<p><strong>🏆 解锁成就</strong></p><p>${label}</p>`);
     setTimeout(() => {
@@ -3227,7 +3228,7 @@ function beep(type = 'eat') {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
-  const map = { eat: [620, 0.06], bonus: [820, 0.09], hit: [180, 0.14], mission: [980, 0.12] };
+  const map = { eat: [620, 0.06], bonus: [820, 0.09], hit: [180, 0.14], mission: [980, 0.12], achievement: [880, 0.15] };
   const [freq, dur] = map[type] || map.eat;
   osc.frequency.value = freq;
   gain.gain.value = 0.0001;
