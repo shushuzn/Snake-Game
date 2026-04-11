@@ -25,81 +25,100 @@ const ModuleLoader = (function() {
   const LOADED = new Set();
   const LOADING = new Map();
   
+  // 使用追踪数据
+  const USAGE_STATS = {
+    loads: [],      // {module, timestamp, duration, success}
+    coreLoads: [],  // 核心模块加载记录
+    lazyLoads: [],  // 懒加载模块记录
+    errors: []      // 加载错误
+  };
+  
   // 核心模块 (同步加载，首屏必需)
+  // 分析依据: game.js 中直接引用 window.SnakeXXX
   const CORE_MODULES = [
-    'storage',
-    'events',
-    'play_state',
-    'round_state',
-    'input',
-    'render',
-    'modes',
-    'mode_rules',
-    'settlement',
-    'statistics',
-    'settings',
-    'records'
+    'storage',           // window.SnakeStorage - 必需
+    'events',           // window.SnakeEvents - 必需
+    'play_state',       // window.SnakePlayState - 必需
+    'round_state',      // window.SnakeRoundState - 必需
+    'input',            // window.SnakeInput - 必需
+    'render',           // window.SnakeRender - 必需
+    'modes',            // window.SnakeModes - 必需
+    'mode_rules',       // window.SnakeModeRules - 必需
+    'settlement',       // window.SnakeSettlement - 必需
+    'statistics',       // window.SnakeStatistics - 必需
+    'settings',         // window.SnakeSettings - 必需
+    'records',          // window.SnakeRecords - 必需
+    'challenge',        // window.SnakeChallenge - 必需
+    'season',           // window.SnakeSeason - 必需
+    'shop',             // window.SnakeShop - 必需
+    'account',          // window.SnakeAccount - 必需
+    'achievement_showcase', // 直接引用
+    'achievement_search',   // 直接引用
+    'achievement_detail',   // 直接引用
+    'achievement_toast',    // 直接引用
+    'achievement_stats',     // 直接引用
+    'friends',          // window.SnakeFriends - 直接引用
+    'friends_leaderboard',  // 直接引用
+    'friends_challenge',    // 直接引用
+    'daily_rewards',    // window.SnakeDailyRewards - 直接引用
+    'daily_tasks',      // window.SnakeDailyTasks - 直接引用
+    'return_center',    // window.SnakeReturnCenter - 直接引用
+    'return_missions',  // window.SnakeReturnMissions - 直接引用
+    'return_reminder',  // window.SnakeReturnReminder - 直接引用
+    'reward_system',    // window.SnakeRewardSystem - 直接引用
+    'level_unlock',     // 直接引用
+    'first_milestone',  // 直接引用
+    'purchase_feedback', // 直接引用
+    'guide',            // 直接引用
+    'reset_prepare',    // 直接引用
+    'reset_flow',       // 直接引用
+    'endgame_flow',     // 直接引用
+    'notifications',    // 直接引用
+    'leaderboard',      // window.SnakeLeaderboard - 直接引用
+    'recap',            // 直接引用
+    'spectate',         // 直接引用
+    'ai_battle',        // 直接引用
+    'multiplayer',      // 直接引用
+    'season_challenges', // 直接引用
+    'daily_challenge_mode' // 直接引用
   ];
 
   // 懒加载模块 (按需加载)
+  // 这些模块未在 game.js 中直接引用，可能是:
+  // 1. 被其他模块间接调用
+  // 2. UI 事件触发后才使用
+  // 3. 将来可能删除的死代码
   const LAZY_MODULES = [
-    // 成就系统 - 6个
-    'achievement_detail',
     'achievement_preview',
-    'achievement_search',
-    'achievement_showcase',
-    'achievement_stats',
-    'achievement_toast',
-    // 好友系统 - 3个
-    'friends',
-    'friends_challenge',
-    'friends_leaderboard',
-    // 回流系统 - 5个
-    'return_center',
-    'return_missions',
-    'return_reminder',
-    'enhanced_return_rewards',
-    // 赛季系统 - 2个
-    'season',
-    'season_rewards_preview',
-    // 每日系统 - 3个
-    'daily_challenge_mode',
-    'daily_rewards',
-    'daily_tasks',
-    // 奖励系统 - 2个
-    'reward_system',
-    'reward_preview',
-    // 其他功能 - 30+个
-    'account',
     'ai_player',
+    'ai_battle',
     'battle_pass',
-    'challenge',
     'churn_analytics',
     'churn_warning',
     'clan',
     'email',
     'emoji',
-    'endgame_flow',
     'enhanced_newbie_guide',
+    'enhanced_return_rewards',
     'feedback',
-    'first_milestone',
-    'guide',
+    'in_game_hints',
+    'in_game_notifications',
     'item_spawn',
-    'leaderboard',
-    'level_unlock',
     'loop_timers',
     'mail',
     'mission_system',
-    'notifications',
+    'mode_trial',
+    'multiplayer',
     'particle_system',
+    'personalized_achievements',
     'profile',
-    'purchase_feedback',
+    'quick_start',
     'rank_system',
-    'recap',
+    'replay',
     'report',
-    'reset_flow',
-    'reset_prepare',
-    'season_challenges',
+    'returning_guide',
+    'reward_preview',
+    'season_rewards_preview',
     'share',
     'skill_tree',
     'skin_system',
@@ -110,7 +129,6 @@ const ModuleLoader = (function() {
     'workshop',
     'workshop_runtime'
   ];
-
   // 预加载候选模块 (空闲时预加载)
   const PRELOAD_CANDIDATES = [
     'achievement_showcase',  // 成就按钮常见
@@ -145,17 +163,47 @@ const ModuleLoader = (function() {
     }
 
     // 创建加载 Promise
+    const startTime = performance.now();
+    const isCore = CORE_MODULES.includes(name);
+    
     const promise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = `src/modules/${name}.js`;
       script.onload = () => {
+        const duration = performance.now() - startTime;
         LOADED.add(name);
         LOADING.delete(name);
-        console.debug(`[ModuleLoader] Loaded: ${name}`);
+        
+        // 追踪
+        const record = {
+          module: name,
+          timestamp: Date.now(),
+          duration: duration,
+          success: true,
+          isCore: isCore
+        };
+        USAGE_STATS.loads.push(record);
+        if (isCore) {
+          USAGE_STATS.coreLoads.push(record);
+        } else {
+          USAGE_STATS.lazyLoads.push(record);
+        }
+        
+        console.debug(`[ModuleLoader] Loaded: ${name} (${duration.toFixed(1)}ms)`);
         resolve();
       };
       script.onerror = (e) => {
+        const duration = performance.now() - startTime;
         LOADING.delete(name);
+        
+        // 追踪错误
+        USAGE_STATS.errors.push({
+          module: name,
+          timestamp: Date.now(),
+          duration: duration,
+          success: false
+        });
+        
         console.error(`[ModuleLoader] Failed to load: ${name}`);
         reject(new Error(`Failed to load module: ${name}`));
       };
@@ -245,6 +293,60 @@ const ModuleLoader = (function() {
     return PRELOAD_CANDIDATES;
   }
 
+  /**
+   * 获取使用统计
+   */
+  function getUsageStats() {
+    return {
+      total: USAGE_STATS.loads.length,
+      coreCount: USAGE_STATS.coreLoads.length,
+      lazyCount: USAGE_STATS.lazyLoads.length,
+      errorCount: USAGE_STATS.errors.length,
+      coreLoads: USAGE_STATS.coreLoads,
+      lazyLoads: USAGE_STATS.lazyLoads,
+      errors: USAGE_STATS.errors,
+      avgDuration: calculateAvgDuration(),
+      moduleFrequency: getModuleFrequency()
+    };
+  }
+
+  /**
+   * 计算平均加载时间
+   */
+  function calculateAvgDuration() {
+    if (USAGE_STATS.loads.length === 0) return 0;
+    const total = USAGE_STATS.loads.reduce((sum, r) => sum + r.duration, 0);
+    return total / USAGE_STATS.loads.length;
+  }
+
+  /**
+   * 获取模块加载频率
+   */
+  function getModuleFrequency() {
+    const freq = {};
+    USAGE_STATS.loads.forEach(r => {
+      freq[r.module] = (freq[r.module] || 0) + 1;
+    });
+    return freq;
+  }
+
+  /**
+   * 标记预加载的模块为已加载 (用于 index.html 同步加载的模块)
+   */
+  function markPreloaded(names) {
+    names.forEach(name => LOADED.add(name));
+  }
+
+  /**
+   * 重置统计数据 (用于调试)
+   */
+  function resetStats() {
+    USAGE_STATS.loads = [];
+    USAGE_STATS.coreLoads = [];
+    USAGE_STATS.lazyLoads = [];
+    USAGE_STATS.errors = [];
+  }
+
   // 初始化 - 立即预加载候选模块
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -263,7 +365,10 @@ const ModuleLoader = (function() {
     getLoaded: getLoaded,
     getCoreModules: getCoreModules,
     getLazyModules: getLazyModules,
-    getPreloadCandidates: getPreloadCandidates
+    getPreloadCandidates: getPreloadCandidates,
+    getUsageStats: getUsageStats,
+    markPreloaded: markPreloaded,
+    resetStats: resetStats
   };
 })();
 
