@@ -2526,16 +2526,29 @@ function renderRadarChart() {
     'ai-battle': 'AI对战'
   };
 
-  // Get games count for each mode
-  const modeGames = {};
-  let totalGames = 0;
+  // Modes that have win/loss (AI and multiplayer)
+  const hasWinRate = ['ai-battle', 'multiplayer'];
+  // Modes that track games played but not wins
+  const gamesOnly = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
+
+  // Build mode data lookup
+  const modeData = {};
   modeStats.forEach(stat => {
-    modeGames[stat.mode] = stat.games;
-    totalGames += stat.games;
+    modeData[stat.mode] = stat;
+  });
+
+  // Calculate max value for normalization
+  // For win rate modes (0-100), for games modes (0 to max games)
+  let maxGames = 0;
+  let hasAnyData = false;
+  modeLabels.forEach(mode => {
+    const data = modeData[mode];
+    if (data && data.games > 0) hasAnyData = true;
+    if (data && data.games > maxGames) maxGames = data.games;
   });
 
   // Check if we have any data
-  if (totalGames === 0) {
+  if (!hasAnyData) {
     chartEmpty.classList.remove('hidden');
     return;
   }
@@ -2550,8 +2563,21 @@ function renderRadarChart() {
   // Start from top ( -PI/2 ) and go clockwise
   const axisPoints = modeLabels.map((mode, i) => {
     const angle = -Math.PI / 2 + i * angleStep;
-    const games = modeGames[mode] || 0;
-    const ratio = totalGames > 0 ? games / totalGames : 0;
+    const data = modeData[mode] || { games: 0, wins: 0, winRate: 0 };
+
+    let ratio, displayValue, unit;
+    if (hasWinRate.includes(mode)) {
+      // Win rate: 0-100%
+      ratio = data.winRate / 100;
+      displayValue = data.winRate;
+      unit = '%';
+    } else {
+      // Games played: 0 to maxGames
+      ratio = maxGames > 0 ? data.games / maxGames : 0;
+      displayValue = data.games;
+      unit = '场';
+    }
+
     const r = ratio * radius;
     return {
       x: cx + r * Math.cos(angle),
@@ -2559,7 +2585,8 @@ function renderRadarChart() {
       labelX: cx + (radius + 15) * Math.cos(angle),
       labelY: cy + (radius + 15) * Math.sin(angle),
       mode,
-      games,
+      displayValue,
+      unit,
       ratio: Math.round(ratio * 100)
     };
   });
@@ -2571,11 +2598,11 @@ function renderRadarChart() {
     radarData.setAttribute('points', dataPoints);
   }
 
-  // Add points
+  // Add points with tooltip data
   const radarPointsEl = document.getElementById('radarPoints');
   if (radarPointsEl) {
     radarPointsEl.innerHTML = axisPoints.map(p =>
-      `<circle class="radar-point" cx="${p.x}" cy="${p.y}" r="4" data-mode="${p.mode}" data-games="${p.games}" data-ratio="${p.ratio}"/>`
+      `<circle class="radar-point" cx="${p.x}" cy="${p.y}" r="4" data-mode="${p.mode}" data-value="${p.displayValue}" data-unit="${p.unit}"/>`
     ).join('');
   }
 

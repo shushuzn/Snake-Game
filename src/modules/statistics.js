@@ -115,9 +115,11 @@ window.SnakeStatistics = (() => {
       .map(([mode, data]) => ({
         mode,
         games: data.games,
+        wins: data.wins || 0,
         percentage: stats.totalGames > 0 ? (data.games / stats.totalGames * 100).toFixed(1) : 0,
         averageScore: data.games > 0 ? Math.round(data.totalScore / data.games) : 0,
-        bestScore: data.bestScore
+        bestScore: data.bestScore,
+        winRate: data.games > 0 ? ((data.wins || 0) / data.games * 100).toFixed(1) : 0
       }))
       .sort((a, b) => b.games - a.games);
   }
