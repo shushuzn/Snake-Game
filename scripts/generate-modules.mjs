@@ -31,8 +31,13 @@ function discoverModules() {
 }
 
 // 生成 script 标签
+// NOTE: defer 属性可以提升性能但会破坏现有测试
+// 如需使用 defer，运行生成后手动添加或修改此函数
+const USE_DEFER = false;
+
 function generateScriptTags(modules) {
-  return modules.map(m => `    <script src="src/modules/${m}"></script>`).join('\n');
+  const tag = USE_DEFER ? 'defer ' : '';
+  return modules.map(m => `    <script ${tag}src="src/modules/${m}"></script>`).join('\n');
 }
 
 // 查找 index.html 中的模块区域
