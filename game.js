@@ -2853,6 +2853,40 @@ function recordGameStats(result) {
   refreshStatisticsUI();
 }
 
+// Update mode trial UI based on current mode
+function updateModeTrialUI() {
+  if (typeof modeTrialRuntime === 'undefined' || !modeTrialContainer) return;
+  if (typeof currentSkin === 'undefined') return; // Guard: skin not loaded yet
+
+  const currentMode = modeSelect.value;
+  const status = modeTrialRuntime.getModeTrialStatus(currentMode);
+
+  // Only show trial UI for locked modes that are available for trial
+  const trialModes = ['ai-battle', 'multiplayer', 'spectate'];
+  if (!trialModes.includes(currentMode)) {
+    modeTrialContainer.style.display = 'none';
+    return;
+  }
+
+  if (status.unlocked) {
+    modeTrialContainer.style.display = 'none';
+    return;
+  }
+
+  // Show trial button
+  modeTrialContainer.style.display = 'inline-block';
+
+  if (status.todayTrials >= status.maxTrials) {
+    startTrialBtn.textContent = '今日已试玩';
+    startTrialBtn.disabled = true;
+  } else {
+    startTrialBtn.textContent = '🎮 试玩';
+    startTrialBtn.disabled = false;
+  }
+
+  trialTimerEl.textContent = '';
+}
+
 function refreshProfileUI() {
   if (!profileRuntime) return;
   
