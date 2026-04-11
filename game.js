@@ -5075,10 +5075,23 @@ currentSkin = skinSelect.value;
   // Notification system integration
   const notificationModule = window.SnakeNotifications?.createNotificationModule?.({ storage });
   if (notificationModule) {
-    // Test notification on game start (for demo)
     const validate = notificationModule.validate();
     if (validate.valid) {
       // Add welcome notification
       notificationModule.add('system', '欢迎回来！', { type: 'welcome' });
+    }
+  }
+
+  // Return reminder system integration
+  const reminderModule = window.SnakeReturnReminder?.createReturnReminderModule?.({ storage });
+  if (reminderModule && notificationModule) {
+    const validate = reminderModule.validate();
+    if (validate.valid) {
+      const { data } = reminderModule.getData();
+      if (data.shouldRemind) {
+        const msgData = reminderModule.getReminderMessage().data;
+        notificationModule.add('return', msgData.message, { type: 'return_reminder', days: data.daysSinceActive });
+        reminderModule.markReminded();
+      }
     }
   }
