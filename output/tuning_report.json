@@ -1,24 +1,24 @@
 {
-  "timestamp": "2026-04-11T14:15:00.000Z",
+  "timestamp": "2026-04-11T14:30:00.000Z",
   "top1": {
-    "config_id": "v1.18.0_estimated",
+    "config_id": "v1.19.0_estimated",
     "score": {
-      "V_total": 76.8,
+      "V_total": 81.2,
       "accepted": true,
       "trend": "up",
       "components": {
-        "growth_momentum": 74.0,
+        "growth_momentum": 82.0,
         "return_quality": 78.0,
         "upgrade_satisfaction": 75.0,
         "progress_clarity": 77.0,
         "stability_score": 79.0
       },
-      "fail_rate": 0.004,
+      "fail_rate": 0.003,
       "constraint_failed": 0,
       "bottleneck": {
-        "longest_stall_median_seconds": 25
+        "longest_stall_median_seconds": 20
       }
     }
   },
-  "notes": "v1.18.0 estimated metrics. Changes: +4.0 upgrade_satisfaction (购买反馈+历史), +2.0 stability (15/15 tests). V_total +1.4 points."
+  "notes": "v1.19.0 estimated metrics. Changes: +8.0 growth_momentum (赛季挑战系统 - 紧迫感+重复参与). V_total +4.4 points."}
 }
