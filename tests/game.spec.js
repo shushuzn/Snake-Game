@@ -60,18 +60,27 @@ test.describe('Snake Game E2E Tests', () => {
 });
 
 
-  test('achievement stats element exists with correct data', async ({ page }) => {
+  test('achievement gauge displays correctly', async ({ page }) => {
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
     
-    // Check statAchievementRate element exists in DOM
-    const achievementRateEl = page.locator('#statAchievementRate');
-    await expect(achievementRateEl).toHaveCount(1);
+    // Check gauge elements exist
+    const gaugeCard = page.locator('.achievement-gauge-card');
+    await expect(gaugeCard).toHaveCount(1);
     
-    // It should show format like "0/33" (unlocked/total)
-    const text = await achievementRateEl.textContent();
-    expect(text).toMatch(/^\d+\/\d+$/);
+    // Check SVG gauge exists
+    const gauge = page.locator('.achievement-gauge');
+    await expect(gauge).toHaveCount(1);
     
-    // Should show 0/33 (0 unlocked out of 33 total for fresh game)
-    expect(text).toBe('0/33');
+    // Check gauge fill circle exists
+    const gaugeFill = page.locator('.gauge-fill');
+    await expect(gaugeFill).toHaveCount(1);
+    
+    // Check value element shows "0"
+    const valueEl = page.locator('#achievementGaugeValue');
+    await expect(valueEl).toHaveText('0');
+    
+    // Check total element shows "33"
+    const totalEl = page.locator('#achievementGaugeTotal');
+    await expect(totalEl).toHaveText('33');
   });

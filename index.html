@@ -278,8 +278,22 @@
               <div class="stat-value" id="statPlayTime">0:00</div>
               <div class="stat-label">游戏时长</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-value" id="statAchievementRate">0%</div>
+            <div class="stat-card achievement-gauge-card">
+              <svg class="achievement-gauge" viewBox="0 0 100 100" id="statAchievementRate">
+                <defs>
+                  <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#f59e0b"/>
+                    <stop offset="100%" stop-color="#fbbf24"/>
+                  </linearGradient>
+                </defs>
+                <circle class="gauge-bg" cx="50" cy="50" r="40"/>
+                <circle class="gauge-fill" cx="50" cy="50" r="40"/>
+              </svg>
+              <div class="gauge-text">
+                <span class="gauge-value" id="achievementGaugeValue">0</span>
+                <span class="gauge-separator">/</span>
+                <span class="gauge-total" id="achievementGaugeTotal">33</span>
+              </div>
               <div class="stat-label">成就完成</div>
             </div>
           </div>

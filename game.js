@@ -126,6 +126,8 @@ const statBestScoreEl = document.getElementById('statBestScore');
 const statHighestComboEl = document.getElementById('statHighestCombo');
 const statPlayTimeEl = document.getElementById('statPlayTime');
 const statAchievementRateEl = document.getElementById('statAchievementRate');
+const achievementGaugeValueEl = document.getElementById('achievementGaugeValue');
+const achievementGaugeTotalEl = document.getElementById('achievementGaugeTotal');
 const modeStatsEl = document.getElementById('modeStats');
 const recentGamesEl = document.getElementById('recentGames');
 const profileAvatarEl = document.getElementById('profileAvatar');
@@ -2430,10 +2432,23 @@ function refreshStatisticsUI() {
   if (statHighestComboEl) statHighestComboEl.textContent = overall.highestCombo;
   if (statPlayTimeEl) statPlayTimeEl.textContent = overall.totalPlayTime;
   
-  // Achievement stats
+  // Achievement stats - Update gauge
   const achievementStats = statisticsRuntime.getAchievementStats();
+  if (achievementGaugeValueEl) {
+    achievementGaugeValueEl.textContent = achievementStats.unlocked;
+  }
+  if (achievementGaugeTotalEl) {
+    achievementGaugeTotalEl.textContent = achievementStats.total;
+  }
+  // Update SVG gauge fill (stroke-dashoffset: 251.2 = full circle circumference for r=40)
   if (statAchievementRateEl) {
-    statAchievementRateEl.textContent = achievementStats.unlocked + '/' + achievementStats.total;
+    const gaugeFill = statAchievementRateEl.querySelector('.gauge-fill');
+    if (gaugeFill) {
+      const circumference = 2 * Math.PI * 40;
+      const progress = achievementStats.total > 0 ? achievementStats.unlocked / achievementStats.total : 0;
+      const offset = circumference - (progress * circumference);
+      gaugeFill.style.strokeDashoffset = offset;
+    }
   }
   
   // Mode stats

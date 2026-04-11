@@ -720,6 +720,63 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   color: var(--muted);
 }
 
+/* Achievement Gauge (仪表盘) */
+.achievement-gauge-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+}
+
+.achievement-gauge {
+  width: 80px;
+  height: 80px;
+  transform: rotate(-90deg);
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: #1f2937;
+  stroke-width: 8;
+}
+
+.gauge-fill {
+  fill: none;
+  stroke: url(#gaugeGradient);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 251.2;
+  stroke-dashoffset: 251.2;
+  transition: stroke-dashoffset 0.8s ease-out;
+}
+
+.gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.gauge-value {
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.gauge-separator {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.gauge-total {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
 .mode-stats {
   display: grid;
   gap: 8px;
