@@ -107,3 +107,60 @@ return {
 2. **Debuggable** - Always know success/failure
 3. **Composable** - Functions work together
 4. **Testable** - Consistent interface
+
+## Game-Specific Patterns
+
+### UI Clutter Prevention
+
+**Problem**: Toolbar buttons accumulate, making UI拥挤
+
+**Solution**: Compact toolbar with dropdown menu
+```html
+<!-- Before: 6 buttons -->
+<button>新手引导</button>
+<button>技能树</button>
+<button>关卡进度</button>
+<button>快速开始</button>
+<button>回流中心</button>
+<button>回流任务</button>
+
+<!-- After: 4 + dropdown -->
+<button>新手</button>
+<button>🎯</button>
+<button>🏆</button>
+<button>⚡</button>
+<div style="position:relative;">
+  <button id="moreMenuBtn">⋯</button>
+  <div id="moreMenuDropdown" style="display:none; position:absolute; right:0;">
+    <button>回流中心</button>
+    <button>回流任务</button>
+  </div>
+</div>
+```
+
+### Task Reset Mechanism
+
+**Problem**: Tasks complete but never reset, user has no continued goal
+
+**Solution**: Add `resetMissions()` with expiration logic
+```javascript
+function resetMissions() {
+  const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  missions.forEach(m => {
+    const p = progress[m.id];
+    if (p && p.claimedAt && (Date.now() - p.claimedAt) > EXPIRY_MS) {
+      delete progress[m.id]; // Reset expired
+    }
+  });
+  saveMissionProgress(progress);
+}
+```
+
+**Trigger**: Call reset on panel open
+```javascript
+showMissionsBtn.addEventListener('click', () => {
+  missionsModule.resetMissions(); // Reset first
+  const { data } = missionsModule.getData();
+  renderMissions(data);
+});
+```

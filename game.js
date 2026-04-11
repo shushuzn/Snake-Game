@@ -3181,6 +3181,21 @@ function unlockAchievement(key, label) {
       if (running && !paused) hideOverlay();
     }, 800);
   }
+
+  // Show achievement toast notification
+  if (window.SnakeAchievementToast) {
+    const toastModule = SnakeAchievementToast.createAchievementToastModule({ storage });
+    if (toastModule && toastModule.validate().valid) {
+      const achievementData = window.ACHIEVEMENTS?.find(a => a.id === key);
+      if (achievementData) {
+        toastModule.showAchievementToast({
+          id: key,
+          name: label || achievementData.name,
+          reward: achievementData.reward || 0
+        });
+      }
+    }
+  }
 }
 
 function checkAllTasksCompleted() {
