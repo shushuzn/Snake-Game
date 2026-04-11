@@ -191,7 +191,7 @@ node scripts/generate-modules.mjs
 
 ### 懒加载实验记录 (2026-04-11)
 
-**尝试**: 使用 `defer` 属性实现懒加载
+#### 尝试 1: `defer` 属性
 **结果**: 失败
 
 **原因**:
@@ -199,12 +199,47 @@ node scripts/generate-modules.mjs
 - 模块间存在依赖关系 (achievement_showcase 依赖 friends)
 - 即使只对 3 个 friends 模块添加 defer，也破坏了 achievement_showcase 测试
 
-**结论**:
-- 135KB gzip 对游戏可接受
-- 真正的懒加载需要重构 game.js (高风险)
-- 基础设施 (ModuleLoader) 已就绪，待将来使用
+#### 尝试 2: 懒初始化代理模式 (v1.26.0 Phase 3)
+**结果**: 成功 ✅
 
-**learned**: 
-- 不能简单用 defer 实现懒加载
-- 模块加载顺序很重要
+**原理**:
+- 模块脚本在页面加载时正常同步加载
+- 但 `createModule()` 调用延迟到首次访问时才执行
+- 通过工厂函数实现单例懒初始化
+
+**实现**:
+```javascript
+// game.js 中的懒初始化工厂函数
+let _friendsRuntime = null;
+function getFriendsRuntime() {
+  if (!_friendsRuntime) {
+    _friendsRuntime = window.SnakeFriends.createFriendsModule({ storage });
+  }
+  return _friendsRuntime;
+}
+
+// 使用点 - 在首次访问时才创建
+function refreshFriendsUI() {
+  const friendsRuntime = getFriendsRuntime(); // 懒初始化
+  if (!friendsRuntime) return;
+  // ...
+}
+```
+
+**涉及函数**:
+- `getFriendsRuntime()` - friends.js 懒初始化
+- `getFriendsLeaderboardRuntime()` - friends_leaderboard.js 懒初始化
+- `getFriendsChallengeRuntime()` - friends_challenge.js 懒初始化
+
+**覆盖的 UI 函数**:
+- `refreshFriendsUI()`, `handleAddFriend()`, `removeFriend()`
+- `refreshFriendsLeaderboardUI()`
+- `refreshChallengesUI()`, `handleSendChallenge()`, `acceptChallenge()`, `declineChallenge()`, `completeChallenge()`, `claimChallengeReward()`
+- `updateChallengeTargetSelect()`
+
+**结论**:
+- 懒初始化代理模式成功 (15/15 测试通过)
+- Friends 模块在用户点击好友按钮时才初始化
+- 无需重构 game.js 模块加载机制 (低风险)
+- 基础设施 (ModuleLoader) 已就绪
 - 需要完整的依赖分析才能安全懒加载

@@ -488,6 +488,56 @@ let comboExpireAt = 0;
 let rocks = [];
 let score;
 const storage = window.SnakeStorage.createStorageModule(localStorage);
+
+// ============================================
+// Lazy Initialization Factory
+// Modules are created on first access, not at page load
+// ============================================
+const _lazyModules = {};
+
+function createLazyModule(factory) {
+  let instance = null;
+  return function getInstance() {
+    if (!instance) {
+      instance = factory();
+    }
+    return instance;
+  };
+}
+
+// Lazy Friends modules - only initialized when first accessed
+let _friendsRuntime = null;
+let _friendsLeaderboardRuntime = null;
+let _friendsChallengeRuntime = null;
+
+function getFriendsRuntime() {
+  if (!_friendsRuntime) {
+    _friendsRuntime = window.SnakeFriends.createFriendsModule({ storage });
+  }
+  return _friendsRuntime;
+}
+
+function getFriendsLeaderboardRuntime() {
+  if (!_friendsLeaderboardRuntime) {
+    _friendsLeaderboardRuntime = window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
+      storage,
+      friendsRuntime: getFriendsRuntime(),
+      getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
+    });
+  }
+  return _friendsLeaderboardRuntime;
+}
+
+function getFriendsChallengeRuntime() {
+  if (!_friendsChallengeRuntime) {
+    _friendsChallengeRuntime = window.SnakeFriendsChallenge.createFriendsChallengeModule({
+      storage,
+      getCurrentPlayerId: () => activeAccount || 'self'
+    });
+  }
+  return _friendsChallengeRuntime;
+}
+
 let bestScore = Number(storage.readText('snake-best', '0'));
 let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
@@ -626,21 +676,7 @@ const dailyRewards = window.SnakeDailyRewards.createDailyRewardsModule({ storage
 // 初始化每日任务系统
 const dailyTasksRuntime = window.SnakeDailyTasks.createDailyTasksModule({ storage });
 
-// 初始化好友系统
-const friendsRuntime = window.SnakeFriends.createFriendsModule({ storage });
-
-// 初始化好友排行榜系统
-const friendsLeaderboardRuntime = window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
-  storage,
-  friendsRuntime,
-  getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
-});
-
-// 初始化好友挑战系统
-const friendsChallengeRuntime = window.SnakeFriendsChallenge.createFriendsChallengeModule({
-  storage,
-  getCurrentPlayerId: () => activeAccount || 'self'
-});
+// Friends modules are now lazy-loaded via getFriendsRuntime(), getFriendsLeaderboardRuntime(), getFriendsChallengeRuntime()
 
 // 初始化游戏统计系统
 const statisticsRuntime = window.SnakeStatistics.createStatisticsModule({ storage });
@@ -2284,6 +2320,7 @@ function refreshDailyTasksUI() {
 }
 
 function refreshFriendsUI() {
+  const friendsRuntime = getFriendsRuntime();
   if (!friendsRuntime || !friendsListEl) return;
   
   const friends = friendsRuntime.getFriends();
@@ -2323,6 +2360,7 @@ function refreshFriendsUI() {
 }
 
 function handleAddFriend() {
+  const friendsRuntime = getFriendsRuntime();
   if (!friendsRuntime || !friendInput) return;
   
   const username = friendInput.value.trim();
@@ -2346,6 +2384,7 @@ function handleAddFriend() {
 }
 
 function removeFriend(friendId) {
+  const friendsRuntime = getFriendsRuntime();
   if (!friendsRuntime) return;
   
   const result = friendsRuntime.removeFriend(friendId);
@@ -2359,6 +2398,7 @@ function removeFriend(friendId) {
 let currentLeaderboardType = 'weekly';
 
 function refreshFriendsLeaderboardUI() {
+  const friendsLeaderboardRuntime = getFriendsLeaderboardRuntime();
   if (!friendsLeaderboardRuntime || !friendsLeaderboardListEl) return;
   
   const { leaderboard, period } = friendsLeaderboardRuntime.getLeaderboard(currentLeaderboardType);
@@ -2408,6 +2448,7 @@ function switchLeaderboardType(type) {
 }
 
 function updateChallengeTargetSelect() {
+  const friendsRuntime = getFriendsRuntime();
   if (!challengeTargetSelect || !friendsRuntime) return;
   
   const friends = friendsRuntime.getFriends();
@@ -2423,6 +2464,7 @@ function updateChallengeTargetSelect() {
 }
 
 function refreshChallengesUI() {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime || !activeChallengesEl || !challengeHistoryEl) return;
   
   // Update stats
@@ -2499,6 +2541,7 @@ function refreshChallengesUI() {
 }
 
 function handleSendChallenge() {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime || !challengeTargetSelect) return;
   
   const targetId = challengeTargetSelect.value;
@@ -2528,6 +2571,7 @@ function handleSendChallenge() {
 }
 
 function acceptChallenge(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.acceptChallenge(challengeId);
@@ -2537,6 +2581,7 @@ function acceptChallenge(challengeId) {
 }
 
 function declineChallenge(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.declineChallenge(challengeId);
@@ -2546,6 +2591,7 @@ function declineChallenge(challengeId) {
 }
 
 function completeChallenge(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.completeChallenge(challengeId, score);
@@ -2559,6 +2605,7 @@ function completeChallenge(challengeId) {
 }
 
 function claimChallengeReward(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.claimReward(challengeId);
