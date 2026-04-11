@@ -617,7 +617,7 @@ const profileRuntime = window.SnakeProfile.createProfileModule({
 const titlesRuntime = window.SnakeTitles.createTitlesModule({ storage });
 
 // 初始化成就展示系统
-const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchievementShowcaseModule({ storage });
+const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchievementShowcaseModule();
 
 let discoveredCodex = {};
 let currentSkin = 'classic';
@@ -1594,27 +1594,12 @@ function renderAchievementShowcase() {
     codexDiscovered: Object.keys(discoveredCodex).length
   };
 
-  const allAchievements = achievementShowcaseRuntime.getAllAchievements(currentStats);
-  const recentlyUnlocked = achievementShowcaseRuntime.getRecentlyUnlocked();
-  const totalCount = achievementShowcaseRuntime.getTotalCount();
-  const unlockedCount = achievementShowcaseRuntime.getUnlockedCount();
+  // Use the existing achievements object from game.js
+  const allAchievements = achievementShowcaseRuntime.getAllAchievements(achievements, currentStats);
+  const totalCount = allAchievements.length;
+  const unlockedCount = allAchievements.filter(a => a.unlocked).length;
 
   let html = '';
-
-  // Show notification if there's a recently unlocked achievement
-  if (recentlyUnlocked) {
-    const rarity = rarities[recentlyUnlocked.rarity];
-    html += `<div class="achievement-notification" style="background: linear-gradient(135deg, ${rarity.color}dd 0%, ${rarity.color}88 100%);">
-      <span class="achievement-notification-icon">${recentlyUnlocked.icon}</span>
-      <div class="achievement-notification-content">
-        <span class="achievement-notification-title">解锁新成就！</span>
-        <span class="achievement-notification-name"><strong>${recentlyUnlocked.name}</strong></span>
-        <span class="achievement-notification-desc">${recentlyUnlocked.description}</span>
-      </div>
-      <span class="achievement-notification-rarity" style="color: ${rarity.color};">${rarity.icon} ${rarity.name}</span>
-      <button onclick="dismissAchievementNotification()" class="achievement-notification-close">×</button>
-    </div>`;
-  }
 
   // Achievement stats summary
   html += `<div class="achievement-summary">
@@ -1912,15 +1897,6 @@ function closeAchievementShowcase() {
   }
 }
 
-function dismissAchievementNotification() {
-  if (!achievementShowcaseRuntime) return;
-  achievementShowcaseRuntime.clearRecentlyUnlocked();
-  const notification = document.querySelector('.achievement-notification');
-  if (notification) {
-    notification.remove();
-  }
-}
-
 function shareAchievementShowcase() {
   if (!achievementShowcaseRuntime) return;
 
@@ -1933,7 +1909,7 @@ function shareAchievementShowcase() {
     dailyStreak: dailyStreakCount
   };
 
-  const shareText = achievementShowcaseRuntime.generateShareText(currentStats);
+  const shareText = achievementShowcaseRuntime.generateShareText(achievements, currentStats);
 
   if (navigator.clipboard) {
     navigator.clipboard.writeText(shareText).then(() => {

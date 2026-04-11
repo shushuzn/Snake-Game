@@ -1,5 +1,9 @@
 /**
- * Achievement Showcase Module (成就展示模块)
+ * Achievement Showcase Module (成就展示模块) - Pure UI Layer
+ *
+ * This module provides the display layer for achievements.
+ * It does NOT maintain its own storage - it reads from the game's existing
+ * achievements object and provides UI enhancements (categories, rarities, progress).
  *
  * Features:
  * - Achievement categories (score, combo, mode, pvp, collect, special)
@@ -7,6 +11,9 @@
  * - Progress tracking for partially completed achievements
  * - Achievement unlock notifications with animations
  * - Share functionality
+ *
+ * IMPORTANT: This is a PURE DISPLAY module. Achievement unlocking is handled
+ * by the existing game.js unlockAchievement() function.
  */
 
 window.SnakeAchievementShowcase = (() => {
@@ -28,597 +35,236 @@ window.SnakeAchievementShowcase = (() => {
     special: { name: '特殊类', icon: '🌟', description: '特殊条件成就' }
   };
 
-  // Achievement definitions with full metadata
-  const ACHIEVEMENTS = [
+  // Display metadata for achievements (extends game.js ACHIEVEMENT_KEYS)
+  // This maps achievement keys to their display properties
+  const ACHIEVEMENT_META = {
     // Score achievements (分数类)
-    {
-      id: 'score200',
-      name: '初试锋芒',
-      description: '单局得分超过200分',
-      category: 'score',
-      rarity: 'common',
-      icon: '🎯',
-      condition: { type: 'score', value: 200 },
-      targetValue: 200
-    },
-    {
-      id: 'score500',
-      name: '五百雄兵',
-      description: '单局得分超过500分',
-      category: 'score',
-      rarity: 'common',
-      icon: '💰',
-      condition: { type: 'score', value: 500 },
-      targetValue: 500
-    },
-    {
-      id: 'score1000',
-      name: '千分大师',
-      description: '单局得分超过1000分',
-      category: 'score',
-      rarity: 'rare',
-      icon: '💎',
-      condition: { type: 'score', value: 1000 },
-      targetValue: 1000
-    },
-    {
-      id: 'score2000',
-      name: '两千突击',
-      description: '单局得分超过2000分',
-      category: 'score',
-      rarity: 'epic',
-      icon: '🏅',
-      condition: { type: 'score', value: 2000 },
-      targetValue: 2000
-    },
+    score200: { name: '初试锋芒', description: '单局得分超过200分', category: 'score', rarity: 'common', icon: '🎯', target: 200 },
+    score500: { name: '五百雄兵', description: '单局得分超过500分', category: 'score', rarity: 'common', icon: '💰', target: 500 },
+    score1000: { name: '千分大师', description: '单局得分超过1000分', category: 'score', rarity: 'rare', icon: '💎', target: 1000 },
+    score2000: { name: '两千突击', description: '单局得分超过2000分', category: 'score', rarity: 'epic', icon: '🏅', target: 2000 },
 
     // Combo achievements (连击类)
-    {
-      id: 'combo5',
-      name: '五连斩',
-      description: '达成5连击',
-      category: 'combo',
-      rarity: 'common',
-      icon: '🔥',
-      condition: { type: 'combo', value: 5 },
-      targetValue: 5
-    },
-    {
-      id: 'combo10',
-      name: '十面埋伏',
-      description: '达成10连击',
-      category: 'combo',
-      rarity: 'rare',
-      icon: '⚔️',
-      condition: { type: 'combo', value: 10 },
-      targetValue: 10
-    },
-    {
-      id: 'combo15',
-      name: '十五连击',
-      description: '达成15连击',
-      category: 'combo',
-      rarity: 'epic',
-      icon: '🌪️',
-      condition: { type: 'combo', value: 15 },
-      targetValue: 15
-    },
+    combo5: { name: '五连斩', description: '达成5连击', category: 'combo', rarity: 'common', icon: '🔥', target: 5 },
+    combo10: { name: '十面埋伏', description: '达成10连击', category: 'combo', rarity: 'rare', icon: '⚔️', target: 10 },
+    combo15: { name: '十五连击', description: '达成15连击', category: 'combo', rarity: 'epic', icon: '⚡', target: 15 },
 
     // Mode achievements (模式类)
-    {
-      id: 'timedClear',
-      name: '限时达人',
-      description: '在限时模式中获得100分',
-      category: 'mode',
-      rarity: 'common',
-      icon: '⏰',
-      condition: { type: 'modeScore', mode: 'timed', value: 100 },
-      targetValue: 100
-    },
-    {
-      id: 'endlessLevel5',
-      name: '无尽探索',
-      description: '在无尽模式中达到5级',
-      category: 'mode',
-      rarity: 'rare',
-      icon: '♾️',
-      condition: { type: 'endlessLevel', value: 5 },
-      targetValue: 5
-    },
-    {
-      id: 'endlessLevel10',
-      name: '无尽勇者',
-      description: '在无尽模式中达到10级',
-      category: 'mode',
-      rarity: 'epic',
-      icon: '🚀',
-      condition: { type: 'endlessLevel', value: 10 },
-      targetValue: 10
-    },
-    {
-      id: 'endlessLevel20',
-      name: '无尽传奇',
-      description: '在无尽模式中达到20级',
-      category: 'mode',
-      rarity: 'legendary',
-      icon: '🐉',
-      condition: { type: 'endlessLevel', value: 20 },
-      targetValue: 20
-    },
+    timedClear: { name: '限时通关', description: '在限时模式中达到60秒', category: 'mode', rarity: 'common', icon: '⏰', target: 1 },
 
-    // PvP achievements (对战类)
-    {
-      id: 'aiBeatEasy',
-      name: '初战告捷',
-      description: '在AI对战中击败简单难度',
-      category: 'pvp',
-      rarity: 'common',
-      icon: '🤖',
-      condition: { type: 'aiBeat', difficulty: 'easy' },
-      targetValue: 1
-    },
-    {
-      id: 'aiBeatNormal',
-      name: '棋逢对手',
-      description: '在AI对战中击败普通难度',
-      category: 'pvp',
-      rarity: 'rare',
-      icon: '🎯',
-      condition: { type: 'aiBeat', difficulty: 'normal' },
-      targetValue: 1
-    },
-    {
-      id: 'aiBeatHard',
-      name: '绝地反击',
-      description: '在AI对战中击败困难难度',
-      category: 'pvp',
-      rarity: 'epic',
-      icon: '💥',
-      condition: { type: 'aiBeat', difficulty: 'hard' },
-      targetValue: 1
-    },
-    {
-      id: 'aiBeatHell',
-      name: '地狱征服者',
-      description: '在AI对战中击败地狱难度',
-      category: 'pvp',
-      rarity: 'legendary',
-      icon: '👹',
-      condition: { type: 'aiBeat', difficulty: 'hell' },
-      targetValue: 1
-    },
-    {
-      id: 'multiplayerWin2',
-      name: '双人对决',
-      description: '在多人对战中获得2连胜',
-      category: 'pvp',
-      rarity: 'common',
-      icon: '👥',
-      condition: { type: 'multiplayerWins', count: 2 },
-      targetValue: 2
-    },
-    {
-      id: 'multiplayerWin3',
-      name: '三人连胜',
-      description: '在多人对战中获得3连胜',
-      category: 'pvp',
-      rarity: 'rare',
-      icon: '🎭',
-      condition: { type: 'multiplayerWins', count: 3 },
-      targetValue: 3
-    },
-    {
-      id: 'multiplayerWin4',
-      name: '四人霸主',
-      description: '在多人对战中获得4连胜',
-      category: 'pvp',
-      rarity: 'epic',
-      icon: '🏆',
-      condition: { type: 'multiplayerWins', count: 4 },
-      targetValue: 4
-    },
-    {
-      id: 'spectate5',
-      name: '观战新手',
-      description: '观战AI对战5次',
-      category: 'pvp',
-      rarity: 'common',
-      icon: '👁️',
-      condition: { type: 'spectate', count: 5 },
-      targetValue: 5
-    },
-    {
-      id: 'spectate20',
-      name: '观战达人',
-      description: '观战AI对战20次',
-      category: 'pvp',
-      rarity: 'rare',
-      icon: '🎬',
-      condition: { type: 'spectate', count: 20 },
-      targetValue: 20
-    },
+    // PVP achievements (对战类) - AI
+    aiBeatEasy: { name: '初试锋芒', description: '击败简单AI', category: 'pvp', rarity: 'common', icon: '🤖', target: 1 },
+    aiBeatNormal: { name: '以牙还牙', description: '击败普通AI', category: 'pvp', rarity: 'rare', icon: '🤖', target: 1 },
+    aiBeatHard: { name: '所向披靡', description: '击败困难AI', category: 'pvp', rarity: 'epic', icon: '🤖', target: 1 },
+    aiBeatHell: { name: '地狱征服者', description: '击败地狱AI', category: 'pvp', rarity: 'legendary', icon: '👹', target: 1 },
 
-    // Collect achievements (收集类)
-    {
-      id: 'foods100',
-      name: '初尝美味',
-      description: '累计吃掉100个食物',
-      category: 'collect',
-      rarity: 'common',
-      icon: '🍎',
-      condition: { type: 'foodsCollected', value: 100 },
-      targetValue: 100
-    },
-    {
-      id: 'foods500',
-      name: '美食家',
-      description: '累计吃掉500个食物',
-      category: 'collect',
-      rarity: 'rare',
-      icon: '🍔',
-      condition: { type: 'foodsCollected', value: 500 },
-      targetValue: 500
-    },
-    {
-      id: 'foods1000',
-      name: '大胃王',
-      description: '累计吃掉1000个食物',
-      category: 'collect',
-      rarity: 'epic',
-      icon: '🍽️',
-      condition: { type: 'foodsCollected', value: 1000 },
-      targetValue: 1000
-    },
-    {
-      id: 'codex5',
-      name: '图鉴收集者',
-      description: '收集5个图鉴',
-      category: 'collect',
-      rarity: 'common',
-      icon: '📖',
-      condition: { type: 'codexCollected', value: 5 },
-      targetValue: 5
-    },
-    {
-      id: 'codex10',
-      name: '图鉴大师',
-      description: '收集10个图鉴',
-      category: 'collect',
-      rarity: 'rare',
-      icon: '📚',
-      condition: { type: 'codexCollected', value: 10 },
-      targetValue: 10
-    },
-    {
-      id: 'allCodex',
-      name: '全知全能',
-      description: '收集所有图鉴',
-      category: 'collect',
-      rarity: 'legendary',
-      icon: '🌈',
-      condition: { type: 'allCodex' },
-      targetValue: 1
-    },
+    // PVP achievements (对战类) - Multiplayer
+    multiplayerWin2: { name: '双人冠军', description: '在多人对战中获得第1名', category: 'pvp', rarity: 'common', icon: '🏆', target: 1 },
+    multiplayerWin3: { name: '三人冠军', description: '在3人对战中获得第1名', category: 'pvp', rarity: 'rare', icon: '🏆', target: 1 },
+    multiplayerWin4: { name: '四人冠军', description: '在4人对战中获得第1名', category: 'pvp', rarity: 'epic', icon: '🏆', target: 1 },
 
-    // Special achievements (特殊类)
-    {
-      id: 'games10',
-      name: '初出茅庐',
-      description: '累计完成10局游戏',
-      category: 'special',
-      rarity: 'common',
-      icon: '🎮',
-      condition: { type: 'totalGames', value: 10 },
-      targetValue: 10
-    },
-    {
-      id: 'games50',
-      name: '小试牛刀',
-      description: '累计完成50局游戏',
-      category: 'special',
-      rarity: 'rare',
-      icon: '🎲',
-      condition: { type: 'totalGames', value: 50 },
-      targetValue: 50
-    },
-    {
-      id: 'games100',
-      name: '百战老兵',
-      description: '累计完成100局游戏',
-      category: 'special',
-      rarity: 'epic',
-      icon: '🕹️',
-      condition: { type: 'totalGames', value: 100 },
-      targetValue: 100
-    },
-    {
-      id: 'dailyStreak7',
-      name: '一周签到',
-      description: '连续签到7天',
-      category: 'special',
-      rarity: 'common',
-      icon: '📅',
-      condition: { type: 'dailyStreak', value: 7 },
-      targetValue: 7
-    },
-    {
-      id: 'dailyStreak30',
-      name: '月度签到',
-      description: '连续签到30天',
-      category: 'special',
-      rarity: 'rare',
-      icon: '🗓️',
-      condition: { type: 'dailyStreak', value: 30 },
-      targetValue: 30
-    },
-    {
-      id: 'firstTask',
-      name: '任务新人',
-      description: '完成第一个每日任务',
-      category: 'special',
-      rarity: 'common',
-      icon: '✅',
-      condition: { type: 'tasksCompleted', value: 1 },
-      targetValue: 1
-    },
-    {
-      id: 'allTasks',
-      name: '任务达人',
-      description: '一次性完成所有每日任务',
-      category: 'special',
-      rarity: 'rare',
-      icon: '🏅',
-      condition: { type: 'allTasksCompleted' },
-      targetValue: 1
-    }
-  ];
+    // PVP achievements (对战类) - Spectate
+    spectate5: { name: '观战新手', description: '观战5次', category: 'pvp', rarity: 'common', icon: '👀', target: 5 },
+    spectate20: { name: '观战老手', description: '观战20次', category: 'pvp', rarity: 'rare', icon: '👀', target: 20 },
 
-  const STORAGE_KEY = 'snake-achievements-showcase-data';
-  const UNLOCKED_KEY = 'snake-achievements-unlocked';
+    // Collect achievements (收集类) - Foods
+    foods100: { name: '小胃王', description: '累计吃掉100个食物', category: 'collect', rarity: 'common', icon: '🍎', target: 100 },
+    foods500: { name: '美食家', description: '累计吃掉500个食物', category: 'collect', rarity: 'rare', icon: '🍔', target: 500 },
+    foods1000: { name: '大胃王', description: '累计吃掉1000个食物', category: 'collect', rarity: 'epic', icon: '🍽️', target: 1000 },
 
-  // Load achievements data from storage
-  function loadAchievementsData(storage) {
-    return storage.readJson(STORAGE_KEY, {
-      unlockedAchievements: {},
-      recentlyUnlocked: null,
-      stats: {}
-    });
+    // Collect achievements (收集类) - Codex
+    codex5: { name: '图鉴收集者', description: '收集5个图鉴', category: 'collect', rarity: 'common', icon: '📖', target: 5 },
+    codex10: { name: '图鉴大师', description: '收集10个图鉴', category: 'collect', rarity: 'rare', icon: '📚', target: 10 },
+    allCodex: { name: '全知全能', description: '收集所有图鉴', category: 'collect', rarity: 'legendary', icon: '🌈', target: 1 },
+
+    // Special achievements (特殊类) - Games
+    games10: { name: '初出茅庐', description: '累计完成10局游戏', category: 'special', rarity: 'common', icon: '🎮', target: 10 },
+    games50: { name: '小试牛刀', description: '累计完成50局游戏', category: 'special', rarity: 'rare', icon: '🎲', target: 50 },
+    games100: { name: '百战老兵', description: '累计完成100局游戏', category: 'special', rarity: 'epic', icon: '🕹️', target: 100 },
+
+    // Special achievements (特殊类) - Daily
+    dailyStreak7: { name: '一周签到', description: '连续签到7天', category: 'special', rarity: 'common', icon: '📅', target: 7 },
+    dailyStreak30: { name: '月度签到', description: '连续签到30天', category: 'special', rarity: 'rare', icon: '📅', target: 30 },
+
+    // Special achievements (特殊类) - Tasks
+    firstTask: { name: '任务达人', description: '完成首个每日任务', category: 'special', rarity: 'common', icon: '✅', target: 1 },
+    allTasks: { name: '任务大师', description: '完成所有每日任务', category: 'special', rarity: 'rare', icon: '⭐', target: 1 },
+
+    // Special achievements (特殊类) - Endless
+    endlessLevel5: { name: '无尽探索', description: '在无尽模式达到5级', category: 'mode', rarity: 'common', icon: '♾️', target: 5 },
+    endlessLevel10: { name: '无尽挑战', description: '在无尽模式达到10级', category: 'mode', rarity: 'rare', icon: '♾️', target: 10 },
+    endlessLevel20: { name: '无尽王者', description: '在无尽模式达到20级', category: 'mode', rarity: 'epic', icon: '♾️', target: 20 }
+  };
+
+  // Get achievement metadata by ID
+  function getAchievementMeta(achievementId) {
+    return ACHIEVEMENT_META[achievementId] || null;
   }
 
-  // Save achievements data to storage
-  function saveAchievementsData(storage, data) {
-    storage.writeJson(STORAGE_KEY, data);
+  // Get all achievement IDs from the game's ACHIEVEMENT_KEYS
+  function getAllAchievementKeys() {
+    // This will be injected from game.js
+    return window.ACHIEVEMENT_KEYS || [];
   }
 
-  // Check if an achievement is unlocked
-  function isAchievementUnlocked(storage, achievementId) {
-    const data = loadAchievementsData(storage);
-    return Boolean(data.unlockedAchievements[achievementId]);
-  }
+  // Calculate progress for an achievement
+  // currentStats should contain: bestScore, highestCombo, totalGames, totalFoodsEaten, etc.
+  function calculateProgress(achievementId, currentStats, unlockedAchievements) {
+    const meta = ACHIEVEMENT_META[achievementId];
+    if (!meta) return null;
 
-  // Get current progress for an achievement
-  function getAchievementProgress(storage, achievementId, currentStats) {
-    const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
-    if (!achievement) return null;
-
-    const data = loadAchievementsData(storage);
-    if (data.unlockedAchievements[achievementId]) {
-      return {
-        unlocked: true,
-        current: achievement.targetValue,
-        target: achievement.targetValue,
-        percentage: 100
-      };
+    // If already unlocked, return full progress
+    if (unlockedAchievements[achievementId]) {
+      return { current: meta.target, target: meta.target, percentage: 100 };
     }
 
     let current = 0;
-    const target = achievement.targetValue;
-    const condition = achievement.condition;
+    const target = meta.target;
 
-    switch (condition.type) {
-      case 'score':
+    // Map category to stats
+    switch (achievementId) {
+      // Score achievements
+      case 'score200':
+      case 'score500':
+      case 'score1000':
+      case 'score2000':
         current = Math.min(currentStats.bestScore || 0, target);
         break;
-      case 'combo':
+
+      // Combo achievements
+      case 'combo5':
+      case 'combo10':
+      case 'combo15':
         current = Math.min(currentStats.highestCombo || 0, target);
         break;
-      case 'modeScore':
-        current = Math.min(currentStats.modeBestScores?.[condition.mode] || 0, target);
+
+      // Mode achievements
+      case 'timedClear':
+        current = currentStats.bestTimedScore >= 60 ? 1 : 0;
         break;
-      case 'endlessLevel':
-        current = Math.min(currentStats.endlessLevel || 0, target);
+      case 'endlessLevel5':
+        current = Math.min(currentStats.endlessLevel || 0, 5);
         break;
-      case 'aiBeat':
-        current = data.stats.aiWins?.[condition.difficulty] || 0;
-        current = Math.min(current, target);
+      case 'endlessLevel10':
+        current = Math.min(currentStats.endlessLevel || 0, 10);
         break;
-      case 'multiplayerWins':
-        current = Math.min(currentStats.streakWins || 0, target);
+      case 'endlessLevel20':
+        current = Math.min(currentStats.endlessLevel || 0, 20);
         break;
-      case 'spectate':
-        current = Math.min(data.stats.spectateCount || 0, target);
-        break;
-      case 'foodsCollected':
-        current = Math.min(currentStats.totalFoodsEaten || 0, target);
-        break;
-      case 'codexCollected':
-        current = Math.min(currentStats.codexDiscovered || 0, target);
-        break;
-      case 'allCodex':
-        current = currentStats.codexDiscovered >= 10 ? 1 : 0;
-        break;
-      case 'totalGames':
+
+      // Game count achievements
+      case 'games10':
+      case 'games50':
+      case 'games100':
         current = Math.min(currentStats.totalGames || 0, target);
         break;
-      case 'dailyStreak':
+
+      // Food collect achievements
+      case 'foods100':
+      case 'foods500':
+      case 'foods1000':
+        current = Math.min(currentStats.totalFoodsEaten || 0, target);
+        break;
+
+      // Codex achievements
+      case 'codex5':
+      case 'codex10':
+      case 'allCodex':
+        current = Math.min(currentStats.codexDiscovered || 0, target);
+        break;
+
+      // Daily streak achievements
+      case 'dailyStreak7':
+      case 'dailyStreak30':
         current = Math.min(currentStats.dailyStreak || 0, target);
         break;
-      case 'tasksCompleted':
-        current = Math.min(currentStats.tasksCompleted || 0, target);
+
+      // Task achievements
+      case 'firstTask':
+        current = currentStats.tasksCompleted > 0 ? 1 : 0;
         break;
-      case 'allTasksCompleted':
+      case 'allTasks':
         current = currentStats.allTasksCompleted ? 1 : 0;
         break;
+
+      // AI battle achievements
+      case 'aiBeatEasy':
+      case 'aiBeatNormal':
+      case 'aiBeatHard':
+      case 'aiBeatHell':
+        current = currentStats[`${achievementId}Unlocked`] ? 1 : 0;
+        break;
+
+      // Multiplayer achievements
+      case 'multiplayerWin2':
+      case 'multiplayerWin3':
+      case 'multiplayerWin4':
+        current = currentStats[`${achievementId}Unlocked`] ? 1 : 0;
+        break;
+
+      // Spectate achievements
+      case 'spectate5':
+      case 'spectate20':
+        current = Math.min(currentStats.spectateCount || 0, target);
+        break;
+
+      default:
+        current = 0;
     }
 
     const percentage = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
 
     return {
-      unlocked: current >= target,
       current,
       target,
-      percentage
+      percentage,
+      unlocked: current >= target
     };
   }
 
-  // Unlock an achievement
-  function unlockAchievement(storage, achievementId) {
-    const data = loadAchievementsData(storage);
-    if (!data.unlockedAchievements[achievementId]) {
-      data.unlockedAchievements[achievementId] = {
-        unlockedAt: Date.now()
-      };
-      data.recentlyUnlocked = {
-        achievementId,
-        timestamp: Date.now()
-      };
-      saveAchievementsData(storage, data);
-      return true;
-    }
-    return false;
-  }
+  // Get all achievements with display data and progress
+  // @param {Object} unlockedAchievements - The game's achievements object (key -> boolean)
+  // @param {Object} currentStats - Current game stats for progress calculation
+  function getAllAchievements(unlockedAchievements, currentStats) {
+    const keys = getAllAchievementKeys();
+    return keys.map(key => {
+      const meta = ACHIEVEMENT_META[key];
+      if (!meta) {
+        // If no metadata, create a basic entry
+        return {
+          id: key,
+          name: key,
+          description: key,
+          category: 'special',
+          rarity: 'common',
+          icon: '🏆',
+          target: 1,
+          progress: unlockedAchievements[key] ? 1 : 0,
+          percentage: unlockedAchievements[key] ? 100 : 0,
+          unlocked: Boolean(unlockedAchievements[key])
+        };
+      }
 
-  // Get all achievements with unlock status and progress
-  function getAllAchievements(storage, currentStats) {
-    const data = loadAchievementsData(storage);
-    return ACHIEVEMENTS.map(achievement => {
-      const progress = getAchievementProgress(storage, achievement.id, currentStats);
+      const progress = calculateProgress(key, currentStats, unlockedAchievements);
       return {
-        ...achievement,
-        unlocked: progress?.unlocked || false,
+        id: key,
+        name: meta.name,
+        description: meta.description,
+        category: meta.category,
+        rarity: meta.rarity,
+        icon: meta.icon,
+        target: meta.target,
         progress: progress?.current || 0,
-        target: progress?.target || achievement.targetValue,
-        percentage: progress?.percentage || 0
+        percentage: progress?.percentage || 0,
+        unlocked: Boolean(unlockedAchievements[key])
       };
     });
   }
 
-  // Get achievements by category
-  function getAchievementsByCategory(storage, category, currentStats) {
-    return ACHIEVEMENTS.filter(a => a.category === category)
-      .map(achievement => {
-        const progress = getAchievementProgress(storage, achievement.id, currentStats);
-        return {
-          ...achievement,
-          unlocked: progress?.unlocked || false,
-          progress: progress?.current || 0,
-          target: progress?.target || achievement.targetValue,
-          percentage: progress?.percentage || 0
-        };
-      });
-  }
-
-  // Get unlocked achievements
-  function getUnlockedAchievements(storage) {
-    const data = loadAchievementsData(storage);
-    return ACHIEVEMENTS.filter(a => data.unlockedAchievements[a.id])
-      .map(a => ({ ...a, unlocked: true }));
-  }
-
-  // Get recently unlocked achievement
-  function getRecentlyUnlocked(storage) {
-    const data = loadAchievementsData(storage);
-    if (!data.recentlyUnlocked) return null;
-
-    const achievement = ACHIEVEMENTS.find(a => a.id === data.recentlyUnlocked.achievementId);
-    if (!achievement) return null;
-
-    // Clear if older than 24 hours
-    const dayMs = 24 * 60 * 60 * 1000;
-    if (Date.now() - data.recentlyUnlocked.timestamp > dayMs) {
-      data.recentlyUnlocked = null;
-      saveAchievementsData(storage, data);
-      return null;
-    }
-
-    return {
-      ...achievement,
-      unlocked: true
-    };
-  }
-
-  // Clear recently unlocked notification
-  function clearRecentlyUnlocked(storage) {
-    const data = loadAchievementsData(storage);
-    data.recentlyUnlocked = null;
-    saveAchievementsData(storage, data);
-  }
-
-  // Update stats for progress tracking
-  function updateStats(storage, stats) {
-    const data = loadAchievementsData(storage);
-    data.stats = { ...data.stats, ...stats };
-    saveAchievementsData(storage, data);
-  }
-
-  // Check and unlock achievements based on current stats
-  function checkAndUnlockAchievements(storage, currentStats) {
-    const data = loadAchievementsData(storage);
-    const newlyUnlocked = [];
-
-    for (const achievement of ACHIEVEMENTS) {
-      if (data.unlockedAchievements[achievement.id]) continue;
-
-      const progress = getAchievementProgress(storage, achievement.id, currentStats);
-      if (progress && progress.unlocked) {
-        data.unlockedAchievements[achievement.id] = {
-          unlockedAt: Date.now()
-        };
-        newlyUnlocked.push(achievement);
-      }
-    }
-
-    if (newlyUnlocked.length > 0) {
-      data.recentlyUnlocked = {
-        achievementId: newlyUnlocked[0].id,
-        timestamp: Date.now()
-      };
-      saveAchievementsData(storage, data);
-    }
-
-    return newlyUnlocked;
-  }
-
-  // Generate share text for achievements
-  function generateShareText(storage, currentStats) {
-    const data = loadAchievementsData(storage);
-    const unlockedCount = Object.keys(data.unlockedAchievements).length;
-    const totalCount = ACHIEVEMENTS.length;
-
-    let text = `🐍 贪吃蛇成就进度\n`;
-    text += `━━━━━━━━━━━━━━━━\n`;
-    text += `已解锁: ${unlockedCount}/${totalCount}\n\n`;
-
-    // Group by category
-    const categories = Object.keys(CATEGORIES);
-    for (const catId of categories) {
-      const catAchievements = ACHIEVEMENTS.filter(a => a.category === catId);
-      const catUnlocked = catAchievements.filter(a => data.unlockedAchievements[a.id]).length;
-      if (catUnlocked > 0) {
-        text += `${CATEGORIES[catId].icon} ${CATEGORIES[catId].name}: ${catUnlocked}/${catAchievements.length}\n`;
-      }
-    }
-
-    text += `\n✨ 我的最高分: ${currentStats.bestScore || 0}\n`;
-    text += `⚡ 最高连击: ${currentStats.highestCombo || 0}\n`;
-    text += `🎮 总场次: ${currentStats.totalGames || 0}`;
-
-    return text;
-  }
-
-  // Get achievement by ID
-  function getAchievementById(achievementId) {
-    return ACHIEVEMENTS.find(a => a.id === achievementId) || null;
+  // Get achievements filtered by category
+  function getAchievementsByCategory(category, unlockedAchievements, currentStats) {
+    return getAllAchievements(unlockedAchievements, currentStats)
+      .filter(a => a.category === category);
   }
 
   // Get categories
@@ -634,38 +280,62 @@ window.SnakeAchievementShowcase = (() => {
     return RARITIES;
   }
 
-  // Get total count
-  function getTotalCount() {
-    return ACHIEVEMENTS.length;
+  // Generate share text
+  function generateShareText(unlockedAchievements, currentStats) {
+    const allAchievements = getAllAchievements(unlockedAchievements, currentStats);
+    const unlockedCount = allAchievements.filter(a => a.unlocked).length;
+    const totalCount = allAchievements.length;
+
+    let text = `🐍 贪吃蛇成就进度\n`;
+    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `已解锁: ${unlockedCount}/${totalCount}\n\n`;
+
+    // Group by category
+    for (const [catId, catInfo] of Object.entries(CATEGORIES)) {
+      const catAchievements = allAchievements.filter(a => a.category === catId);
+      const catUnlocked = catAchievements.filter(a => a.unlocked).length;
+      if (catUnlocked > 0 || catAchievements.length > 0) {
+        text += `${catInfo.icon} ${catInfo.name}: ${catUnlocked}/${catAchievements.length}\n`;
+      }
+    }
+
+    text += `\n✨ 我的最高分: ${currentStats.bestScore || 0}\n`;
+    text += `⚡ 最高连击: ${currentStats.highestCombo || 0}\n`;
+    text += `🎮 总场次: ${currentStats.totalGames || 0}`;
+
+    return text;
   }
 
-  // Get unlocked count
-  function getUnlockedCount(storage) {
-    const data = loadAchievementsData(storage);
-    return Object.keys(data.unlockedAchievements).length;
-  }
-
-  // Create achievement showcase module
-  function createAchievementShowcaseModule({ storage }) {
+  // Create achievement showcase module (pure display layer)
+  function createAchievementShowcaseModule() {
     return {
-      getAllAchievements: (stats) => getAllAchievements(storage, stats),
-      getAchievementsByCategory: (category, stats) => getAchievementsByCategory(storage, category, stats),
-      getUnlockedAchievements: () => getUnlockedAchievements(storage),
-      getRecentlyUnlocked: () => getRecentlyUnlocked(storage),
-      clearRecentlyUnlocked: () => clearRecentlyUnlocked(storage),
-      checkAndUnlockAchievements: (stats) => checkAndUnlockAchievements(storage, stats),
-      isAchievementUnlocked: (id) => isAchievementUnlocked(storage, id),
-      unlockAchievement: (id) => unlockAchievement(storage, id),
-      updateStats: (stats) => updateStats(storage, stats),
-      generateShareText: (stats) => generateShareText(storage, stats),
-      getAchievementById: (id) => getAchievementById(id),
+      // Get all achievements with display data
+      getAllAchievements: (unlockedAchievements, currentStats) =>
+        getAllAchievements(unlockedAchievements, currentStats),
+
+      // Get achievements by category
+      getAchievementsByCategory: (category, unlockedAchievements, currentStats) =>
+        getAchievementsByCategory(category, unlockedAchievements, currentStats),
+
+      // Get metadata for a specific achievement
+      getAchievementMeta: (achievementId) => getAchievementMeta(achievementId),
+
+      // Calculate progress for an achievement
+      calculateProgress: (achievementId, currentStats, unlockedAchievements) =>
+        calculateProgress(achievementId, currentStats, unlockedAchievements),
+
+      // Generate share text
+      generateShareText: (unlockedAchievements, currentStats) =>
+        generateShareText(unlockedAchievements, currentStats),
+
+      // Get categories
       getCategories: () => getCategories(),
+
+      // Get rarities
       getRarities: () => getRarities(),
-      getTotalCount: () => getTotalCount(),
-      getUnlockedCount: () => getUnlockedCount(storage),
-      ACHIEVEMENTS,
-      CATEGORIES,
-      RARITIES
+
+      // Get total achievement count
+      getTotalCount: () => getAllAchievementKeys().length
     };
   }
 
