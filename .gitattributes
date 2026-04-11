@@ -1,0 +1,18 @@
+# Auto-detect text files
+* text=auto
+
+# Git files - DO NOT COMMIT
+.git/** -export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+
+# Scripts
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Scripts that should not be executable on Windows
+ shared/install-hooks.sh text eol=lf
+ shared/pre-commit-check.sh text eol=lf
+ shared/quick-test.sh text eol=lf
+ shared/dev-checklist.sh text eol=lf
+ shared/decision-template.sh text eol=lf
