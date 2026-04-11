@@ -4081,13 +4081,6 @@ function startLoop() {
 
 function startGameIfNeeded() {
   playStateRuntime.startGameIfNeeded();
-  // Track first game for new player bonus
-  if (window.SnakeQuickStart) {
-    const quickStart = SnakeQuickStart.createQuickStartModule({ storage });
-    if (quickStart && quickStart.validate().valid) {
-      quickStart.markFirstGameStarted();
-    }
-  }
 }
 
 
@@ -4162,55 +4155,54 @@ function endGame(reasonText) {
     }
   }
 
-  // Check first game completion bonus
-  if (window.SnakeQuickStart) {
-    const quickStart = SnakeQuickStart.createQuickStartModule({ storage });
-    if (quickStart && quickStart.validate().valid) {
-      const result = quickStart.markFirstGameCompleted();
-      if (result.success && result.result && result.result.canClaim) {
-        // Show bonus notification after a short delay (let settlement show first)
+  // Check reward triggers on game complete
+  if (window.SnakeRewardSystem) {
+    const rewardSystem = SnakeRewardSystem.createRewardSystemModule({ storage });
+    if (rewardSystem && rewardSystem.validate().valid) {
+      const stats = { gamesPlayed: storage.get('gamesPlayed') || 0, gamesWon: storage.get('gamesWon') || 0, highestScore: score };
+      const triggers = rewardSystem.checkTriggers('game_complete', stats);
+      if (triggers.success && triggers.results.length > 0) {
         setTimeout(() => {
-          showFirstGameBonus(quickStart);
+          showRewardNotification(rewardSystem, triggers.results);
         }, 1500);
       }
     }
   }
 }
 
-// Show first game bonus notification
-function showFirstGameBonus(quickStart) {
-  if (!window.SnakeQuickStart) return;
-  const summary = quickStart.getSummary().summary;
-  if (!summary.canClaim) return;
-
-  const bonus = summary.bonusAmount;
+// Show reward notification
+function showRewardNotification(rewardSystem, pendingRewards) {
+  if (!pendingRewards || pendingRewards.length === 0) return;
+  
+  const reward = pendingRewards[0];
   const html = `
     <div style="padding:20px; text-align:center; color:#fff;">
       <div style="font-size:48px; margin-bottom:10px;">🎁</div>
-      <h3 style="color:#f59e0b; margin:0 0 10px;">首战完成奖励！</h3>
-      <p style="color:#9ca3af; margin:0 0 15px;">恭喜完成你的第一局游戏！</p>
-      <div style="font-size:24px; color:#ffd700; margin-bottom:15px;">+${bonus} 金币</div>
-      <button onclick="claimFirstGameBonus()" style="padding:10px 24px; font-size:16px; border:none; border-radius:8px; background:#f59e0b; color:#000; cursor:pointer;">领取奖励</button>
+      <h3 style="color:#f59e0b; margin:0 0 10px;">奖励达成！</h3>
+      <p style="color:#9ca3af; margin:0 0 15px;">恭喜解锁新成就！</p>
+      <div style="font-size:24px; color:#ffd700; margin-bottom:15px;">+${reward.reward.amount} ${reward.reward.type === 'coins' ? '金币' : '积分'}</div>
+      <button onclick="window.claimRewardAndContinue('${reward.ruleId}')" style="padding:10px 24px; font-size:16px; border:none; border-radius:8px; background:#f59e0b; color:#000; cursor:pointer;">领取奖励</button>
     </div>
   `;
   showOverlay(html);
-  // Auto-close after 30 seconds
   setTimeout(() => { if (overlay.style.display === 'grid') hideOverlay(); }, 30000);
 }
 
-// Claim first game bonus
-window.claimFirstGameBonus = function() {
-  if (window.SnakeQuickStart) {
-    const quickStart = SnakeQuickStart.createQuickStartModule({ storage });
-    if (quickStart) {
-      const result = quickStart.claimBonus((amount) => {
-        const currentCoins = storage.get('coins') || 0;
-        storage.set('coins', currentCoins + amount);
-        updateCoinsText();
+// Claim reward and continue
+window.claimRewardAndContinue = function(ruleId) {
+  if (window.SnakeRewardSystem) {
+    const rewardSystem = SnakeRewardSystem.createRewardSystemModule({ storage });
+    if (rewardSystem) {
+      const result = rewardSystem.claimReward(ruleId, (reward) => {
+        if (reward.type === 'coins') {
+          const currentCoins = storage.get('coins') || 0;
+          storage.set('coins', currentCoins + reward.amount);
+          updateCoinsText();
+        }
       });
       if (result.success) {
         hideOverlay();
-        showOverlay(`<div style="padding:20px; text-align:center;"><div style="font-size:48px;">✅</div><p style="color:#22c55e; font-size:18px;">已领取 ${result.result.amount} 金币！</p></div>`);
+        showOverlay(`<div style="padding:20px; text-align:center;"><div style="font-size:48px;">✅</div><p style="color:#22c55e; font-size:18px;">已领取 ${result.result.reward.amount} 金币！</p></div>`);
       }
     }
   }
