@@ -77,6 +77,10 @@
         <div class="controls-group setting-row">
           <label class="label-inline" for="mode">模式
             <select id="mode"><option value="classic" selected>经典</option><option value="timed">限时 60 秒</option><option value="blitz">冲刺 45 秒</option><option value="endless">无尽关卡</option><option value="roguelike">肉鸽模式</option><option value="ai-battle">AI对战</option><option value="multiplayer">多人对战</option><option value="spectate">观战模式</option><option value="daily-challenge">每日挑战</option></select>
+            <span id="modeTrialContainer" style="display:none;margin-left:10px;">
+              <button id="startTrialBtn" class="trial-btn">🎮 试玩</button>
+              <span id="trialTimer" style="margin-left:8px;color:#888;font-size:12px;"></span>
+            </span>
           </label>
           <label class="label-inline" for="difficulty">难度
             <select id="difficulty"><option value="140">悠闲</option><option value="110" selected>标准</option><option value="80">极速</option><option value="60">地狱</option></select>
