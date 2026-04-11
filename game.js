@@ -109,6 +109,7 @@ const modeTrialContainer = document.getElementById('modeTrialContainer');
 const startTrialBtn = document.getElementById('startTrialBtn');
 const trialTimerEl = document.getElementById('trialTimer');
 const quickStartBtn = document.getElementById('quickStart');
+const showReturnCenterBtn = document.getElementById('showReturnCenter');
 const gameHintEl = document.getElementById('gameHint');
 const aiDifficultySelect = document.getElementById('aiDifficulty');
 const wrapModeInput = document.getElementById('wrapMode');
@@ -4663,6 +4664,47 @@ if (quickStartBtn) {
       resetGame(true);
     }
     hideOverlay();
+  });
+}
+
+// Return center button handler
+if (showReturnCenterBtn) {
+  showReturnCenterBtn.addEventListener('click', () => {
+    if (window.SnakeReturnCenter) {
+      const centerModule = SnakeReturnCenter.createReturnCenterModule({ storage });
+      const data = centerModule.getReturnCenterData();
+
+      const tierColor = {
+        bronze: '#cd7f32', silver: '#c0c0c0', gold: '#ffd700', platinum: '#e5e4e2', diamond: '#b9f2ff'
+      }[data.currentTier] || '#888';
+
+      let html = `
+        <div style="padding:15px; color:#fff; min-width:240px;">
+          <h4 style="margin:0 0 15px; color:${tierColor};">🎁 回流中心</h4>
+          <p>回流等级：<strong style="color:${tierColor};">${data.currentTier}</strong> <span style="color:${data.stageColor};">(${data.stageLabel})</span></p>
+          <p>沉默天数：${data.days} 天</p>
+          <div style="background:#0f0f1a; border-radius:8px; padding:10px; margin:10px 0;">
+            <p style="margin:0;">金币：${data.currentReward.coins}</p>
+            <p style="margin:0;">经验：${data.currentReward.experience}</p>
+          </div>
+          <p>游戏次数：${data.totalGames}</p>
+          <p>成就解锁：${data.achievementsUnlocked}</p>
+      `;
+
+      if (data.nextTier) {
+        html += `
+          <p style="color:#9ca3af; margin-top:15px;">再 ${data.daysUntilNextTier} 天升级为 ${data.nextTier}</p>
+          <p style="color:#9ca3af; margin-top:0;">下级奖励：${data.nextReward.coins} 金币</p>
+        `;
+      } else {
+        html += `<p style="color:#ffd700; margin-top:15px;">🎉 已达最高等级！</p>`;
+      }
+
+      html += `<button onclick="this.closest('.overlay-content').parentElement.style.display='none'" style="margin-top:15px; padding:8px 16px; border-radius:6px; border:none; background:#f59e0b; color:#000; cursor:pointer; width:100%;">关闭</button>`;
+      html += `</div>`;
+
+      showOverlay(html, 10000);
+    }
   });
 }
 
