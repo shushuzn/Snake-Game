@@ -104,6 +104,7 @@ const difficultySelect = document.getElementById('difficulty');
 const skinSelect = document.getElementById('skin');
 const openShopBtn = document.getElementById('openShop');
 const showPurchaseHistoryBtn = document.getElementById('showPurchaseHistory');
+const showSeasonChallengesBtn = document.getElementById('showSeasonChallenges');
 const dlcPackSelect = document.getElementById('dlcPack');
 const modeSelect = document.getElementById('mode');
 const modeTrialContainer = document.getElementById('modeTrialContainer');
@@ -4129,6 +4130,30 @@ function endGame(reasonText) {
     const completedModes = allModes.filter(m => (bestByMode[m] || 0) > 0);
     window.SnakeFirstMilestone.checkAllModesMilestone(completedModes, (reward) => addScore(reward, 'allModesMilestone'));
   }
+
+  // 更新赛季挑战进度
+  if (window.SnakeSeasonChallenges) {
+    const seasonModule = SnakeSeasonChallenges.createSeasonChallengesModule({ storage });
+    if (seasonModule && seasonModule.validate().valid) {
+      // 更新游戏次数
+      seasonModule.updateProgress('games', 1);
+      // 更新食物数（如果有统计）
+      if (statisticsRuntime) {
+        const stats = statisticsRuntime.getStats();
+        if (stats && stats.totalFoodEaten) {
+          seasonModule.updateProgress('foods', stats.totalFoodEaten);
+        }
+      }
+      // 更新连胜（如果是胜利）
+      if (reasonText && reasonText.includes('胜利')) {
+        seasonModule.updateProgress('streak', 1);
+      }
+      // 更新分数
+      if (score > 0) {
+        seasonModule.updateProgress('score', score);
+      }
+    }
+  }
 }
 
 function canMagnetCollect(head, pickup, now, range = 2) {
@@ -4888,6 +4913,66 @@ if (showPurchaseHistoryBtn) {
     }
   });
 }
+
+// 赛季挑战按钮
+if (showSeasonChallengesBtn) {
+  showSeasonChallengesBtn.addEventListener('click', () => {
+    if (window.SnakeSeasonChallenges) {
+      const seasonModule = SnakeSeasonChallenges.createSeasonChallengesModule({ storage });
+      const { data } = seasonModule.getData();
+
+      const seasonColors = ['#cd7f32', '#c0c0c0', '#ffd700', '#e5e4e2', '#b9f2ff'];
+      const badgeColor = seasonColors[(data.seasonNumber - 1) % seasonColors.length];
+
+      let html = `
+        <div style="padding:15px; color:#fff; min-width:280px;">
+          <h4 style="margin:0 0 10px; color:${badgeColor};">🏆 第${data.seasonNumber}赛季</h4>
+          <p style="margin:0 0 15px; font-size:13px; color:#9ca3af;">剩余 ${data.daysLeft} 天 · ${data.hoursLeft} 小时</p>
+      `;
+
+      data.challenges.forEach(c => {
+        const statusColor = c.claimed ? '#22c55e' : (c.completed ? '#f59e0b' : '#6b7280');
+        const statusText = c.claimed ? '✅ 已领取' : (c.completed ? '🎁 可领取' : '🔒 进行中');
+        html += `
+          <div style="background:#0f0f1a; border-radius:8px; padding:10px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>${c.name}</strong>
+              <span style="color:${statusColor}; font-size:12px;">${statusText}</span>
+            </div>
+            <p style="margin:5px 0; font-size:12px; color:#9ca3af;">${c.description}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px;">${c.current}/${c.target}</span>
+              <span style="color:#ffd700; font-size:12px;">+${c.reward.coins} 金币</span>
+            </div>
+            ${c.completed && !c.claimed ? `<button onclick="claimSeasonReward('${c.id}')" style="margin-top:8px; width:100%; padding:6px; border-radius:4px; border:none; background:#f59e0b; color:#000; cursor:pointer; font-size:12px;">领取奖励</button>` : ''}
+          </div>
+        `;
+      });
+
+      html += `<button onclick="this.closest('.overlay-content').parentElement.style.display='none'" style="margin-top:10px; padding:8px 16px; border-radius:6px; border:none; background:#444; color:#fff; cursor:pointer; width:100%;">关闭</button>`;
+      html += `</div>`;
+
+      showOverlay(html, 15000);
+    }
+  });
+}
+
+// Global function for claiming season reward
+window.claimSeasonReward = function(challengeId) {
+  if (window.SnakeSeasonChallenges) {
+    const seasonModule = SnakeSeasonChallenges.createSeasonChallengesModule({ storage });
+    const result = seasonModule.claimReward(challengeId);
+    if (result.success) {
+      const currentCoins = storage.get('coins') || 0;
+      storage.set('coins', currentCoins + result.result.reward.coins);
+      updateCoinsText();
+      showOverlay(`<p style="color:#ffd700; font-size:18px;">🎉 获得 ${result.result.reward.coins} 金币！</p>`, 2000);
+      setTimeout(() => {
+        if (showSeasonChallengesBtn) showSeasonChallengesBtn.click();
+      }, 2100);
+    }
+  }
+};
 
 dlcPackSelect.addEventListener('change', () => {
   saveSettings();
