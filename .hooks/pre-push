@@ -1,0 +1,20 @@
+#!/bin/bash
+# pre-push hook
+# Runs before each push - runs quick tests
+# Template: .hooks/pre-push
+
+SCRIPT_DIR="$(git rev-parse --show-toplevel)/shared"
+QUICK_TEST="$SCRIPT_DIR/quick-test.sh"
+
+# Skip in CI environments
+if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ] || [ "$GITLAB_CI" = "true" ] || [ "$TRAVIS" = "true" ]; then
+    exit 0
+fi
+
+# Run quick test before push
+if [ -f "$QUICK_TEST" ]; then
+    echo "=== pre-push: Running quick tests ==="
+    bash "$QUICK_TEST"
+else
+    echo "⚠️  quick-test.sh not found, skipping tests"
+fi

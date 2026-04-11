@@ -1,0 +1,21 @@
+#!/bin/bash
+# pre-commit hook
+# Runs before each commit - static checks only
+# Template: .hooks/pre-commit
+
+SCRIPT_DIR="$(git rev-parse --show-toplevel)/shared"
+CHECK_SCRIPT="$SCRIPT_DIR/pre-commit-check.sh"
+
+# Skip in CI environments
+if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ] || [ "$GITLAB_CI" = "true" ] || [ "$TRAVIS" = "true" ]; then
+    exit 0
+fi
+
+# Skip if no check script
+if [ ! -f "$CHECK_SCRIPT" ]; then
+    echo "⚠️  pre-commit-check.sh not found, skipping"
+    exit 0
+fi
+
+# Run pre-commit check
+bash "$CHECK_SCRIPT"
