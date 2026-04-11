@@ -5063,11 +5063,22 @@ renderDlcComparePanel();
 loadCustomRocks();
 refreshMapSummary(customRocks);
 currentSkin = skinSelect.value;
-mode = modeSelect.value;
-updateLevelText();
-updateModeTrialUI();
-baseSpeed = Number(difficultySelect.value);
-refreshModeBestText();
-maybeShowOnboarding();
-resetGame(true);
-workshopRuntime.generateInitialCode();
+  mode = modeSelect.value;
+  updateLevelText();
+  updateModeTrialUI();
+  baseSpeed = Number(difficultySelect.value);
+  refreshModeBestText();
+  maybeShowOnboarding();
+  resetGame(true);
+  workshopRuntime.generateInitialCode();
+
+  // Notification system integration
+  const notificationModule = window.SnakeNotifications?.createNotificationModule?.({ storage });
+  if (notificationModule) {
+    // Test notification on game start (for demo)
+    const validate = notificationModule.validate();
+    if (validate.valid) {
+      // Add welcome notification
+      notificationModule.add('system', '欢迎回来！', { type: 'welcome' });
+    }
+  }
