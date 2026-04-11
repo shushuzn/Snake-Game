@@ -108,3 +108,12 @@ test.describe('Snake Game E2E Tests', () => {
     await expect(empty).toHaveCount(1);
   });
 });
+
+  test('season tasks list exists', async ({ page }) => {
+    await page.goto('index.html');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Check season tasks list exists
+    const tasksList = page.locator('#seasonTasksList');
+    await expect(tasksList).toHaveCount(1);
+  });

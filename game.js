@@ -73,6 +73,7 @@ const seasonRewardEl = document.getElementById('seasonReward');
 const seasonHistoryListEl = document.getElementById('seasonHistoryList');
 const seasonProgressTextEl = document.getElementById('seasonProgressText');
 const seasonProgressFillEl = document.getElementById('seasonProgressFill');
+const seasonTasksEl = document.getElementById('seasonTasksList');
 const eventLabelEl = document.getElementById('eventLabel');
 const eventSummaryEl = document.getElementById('eventSummary');
 const eventPanelEl = document.getElementById('eventPanel');
@@ -1100,7 +1101,8 @@ const seasonRuntime = window.SnakeSeason.createSeasonModule({
     seasonRewardEl,
     seasonHistoryListEl,
     seasonProgressTextEl,
-    seasonProgressFillEl
+    seasonProgressFillEl,
+    seasonTasksEl
   },
   onPersist: saveActiveAccountSnapshot
 });
@@ -1316,7 +1318,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     recordRound: (nextScore, modeName) => {
       recordsRuntime.recordRound(nextScore, modeName);
       leaderboardRuntime.recordRound(nextScore, modeName, { dlcPack, challengeSeed: SnakeModes.getLocalDateSeed() });
-      seasonRuntime.recordRound(nextScore, modeName);
+      seasonRuntime.recordRound(nextScore, modeName, combo, foodsEaten);
       refreshSeasonRewardPreview();
     }
   },
