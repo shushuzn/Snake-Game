@@ -855,6 +855,69 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   display: none;
 }
 
+/* Activity Timeline (活动时间线) */
+.activity-timeline {
+  margin: 12px 0;
+  background: rgba(2, 6, 23, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.timeline-grid {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  height: 50px;
+  align-items: flex-end;
+}
+
+.timeline-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.timeline-bar-container {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.timeline-bar {
+  width: 70%;
+  background: linear-gradient(to top, #f59e0b, #fbbf24);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+
+.timeline-bar.empty {
+  background: #374151;
+  height: 2px;
+}
+
+.timeline-label {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.timeline-count {
+  font-size: 8px;
+  color: #9ca3af;
+}
+
+.timeline-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--muted);
+}
+
 .radar-point {
   fill: #f59e0b;
   stroke: #fbbf24;

@@ -122,3 +122,20 @@ test.describe('Snake Game E2E Tests', () => {
     const empty = page.locator('#radarChartEmpty');
     await expect(empty).toHaveCount(1);
   });
+
+  test('activity timeline elements exist', async ({ page }) => {
+    await page.goto('index.html');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Check timeline container exists
+    const container = page.locator('.activity-timeline');
+    await expect(container).toHaveCount(1);
+    
+    // Check timeline grid exists
+    const grid = page.locator('#timelineGrid');
+    await expect(grid).toHaveCount(1);
+    
+    // Check timeline has 7 day slots
+    const days = page.locator('.timeline-day');
+    await expect(days).toHaveCount(7);
+  });
