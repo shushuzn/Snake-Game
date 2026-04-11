@@ -2420,6 +2420,91 @@ function claimChallengeReward(challengeId) {
   }
 }
 
+function renderGrowthChart() {
+  if (!statisticsRuntime) return;
+
+  const chart = document.getElementById('growthChart');
+  const chartEmpty = document.getElementById('growthChartEmpty');
+  if (!chart) return;
+
+  // Get score trend data (last 7 days)
+  const trendData = statisticsRuntime.getScoreTrend(7);
+
+  // Check if we have any data
+  const hasData = trendData.some(d => d.average > 0);
+
+  if (!hasData) {
+    // Show empty state
+    chartEmpty.classList.remove('hidden');
+    return;
+  }
+
+  chartEmpty.classList.add('hidden');
+
+  // Chart dimensions
+  const chartWidth = 250;  // 290 - 40 (padding)
+  const chartHeight = 90;  // 100 - 10 (padding)
+  const startX = 40;
+  const startY = 10;
+  const maxValue = Math.max(...trendData.map(d => d.average), 1);
+
+  // Update Y-axis labels
+  const yLabels = chart.querySelectorAll('.chart-label');
+  const labelValues = [maxValue, maxValue * 0.67, maxValue * 0.33, 0];
+  yLabels.forEach((label, i) => {
+    if (i < 4) {
+      label.textContent = Math.round(labelValues[i]);
+    }
+  });
+
+  // Update X-axis labels (dates)
+  const xLabels = chart.querySelectorAll('.chart-label');
+  trendData.forEach((d, i) => {
+    const labelIndex = 4 + i;
+    if (xLabels[labelIndex]) {
+      const date = new Date(d.date);
+      xLabels[labelIndex].textContent = `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+  });
+
+  // Calculate points
+  const points = trendData.map((d, i) => {
+    const x = startX + (i * chartWidth / (trendData.length - 1));
+    const y = startY + chartHeight - (d.average / maxValue * chartHeight);
+    return { x, y, value: d.average };
+  });
+
+  // Build line path
+  const linePath = points.map((p, i) =>
+    i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
+  ).join(' ');
+
+  // Build area path (for fill under line)
+  const areaPath = linePath +
+    ` L ${points[points.length - 1].x} ${startY + chartHeight}` +
+    ` L ${points[0].x} ${startY + chartHeight} Z`;
+
+  // Update line
+  const chartLine = document.getElementById('chartLine');
+  if (chartLine) {
+    chartLine.setAttribute('d', linePath);
+  }
+
+  // Update area
+  const chartArea = document.getElementById('chartArea');
+  if (chartArea) {
+    chartArea.setAttribute('d', areaPath);
+  }
+
+  // Update points
+  const chartPoints = document.getElementById('chartPoints');
+  if (chartPoints) {
+    chartPoints.innerHTML = points.map(p =>
+      `<circle class="chart-point" cx="${p.x}" cy="${p.y}" r="4" data-value="${p.value}"/>`
+    ).join('');
+  }
+}
+
 function refreshStatisticsUI() {
   if (!statisticsRuntime) return;
   
@@ -2469,6 +2554,9 @@ function refreshStatisticsUI() {
       modeStatsEl.innerHTML = html;
     }
   }
+
+  // Growth chart - Score trend over last 7 days (average score)
+  renderGrowthChart();
   
   // Recent games
   const recentGames = statisticsRuntime.getRecentGames(5);

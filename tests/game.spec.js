@@ -84,3 +84,20 @@ test.describe('Snake Game E2E Tests', () => {
     const totalEl = page.locator('#achievementGaugeTotal');
     await expect(totalEl).toHaveText('33');
   });
+
+  test('growth chart elements exist', async ({ page }) => {
+    await page.goto('index.html');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Check chart container exists
+    const chartContainer = page.locator('.growth-chart-container');
+    await expect(chartContainer).toHaveCount(1);
+    
+    // Check SVG chart exists
+    const chart = page.locator('#growthChart');
+    await expect(chart).toHaveCount(1);
+    
+    // Check empty state exists (no data yet)
+    const emptyState = page.locator('#growthChartEmpty');
+    await expect(emptyState).toHaveCount(1);
+  });
