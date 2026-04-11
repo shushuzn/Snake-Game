@@ -31,6 +31,20 @@ if [ -n "$NEW_JS_FILES" ]; then
     echo "$NEW_JS_FILES"
     echo ""
 
+    # Check for potential duplicates
+    echo "   Checking for duplicates..."
+    for module in $NEW_JS_FILES; do
+        module_name=$(basename "$module" .js)
+        # Check for similar module names
+        similar=$(ls src/modules/ 2>/dev/null | grep -E "^${module_name%_*}_" | head -5 || echo "")
+        if [ -n "$similar" ]; then
+            echo "   ⚠️  WARNING: Similar modules found for '$module_name':"
+            echo "$similar" | sed 's/^/      /'
+            echo "   Consider using existing module instead of creating new one."
+            echo ""
+        fi
+    done
+
     for file in $NEW_JS_FILES; do
         module_name=$(basename "$file" .js)
 
