@@ -152,6 +152,7 @@ const detailProgressEl = document.getElementById('detailProgress');
 const detailTipsEl = document.getElementById('detailTips');
 const achievementSearchInput = document.getElementById('achievementSearchInput');
 const achievementSortSelect = document.getElementById('achievementSortSelect');
+const achievementStatsBtn = document.getElementById('achievementStatsBtn');
 const modeStatsEl = document.getElementById('modeStats');
 const recentGamesEl = document.getElementById('recentGames');
 const profileAvatarEl = document.getElementById('profileAvatar');
@@ -1819,6 +1820,7 @@ function renderAchievementShowcase() {
             <option value="category">按分类</option>
             <option value="difficulty">按难度</option>
           </select>
+          <button id="achievementStatsBtn" style="padding:6px 12px; border-radius:6px; border:1px solid #f59e0b; background:#1a1a2e; color:#f59e0b; cursor:pointer;">📊 统计</button>
         </div>
         <div class="achievement-showcase-body"></div>
       </div>
@@ -2009,6 +2011,40 @@ function setupAchievementSearchSort() {
         }
       }
     });
+  }
+
+  // Stats button handler
+  const statsBtn = document.getElementById('achievementStatsBtn');
+  if (statsBtn) {
+    statsBtn.onclick = () => {
+      const statsModule = window.SnakeAchievementStats?.createAchievementStatsModule?.({ storage });
+      if (statsModule) {
+        const stats = statsModule.getAchievementStats();
+        const completion = statsModule.getCompletionPercentage();
+        const estimate = statsModule.getEstimatedCompletion();
+
+        const html = `
+          <div style="padding:10px; color:#fff;">
+            <h4 style="margin:0 0 15px; color:#f59e0b;">📊 成就统计</h4>
+            <p>总成就：${stats.total}</p>
+            <p>已完成：${stats.unlocked} (${completion}%)</p>
+            <p>进行中：${stats.locked}</p>
+            ${estimate ? `<p style="color:#9ca3af;">${estimate.message}</p>` : '<p style="color:#22c55e;">🎉 全部成就已达成！</p>'}
+            <button onclick="document.getElementById('achievementStatsModal').style.display='none'" style="margin-top:15px; padding:8px 16px; border-radius:6px; border:none; background:#f59e0b; color:#000; cursor:pointer;">关闭</button>
+          </div>
+        `;
+
+        let modal = document.getElementById('achievementStatsModal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'achievementStatsModal';
+          modal.style = 'display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a1a2e; border:2px solid #f59e0b; border-radius:12px; padding:20px; z-index:1001; min-width:250px;';
+          document.body.appendChild(modal);
+        }
+        modal.innerHTML = html;
+        modal.style.display = 'block';
+      }
+    };
   }
 }
 
