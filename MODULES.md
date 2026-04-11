@@ -188,3 +188,23 @@ ModuleLoader.getUsageStats();
 # 2. 运行自动生成
 node scripts/generate-modules.mjs
 ```
+
+### 懒加载实验记录 (2026-04-11)
+
+**尝试**: 使用 `defer` 属性实现懒加载
+**结果**: 失败
+
+**原因**:
+- `defer` 改变脚本执行顺序
+- 模块间存在依赖关系 (achievement_showcase 依赖 friends)
+- 即使只对 3 个 friends 模块添加 defer，也破坏了 achievement_showcase 测试
+
+**结论**:
+- 135KB gzip 对游戏可接受
+- 真正的懒加载需要重构 game.js (高风险)
+- 基础设施 (ModuleLoader) 已就绪，待将来使用
+
+**learned**: 
+- 不能简单用 defer 实现懒加载
+- 模块加载顺序很重要
+- 需要完整的依赖分析才能安全懒加载
