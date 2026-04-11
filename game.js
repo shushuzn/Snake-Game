@@ -110,6 +110,7 @@ const startTrialBtn = document.getElementById('startTrialBtn');
 const trialTimerEl = document.getElementById('trialTimer');
 const quickStartBtn = document.getElementById('quickStart');
 const showReturnCenterBtn = document.getElementById('showReturnCenter');
+const showReturnMissionsBtn = document.getElementById('showReturnMissions');
 const gameHintEl = document.getElementById('gameHint');
 const aiDifficultySelect = document.getElementById('aiDifficulty');
 const wrapModeInput = document.getElementById('wrapMode');
@@ -4707,6 +4708,64 @@ if (showReturnCenterBtn) {
     }
   });
 }
+
+// Return missions button handler
+if (showReturnMissionsBtn) {
+  showReturnMissionsBtn.addEventListener('click', () => {
+    if (window.SnakeReturnMissions) {
+      const missionsModule = SnakeReturnMissions.createReturnMissionsModule({ storage });
+      const { data } = missionsModule.getData();
+
+      let html = `
+        <div style="padding:15px; color:#fff; min-width:280px;">
+          <h4 style="margin:0 0 15px; color:#f59e0b;">📋 回流任务</h4>
+      `;
+
+      data.missions.forEach(m => {
+        const statusColor = m.claimed ? '#22c55e' : (m.completed ? '#f59e0b' : '#6b7280');
+        const statusText = m.claimed ? '✅ 已领取' : (m.completed ? '🎁 可领取' : '🔒 进行中');
+        html += `
+          <div style="background:#0f0f1a; border-radius:8px; padding:10px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>${m.title}</strong>
+              <span style="color:${statusColor}; font-size:12px;">${statusText}</span>
+            </div>
+            <p style="margin:5px 0; font-size:13px; color:#9ca3af;">${m.description}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px;">${m.current}/${m.target}</span>
+              <span style="color:#ffd700; font-size:12px;">+${m.reward.coins} 金币</span>
+            </div>
+            ${m.completed && !m.claimed ? `<button onclick="claimReturnMission('${m.id}')" style="margin-top:8px; width:100%; padding:6px; border-radius:4px; border:none; background:#f59e0b; color:#000; cursor:pointer; font-size:12px;">领取奖励</button>` : ''}
+          </div>
+        `;
+      });
+
+      html += `<button onclick="this.closest('.overlay-content').parentElement.style.display='none'" style="margin-top:10px; padding:8px 16px; border-radius:6px; border:none; background:#444; color:#fff; cursor:pointer; width:100%;">关闭</button>`;
+      html += `</div>`;
+
+      showOverlay(html, 15000);
+    }
+  });
+}
+
+// Global function for claiming return mission
+window.claimReturnMission = function(missionId) {
+  if (window.SnakeReturnMissions) {
+    const missionsModule = SnakeReturnMissions.createReturnMissionsModule({ storage });
+    const result = missionsModule.claimReward(missionId);
+    if (result.success) {
+      // Add coins
+      const currentCoins = storage.get('coins') || 0;
+      storage.set('coins', currentCoins + result.result.reward.coins);
+      updateCoinsText();
+      showOverlay(`<p style="color:#ffd700; font-size:18px;">🎉 获得 ${result.result.reward.coins} 金币！</p>`, 2000);
+      // Refresh the missions panel
+      setTimeout(() => {
+        if (showReturnMissionsBtn) showReturnMissionsBtn.click();
+      }, 2100);
+    }
+  }
+};
 
 obstacleModeInput.addEventListener('change', () => { obstacleModePreference = obstacleModeInput.checked; saveSettings(); resetGame(true); });
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
