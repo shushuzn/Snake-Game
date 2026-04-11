@@ -4439,8 +4439,30 @@ modeSelect.addEventListener('change', () => {
   mode = modeSelect.value;
   updateLevelText();
   refreshModeBestText();
+  updateModeTrialUI();
   resetGame(true);
 });
+
+// Start trial button handler
+if (startTrialBtn) {
+  startTrialBtn.addEventListener('click', () => {
+    const currentMode = modeSelect.value;
+    const result = modeTrialRuntime.startTrial(currentMode);
+
+    if (result.success) {
+      trialStartTime = Date.now();
+      startTrialBtn.textContent = '试玩中';
+      startTrialBtn.disabled = true;
+      showOverlay(`<p><strong>🎮 开始试玩</strong></p><p>${result.message}</p>`);
+      setTimeout(() => { if (running && !paused) hideOverlay(); }, 2000);
+    } else {
+      showOverlay(`<p><strong>试玩失败</strong></p><p>${result.message}</p>`);
+      setTimeout(() => { if (running && !paused) hideOverlay(); }, 2000);
+    }
+
+    updateModeTrialUI();
+  });
+}
 
 obstacleModeInput.addEventListener('change', () => { obstacleModePreference = obstacleModeInput.checked; saveSettings(); resetGame(true); });
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
