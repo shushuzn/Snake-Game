@@ -4466,6 +4466,31 @@ if (startTrialBtn) {
   });
 }
 
+// Quick start button handler
+if (quickStartBtn) {
+  quickStartBtn.addEventListener('click', () => {
+    // Check for daily first reward
+    if (window.SnakeQuickStart) {
+      const quickStartModule = SnakeQuickStart.createQuickStartModule({ storage });
+      const dailyReward = quickStartModule.getDailyFirstReward();
+
+      if (dailyReward.canClaim) {
+        const claimResult = quickStartModule.claimDailyFirstReward();
+        if (claimResult.success) {
+          showOverlay(`<p><strong>每日首次奖励</strong></p><p>${claimResult.message}</p>`);
+          setTimeout(() => { if (running && !paused) hideOverlay(); }, 2000);
+        }
+      }
+    }
+
+    // Start game immediately
+    if (!running) {
+      resetGame(true);
+    }
+    hideOverlay();
+  });
+}
+
 obstacleModeInput.addEventListener('change', () => { obstacleModePreference = obstacleModeInput.checked; saveSettings(); resetGame(true); });
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 wrapModeInput.addEventListener('change', saveSettings);
