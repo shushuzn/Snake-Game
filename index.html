@@ -302,7 +302,20 @@
               </div>
               <div class="stat-label">成就完成</div>
             </div>
-          </div>
+            <!-- 成就详情弹窗 -->
+            <div id="achievementDetailModal" class="achievement-detail-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a1a2e; border:2px solid #f59e0b; border-radius:12px; padding:20px; z-index:1000; max-width:300px; width:90%;">
+              <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 id="detailTitle" style="margin:0; color:#f59e0b;">成就详情</h3>
+                <button id="closeDetailModal" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">×</button>
+              </div>
+              <div id="detailContent" style="color:#fff;">
+                <p id="detailDescription" style="margin:0 0 10px;"></p>
+                <div style="background:#0f0f1a; border-radius:8px; padding:10px; margin-bottom:10px;">
+                  <div id="detailProgress" style="font-size:14px;"></div>
+                </div>
+                <p id="detailTips" style="color:#9ca3af; font-size:13px; margin:0;"></p>
+              </div>
+            </div>
           <h3>模式偏好</h3>
           <div id="modeStats" class="mode-stats">
             <p class="tips">暂无数据</p>
@@ -659,6 +672,7 @@
     <script src="src/modules/enhanced_newbie_guide.js"></script>
     <script src="src/modules/in_game_hints.js"></script>
     <script src="src/modules/achievement_preview.js"></script>
+    <script src="src/modules/achievement_detail.js"></script>
     <script src="src/modules/quick_start.js"></script>
     <script src="src/modules/level_unlock.js"></script>
     <script src="src/modules/first_milestone.js"></script>

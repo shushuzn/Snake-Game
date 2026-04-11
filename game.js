@@ -144,6 +144,12 @@ const statPlayTimeEl = document.getElementById('statPlayTime');
 const statAchievementRateEl = document.getElementById('statAchievementRate');
 const achievementGaugeValueEl = document.getElementById('achievementGaugeValue');
 const achievementGaugeTotalEl = document.getElementById('achievementGaugeTotal');
+const achievementDetailModal = document.getElementById('achievementDetailModal');
+const closeDetailModalBtn = document.getElementById('closeDetailModal');
+const detailTitleEl = document.getElementById('detailTitle');
+const detailDescriptionEl = document.getElementById('detailDescription');
+const detailProgressEl = document.getElementById('detailProgress');
+const detailTipsEl = document.getElementById('detailTips');
 const modeStatsEl = document.getElementById('modeStats');
 const recentGamesEl = document.getElementById('recentGames');
 const profileAvatarEl = document.getElementById('profileAvatar');
@@ -2655,6 +2661,56 @@ function refreshStatisticsUI() {
   if (achievementGaugeTotalEl) {
     achievementGaugeTotalEl.textContent = achievementStats.total;
   }
+
+  // Achievement detail modal - click on achievement gauge card
+  const achievementGaugeCard = document.querySelector('.achievement-gauge-card');
+  if (achievementGaugeCard) {
+    achievementGaugeCard.style.cursor = 'pointer';
+    achievementGaugeCard.onclick = () => {
+      if (window.SnakeAchievementDetail) {
+        const detailModule = SnakeAchievementDetail.createAchievementDetailModule({ storage });
+        const firstUnlocked = storage.get('achievementProgress') || {};
+
+        // Find first achievement to show detail
+        const achievements = window.ACHIEVEMENTS || [];
+        let targetId = null;
+
+        for (const a of achievements) {
+          if (firstUnlocked[a.id]?.unlocked) {
+            targetId = a.id;
+            break;
+          }
+        }
+
+        if (!targetId && achievements.length > 0) {
+          targetId = achievements[0].id;
+        }
+
+        if (targetId) {
+          const detail = detailModule.getAchievementDetail(targetId);
+          const tip = detailModule.getCompletionTips(targetId);
+
+          if (detail && detailTitleEl) {
+            detailTitleEl.textContent = detail.name || '成就详情';
+            detailDescriptionEl.textContent = detail.description || '';
+            detailProgressEl.innerHTML = detail.unlocked
+              ? `<span style="color:#22c55e;">✅ 已解锁</span><br>解锁时间：${detail.unlockedTime || '未知'}`
+              : `<span style="color:#f59e0b;">进度：${detail.progress}%</span><br>${detail.current}/${detail.target}`;
+            detailTipsEl.textContent = detail.unlocked ? '恭喜达成！' : (tip || '');
+            achievementDetailModal.style.display = 'block';
+          }
+        }
+      }
+    };
+  }
+
+  // Close detail modal
+  if (closeDetailModalBtn) {
+    closeDetailModalBtn.onclick = () => {
+      achievementDetailModal.style.display = 'none';
+    };
+  }
+
   // Update SVG gauge fill (stroke-dashoffset: 251.2 = full circle circumference for r=40)
   if (statAchievementRateEl) {
     const gaugeFill = statAchievementRateEl.querySelector('.gauge-fill');
