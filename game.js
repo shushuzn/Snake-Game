@@ -3919,6 +3919,14 @@ function buySkin(skinId) {
     // 刷新皮肤选择器
     initSkinSelector();
 
+    // Show purchase toast
+    if (window.SnakePurchaseFeedback) {
+      const feedback = SnakePurchaseFeedback.createPurchaseFeedbackModule({ storage });
+      if (feedback && feedback.validate().valid) {
+        feedback.showPurchaseToast(result.skinName || '皮肤', result.cost || 0, 'skin');
+      }
+    }
+
     alert(result.message);
     return true;
   } else {
