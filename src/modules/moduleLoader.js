@@ -347,6 +347,44 @@ const ModuleLoader = (function() {
     USAGE_STATS.errors = [];
   }
 
+  /**
+   * 打印统计信息到控制台
+   */
+  function printStats() {
+    const stats = getUsageStats();
+    
+    console.log('');
+    console.log('%c╔══════════════════════════════════════════╗', 'color: #4CAF50');
+    console.log('%c║       ModuleLoader Usage Stats            ║', 'color: #4CAF50');
+    console.log('%c╠══════════════════════════════════════════╣', 'color: #4CAF50');
+    console.log(`%c║  Total loads:    ${String(stats.total).padEnd(17)}  ║`, 'color: #fff');
+    console.log(`%c║  Core loads:     ${String(stats.coreCount).padEnd(17)}  ║`, 'color: #fff');
+    console.log(`%c║  Lazy loads:     ${String(stats.lazyCount).padEnd(17)}  ║`, 'color: #fff');
+    console.log(`%c║  Errors:         ${String(stats.errorCount).padEnd(17)}  ║`, 'color: #ff5722');
+    console.log(`%c║  Avg load time:  ${stats.avgDuration.toFixed(2)}ms`.padEnd(40) + '  ║', 'color: #fff');
+    console.log('%c╠══════════════════════════════════════════╣', 'color: #4CAF50');
+    console.log('%c║          Load Frequency (Top 10)         ║', 'color: #4CAF50');
+    console.log('%c╠══════════════════════════════════════════╣', 'color: #4CAF50');
+    
+    const sorted = Object.entries(stats.moduleFrequency)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    
+    if (sorted.length === 0) {
+      console.log('%c║       No modules loaded yet              ║', 'color: #666');
+    } else {
+      sorted.forEach(([mod, count], i) => {
+        const bar = '█'.repeat(Math.min(count, 15));
+        const bg = i % 2 === 0 ? 'color: #fff' : 'color: #e0e0e0';
+        console.log(`%c║  ${mod.padEnd(18)} ${String(count).padEnd(6)} ${bar}`.padEnd(42) + '  ║', bg);
+      });
+    }
+    
+    console.log('%c╚══════════════════════════════════════════╝', 'color: #4CAF50');
+    console.log('');
+    console.log('%cTip: Run ModuleLoader.getUsageStats() for raw data', 'color: #888');
+  }
+
   // 初始化 - 立即预加载候选模块
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -368,7 +406,8 @@ const ModuleLoader = (function() {
     getPreloadCandidates: getPreloadCandidates,
     getUsageStats: getUsageStats,
     markPreloaded: markPreloaded,
-    resetStats: resetStats
+    resetStats: resetStats,
+    printStats: printStats
   };
 })();
 
