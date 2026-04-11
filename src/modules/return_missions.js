@@ -175,11 +175,39 @@
       return { valid: errors.length === 0, errors };
     }
 
-    // 公开 API (4 个函数, 符合规范)
+    // 公开: 重置任务 (超过7天自动重置)
+    function resetMissions() {
+      try {
+        const progress = getMissionProgress();
+        const now = Date.now();
+        const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+        let reset = false;
+
+        RETURN_MISSION_TEMPLATES.forEach(m => {
+          const p = progress[m.id];
+          if (p && p.claimedAt && (now - p.claimedAt) > EXPIRY_MS) {
+            // Mission expired, reset it
+            delete progress[m.id];
+            reset = true;
+          }
+        });
+
+        if (reset) {
+          saveMissionProgress(progress);
+        }
+
+        return { success: true, result: { reset } };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    }
+
+    // 公开 API (5 个函数, 符合规范)
     return {
       getData,
       getSummary,
       claimReward,
+      resetMissions,
       validate
     };
   }

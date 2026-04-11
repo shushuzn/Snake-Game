@@ -4739,6 +4739,8 @@ if (showReturnMissionsBtn) {
   showReturnMissionsBtn.addEventListener('click', () => {
     if (window.SnakeReturnMissions) {
       const missionsModule = SnakeReturnMissions.createReturnMissionsModule({ storage });
+      // Reset expired missions first
+      missionsModule.resetMissions();
       const { data } = missionsModule.getData();
 
       let html = `
