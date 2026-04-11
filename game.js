@@ -1105,6 +1105,7 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
 });
 
 const recallRuntime = window.SnakeRecall.createRecallModule({ storage });
+const modeTrialRuntime = window.SnakeModeTrial.createModeTrialModule({ storage });
 
 const seasonRuntime = window.SnakeSeason.createSeasonModule({
   storage,
