@@ -1,5 +1,5 @@
 #!/bin/bash
-# Git merge checklist script v2
+# Git merge checklist script v3
 # Usage: bash shared/git-checklist.sh <source-branch>
 
 set -e
@@ -55,6 +55,26 @@ fi
 # 6. Verify merge
 echo "6. Verify merge (files changed):"
 git diff --stat HEAD~1
+echo ""
+
+# 6.5 Visibility check - 新增！
+echo "6.5 Checking visibility..."
+HTML_CHANGES=$(git diff --stat HEAD~1 | grep -c "\.html$" || echo "0")
+JS_MODULE_CHANGES=$(git diff --stat HEAD~1 | grep "src/modules" | wc -l || echo "0")
+GAME_JS_CHANGES=$(git diff --stat HEAD~1 | grep -c "game\.js" || echo "0")
+
+if [ "$HTML_CHANGES" -eq 0 ] && [ "$JS_MODULE_CHANGES" -gt 0 ]; then
+    echo "⚠️  WARNING: JS modules added but NO HTML changes!"
+    echo "   Modules may not be visible to users."
+    read -p "Continue anyway? (y/n) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cancelled. Add HTML/DOM changes before merging."
+        exit 1
+    fi
+else
+    echo "✅ Visibility check passed"
+fi
 echo ""
 
 # 7. Run tests
