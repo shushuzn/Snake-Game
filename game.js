@@ -2505,6 +2505,89 @@ function renderGrowthChart() {
   }
 }
 
+function renderRadarChart() {
+  if (!statisticsRuntime) return;
+
+  const chart = document.getElementById('radarChart');
+  const chartEmpty = document.getElementById('radarChartEmpty');
+  if (!chart) return;
+
+  // Get mode stats
+  const modeStats = statisticsRuntime.getModeStats();
+
+  // Define modes to display (6 axes for radar)
+  const modeLabels = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle'];
+  const modeNames = {
+    'classic': '街机',
+    'timed': '限时',
+    'blitz': '闪电',
+    'endless': '无尽',
+    'roguelike': '肉山',
+    'ai-battle': 'AI对战'
+  };
+
+  // Get games count for each mode
+  const modeGames = {};
+  let totalGames = 0;
+  modeStats.forEach(stat => {
+    modeGames[stat.mode] = stat.games;
+    totalGames += stat.games;
+  });
+
+  // Check if we have any data
+  if (totalGames === 0) {
+    chartEmpty.classList.remove('hidden');
+    return;
+  }
+
+  chartEmpty.classList.add('hidden');
+
+  // Radar chart center and radius
+  const cx = 100, cy = 100, radius = 80;
+  const angleStep = (Math.PI * 2) / 6;
+
+  // Calculate points for each axis
+  // Start from top ( -PI/2 ) and go clockwise
+  const axisPoints = modeLabels.map((mode, i) => {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const games = modeGames[mode] || 0;
+    const ratio = totalGames > 0 ? games / totalGames : 0;
+    const r = ratio * radius;
+    return {
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+      labelX: cx + (radius + 15) * Math.cos(angle),
+      labelY: cy + (radius + 15) * Math.sin(angle),
+      mode,
+      games,
+      ratio: Math.round(ratio * 100)
+    };
+  });
+
+  // Build data polygon points
+  const dataPoints = axisPoints.map(p => `${p.x},${p.y}`).join(' ');
+  const radarData = document.getElementById('radarData');
+  if (radarData) {
+    radarData.setAttribute('points', dataPoints);
+  }
+
+  // Add points
+  const radarPointsEl = document.getElementById('radarPoints');
+  if (radarPointsEl) {
+    radarPointsEl.innerHTML = axisPoints.map(p =>
+      `<circle class="radar-point" cx="${p.x}" cy="${p.y}" r="4" data-mode="${p.mode}" data-games="${p.games}" data-ratio="${p.ratio}"/>`
+    ).join('');
+  }
+
+  // Add labels
+  const radarLabelsEl = document.getElementById('radarLabels');
+  if (radarLabelsEl) {
+    radarLabelsEl.innerHTML = axisPoints.map(p =>
+      `<text x="${p.labelX}" y="${p.labelY + 3}">${modeNames[p.mode] || p.mode}</text>`
+    ).join('');
+  }
+}
+
 function refreshStatisticsUI() {
   if (!statisticsRuntime) return;
   
@@ -2557,7 +2640,10 @@ function refreshStatisticsUI() {
 
   // Growth chart - Score trend over last 7 days (average score)
   renderGrowthChart();
-  
+
+  // Radar chart - Mode preference
+  renderRadarChart();
+
   // Recent games
   const recentGames = statisticsRuntime.getRecentGames(5);
   if (recentGamesEl) {

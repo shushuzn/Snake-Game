@@ -827,6 +827,46 @@ body.compact-hud .hud-grid span:nth-child(n+13) {
   display: none;
 }
 
+/* Radar Chart (雷达图) */
+.radar-chart-container {
+  position: relative;
+  margin: 12px 0;
+  background: rgba(2, 6, 23, 0.3);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.radar-chart {
+  width: 160px;
+  height: 160px;
+}
+
+.radar-chart-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.radar-chart-empty.hidden {
+  display: none;
+}
+
+.radar-point {
+  fill: #f59e0b;
+  stroke: #fbbf24;
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition: r 0.2s ease;
+}
+
+.radar-point:hover {
+  r: 6;
+}
+
 .mode-stats {
   display: grid;
   gap: 8px;

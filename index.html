@@ -337,6 +337,48 @@
               <p class="tips">暂无数据</p>
             </div>
           </div>
+          <h3>模式偏好</h3>
+          <div class="radar-chart-container">
+            <svg id="radarChart" class="radar-chart" viewBox="0 0 200 200">
+              <defs>
+                <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.3"/>
+                </linearGradient>
+              </defs>
+              <!-- Grid polygons (5 layers) -->
+              <g class="radar-grid" stroke="#374151" fill="none">
+                <!-- Layer 5 (outermost) -->
+                <polygon points="100,20 173.7,60 173.7,140 100,180 26.3,140 26.3,60"/>
+                <!-- Layer 4 -->
+                <polygon points="100,36 159,68 159,132 100,164 41,132 41,68"/>
+                <!-- Layer 3 -->
+                <polygon points="100,52 144.3,76 144.3,124 100,148 55.7,124 55.7,76"/>
+                <!-- Layer 2 -->
+                <polygon points="100,68 129.7,84 129.7,116 100,132 70.3,116 70.3,84"/>
+                <!-- Layer 1 (innermost) -->
+                <polygon points="100,84 115,92 115,108 100,116 85,108 85,92"/>
+              </g>
+              <!-- Axis lines -->
+              <g class="radar-axes" stroke="#4b5563" stroke-width="1">
+                <line x1="100" y1="100" x2="100" y2="20"/>
+                <line x1="100" y1="100" x2="173.7" y2="60"/>
+                <line x1="100" y1="100" x2="173.7" y2="140"/>
+                <line x1="100" y1="100" x2="100" y2="180"/>
+                <line x1="100" y1="100" x2="26.3" y2="140"/>
+                <line x1="100" y1="100" x2="26.3" y2="60"/>
+              </g>
+              <!-- Data polygon (filled by JS) -->
+              <polygon id="radarData" fill="url(#radarGradient)" stroke="#f59e0b" stroke-width="2"/>
+              <!-- Data points (filled by JS) -->
+              <g id="radarPoints"></g>
+              <!-- Labels (filled by JS) -->
+              <g id="radarLabels" font-size="9" fill="#9ca3af" text-anchor="middle"></g>
+            </svg>
+            <div class="radar-chart-empty" id="radarChartEmpty">
+              <p class="tips">暂无数据</p>
+            </div>
+          </div>
           <h3>最近对局</h3>
           <div id="recentGames" class="recent-games">
             <p class="tips">暂无记录</p>

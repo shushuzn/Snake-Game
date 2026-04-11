@@ -101,3 +101,24 @@ test.describe('Snake Game E2E Tests', () => {
     const emptyState = page.locator('#growthChartEmpty');
     await expect(emptyState).toHaveCount(1);
   });
+
+  test('radar chart elements exist', async ({ page }) => {
+    await page.goto('index.html');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Check radar chart container exists
+    const container = page.locator('.radar-chart-container');
+    await expect(container).toHaveCount(1);
+    
+    // Check SVG chart exists
+    const chart = page.locator('#radarChart');
+    await expect(chart).toHaveCount(1);
+    
+    // Check data polygon exists
+    const data = page.locator('#radarData');
+    await expect(data).toHaveCount(1);
+    
+    // Check empty state exists
+    const empty = page.locator('#radarChartEmpty');
+    await expect(empty).toHaveCount(1);
+  });
