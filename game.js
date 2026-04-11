@@ -4735,6 +4735,28 @@ accountRuntime.loadFromStorage();
 
 eventsRuntime.refresh();
 challengeRuntime.selectDailyChallenge();
+
+// Update trial timer during game loop
+function updateTrialTimer() {
+  if (trialStartTime <= 0 || typeof modeTrialRuntime === 'undefined') return;
+
+  const currentMode = modeSelect.value;
+  const progress = modeTrialRuntime.getTrialProgress(currentMode, trialStartTime);
+
+  if (!progress) return;
+
+  if (progress.isExpired) {
+    trialTimerEl.textContent = '试玩结束';
+    if (running) {
+      endGame();
+    }
+    return;
+  }
+
+  const remainingSec = Math.ceil(progress.remaining / 1000);
+  trialTimerEl.textContent = `剩余 ${remainingSec}s`;
+}
+
 setInterval(() => seasonRuntime.refreshRemainingOnly(), 60000);
 setInterval(() => {
   eventsRuntime.refresh();
