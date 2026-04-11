@@ -1,49 +1,55 @@
 # Development Tools
 
-## Quick Reference
+## Hook Templates
 
-### Git Hooks (Automatic)
+Hooks are stored in `.hooks/` directory as templates.
+
+```
+.hooks/
+  pre-commit    - Runs before each commit
+  pre-push      - Runs before each push
+```
+
+### Edit Hooks
 ```bash
-# One-time setup (after clone)
-bash shared/install-hooks.sh install
+# Just edit the template files
+vim .hooks/pre-commit
+vim .hooks/pre-push
 
-# Hooks auto-run before each commit.
-# Template hooks auto-copy on: git clone, git init
+# Then update installed hooks
+bash shared/install-hooks.sh update
 ```
 
 ### Hook Commands
 ```bash
 bash shared/install-hooks.sh install   # Install hooks
-bash shared/install-hooks.sh uninstall # Remove hooks
+bash shared/install-hooks.sh update     # Update hooks from templates
 bash shared/install-hooks.sh status    # Check status
+bash shared/install-hooks.sh uninstall # Remove hooks
 ```
 
-### Manual Checks
+## Development Workflow
+
+```
+1. Clone repo
+2. bash shared/install-hooks.sh install  # First time only
+3. Make changes
+4. git commit → pre-commit runs (<1s)
+5. git push   → pre-push runs (~10s)
+```
+
+## CI Detection
+
+Hooks automatically skip in CI environments:
+- GitHub Actions
+- GitLab CI
+- Travis CI
+- Local development always runs
+
+## Other Tools
+
 ```bash
-# Pre-commit check (< 1s)
-bash shared/pre-commit-check.sh
-
-# Quick test before PR (~10s)
-bash shared/quick-test.sh
-
-# Full test before merge (~30s)
-npx playwright test
+bash shared/pre-commit-check.sh  # Static check only
+bash shared/quick-test.sh         # Quick tests
+npx playwright test              # Full tests
 ```
-
-### Development Workflow
-1. Clone repo → Hooks auto-installed via template
-2. Make changes
-3. Commit → Hook runs automatically
-4. Run quick-test before PR: `bash shared/quick-test.sh`
-5. Merge to main
-6. Run full test before deploy: `npx playwright test`
-
-### Pre-commit Check Levels
-| Level | When | Scope | Speed |
-|-------|------|-------|-------|
-| Static | Every commit | Registration, duplicates | < 1s |
-| Quick | Before PR | Smoke tests | ~10s |
-| Full | Before merge | All tests | ~30s |
-
-### CI Detection
-Hooks automatically skip in CI environments (GitHub Actions, Travis, etc.)
