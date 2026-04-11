@@ -2,7 +2,38 @@
 
 ## 模块概览
 
-总计: 65 个模块
+| 指标 | 数值 |
+|------|------|
+| 总模块数 | 65 |
+| 总大小 | 387.5KB |
+| Gzip 大小 | 135.6KB |
+| 平均大小 | ~6KB/模块 |
+
+## 体积分析 (2026-04-11)
+
+**最大模块 (Top 10):**
+| 模块 | 大小 | Gzip |
+|------|------|------|
+| ai_player | 18.6KB | 6.5KB |
+| level_unlock | 17.9KB | 6.3KB |
+| skill_tree | 16.3KB | 5.7KB |
+| titles | 15.4KB | 5.4KB |
+| guide | 15.1KB | 5.3KB |
+| achievement_showcase | 14.8KB | 5.2KB |
+| first_milestone | 14.2KB | 5.0KB |
+| season | 11.7KB | 4.1KB |
+| multiplayer | 10.5KB | 3.7KB |
+| daily_challenge_mode | 9.2KB | 3.2KB |
+
+**小模块 (< 2KB, 8个):**
+- reset_flow.js (854B)
+- mode_rules.js (1.2KB)
+- reset_prepare.js (1.4KB)
+- play_state.js (1.4KB)
+- loop_timers.js (1.6KB)
+- storage.js (1.7KB)
+- achievement_detail.js (1.8KB)
+- profile.js (1.8KB)
 
 ## 模块分类
 
@@ -105,3 +136,55 @@ game.js
 1. game.js 过大，建议未来拆分
 2. 模块遵循 MODULE_API_STANDARD
 3. 新模块必须注册到 index.html
+
+## 模块加载系统
+
+### ModuleLoader (src/modules/moduleLoader.js)
+
+提供模块懒加载和使用追踪功能。
+
+**核心 API:**
+```javascript
+// 按需加载模块
+await ModuleLoader.load('achievement_showcase');
+
+// 预加载 (空闲时)
+ModuleLoader.preload('reward_preview');
+
+// 检查是否已加载
+if (ModuleLoader.isLoaded('achievement_showcase')) { ... }
+
+// 查看使用统计
+ModuleLoader.printStats();  // 控制台可视化
+
+// 获取原始数据
+ModuleLoader.getUsageStats();
+```
+
+### 模块分类
+
+**核心模块 (43个)** - game.js 直接引用，必须同步加载:
+- 核心: storage, events, play_state, round_state, input, render, modes, mode_rules, settlement, statistics, settings, records
+- 功能: challenge, season, shop, account, friends, leaderboard 等
+
+**懒加载模块 (41个)** - 按需加载:
+- achievement_preview, ai_player, battle_pass, clan, tutorial 等
+
+### 优化建议
+
+1. **当前状态**: 135KB gzip 可接受，暂不需要优化
+2. **未来优化方向**:
+   - 使用 esbuild/rollup 打包核心模块
+   - 合并小模块 (< 2KB)
+   - 实现真正的懒加载激活
+3. **监控工具**:
+   - `node scripts/analyze-modules.mjs` - 体积分析
+   - `ModuleLoader.printStats()` - 运行时使用追踪
+
+### 添加新模块
+
+```bash
+# 1. 创建模块
+# 2. 运行自动生成
+node scripts/generate-modules.mjs
+```
