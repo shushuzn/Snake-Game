@@ -2615,41 +2615,6 @@ function renderRadarChart() {
   }
 }
 
-function renderActivityTimeline() {
-  if (!statisticsRuntime) return;
-
-  const timelineGrid = document.getElementById('timelineGrid');
-  if (!timelineGrid) return;
-
-  // Get score trend data (last 7 days)
-  const trendData = statisticsRuntime.getScoreTrend(7);
-
-  // Find max games for scaling
-  const maxGames = Math.max(...trendData.map(d => d.games), 1);
-
-  // Generate day labels
-  const dayLabels = ['日', '一', '二', '三', '四', '五', '六'];
-
-  // Build timeline HTML
-  timelineGrid.innerHTML = trendData.map((d, i) => {
-    const date = new Date(d.date);
-    const dayName = dayLabels[date.getDay()];
-    const barHeight = d.games > 0 ? Math.max((d.games / maxGames) * 36, 4) : 0;
-    const isToday = i === trendData.length - 1;
-
-    return `
-      <div class="timeline-day">
-        <div class="timeline-bar-container">
-          <div class="timeline-bar ${d.games === 0 ? 'empty' : ''}"
-               style="height: ${barHeight}px"></div>
-        </div>
-        <div class="timeline-label">${isToday ? '今' : dayName}</div>
-        <div class="timeline-count">${d.games}场</div>
-      </div>
-    `;
-  }).join('');
-}
-
 function refreshStatisticsUI() {
   if (!statisticsRuntime) return;
   
@@ -2705,9 +2670,6 @@ function refreshStatisticsUI() {
 
   // Radar chart - Mode preference
   renderRadarChart();
-
-  // Activity timeline - Last 7 days
-  renderActivityTimeline();
 
   // Recent games
   const recentGames = statisticsRuntime.getRecentGames(5);

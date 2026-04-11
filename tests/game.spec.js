@@ -42,7 +42,6 @@ test.describe('Snake Game E2E Tests', () => {
     expect(match).not.toBeNull();
 
     const keys = content.match(/const ACHIEVEMENT_KEYS = \[([\s\S]*?)\];/)[1].match(/'[^']+'/g);
-    // Note: task specifies 28 but actual count is 33 (33 achievement keys defined)
     expect(keys.length).toBe(33);
   });
 
@@ -57,30 +56,23 @@ test.describe('Snake Game E2E Tests', () => {
     const shopButton = page.locator('#openShop');
     await expect(shopButton).toBeVisible();
   });
-});
-
 
   test('achievement gauge displays correctly', async ({ page }) => {
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
-    
-    // Check gauge elements exist
+
     const gaugeCard = page.locator('.achievement-gauge-card');
     await expect(gaugeCard).toHaveCount(1);
-    
-    // Check SVG gauge exists
+
     const gauge = page.locator('.achievement-gauge');
     await expect(gauge).toHaveCount(1);
-    
-    // Check gauge fill circle exists
+
     const gaugeFill = page.locator('.gauge-fill');
     await expect(gaugeFill).toHaveCount(1);
-    
-    // Check value element shows "0"
+
     const valueEl = page.locator('#achievementGaugeValue');
     await expect(valueEl).toHaveText('0');
-    
-    // Check total element shows "33"
+
     const totalEl = page.locator('#achievementGaugeTotal');
     await expect(totalEl).toHaveText('33');
   });
@@ -88,16 +80,13 @@ test.describe('Snake Game E2E Tests', () => {
   test('growth chart elements exist', async ({ page }) => {
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
-    
-    // Check chart container exists
+
     const chartContainer = page.locator('.growth-chart-container');
     await expect(chartContainer).toHaveCount(1);
-    
-    // Check SVG chart exists
+
     const chart = page.locator('#growthChart');
     await expect(chart).toHaveCount(1);
-    
-    // Check empty state exists (no data yet)
+
     const emptyState = page.locator('#growthChartEmpty');
     await expect(emptyState).toHaveCount(1);
   });
@@ -105,37 +94,17 @@ test.describe('Snake Game E2E Tests', () => {
   test('radar chart elements exist', async ({ page }) => {
     await page.goto('index.html');
     await page.waitForLoadState('domcontentloaded');
-    
-    // Check radar chart container exists
+
     const container = page.locator('.radar-chart-container');
     await expect(container).toHaveCount(1);
-    
-    // Check SVG chart exists
+
     const chart = page.locator('#radarChart');
     await expect(chart).toHaveCount(1);
-    
-    // Check data polygon exists
+
     const data = page.locator('#radarData');
     await expect(data).toHaveCount(1);
-    
-    // Check empty state exists
+
     const empty = page.locator('#radarChartEmpty');
     await expect(empty).toHaveCount(1);
   });
-
-  test('activity timeline elements exist', async ({ page }) => {
-    await page.goto('index.html');
-    await page.waitForLoadState('domcontentloaded');
-    
-    // Check timeline container exists
-    const container = page.locator('.activity-timeline');
-    await expect(container).toHaveCount(1);
-    
-    // Check timeline grid exists
-    const grid = page.locator('#timelineGrid');
-    await expect(grid).toHaveCount(1);
-    
-    // Check timeline has 7 day slots
-    const days = page.locator('.timeline-day');
-    await expect(days).toHaveCount(7);
-  });
+});
