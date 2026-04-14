@@ -750,16 +750,45 @@ body.light-mode .hud-grid span {
 }
 
 /* ---- 响应式 ---- */
+
+/* 平板适配：768px - 1024px */
+@media (max-width: 1024px) {
+  .hud-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .hud-grid span {
+    padding: 7px 9px;
+    font-size: 0.7rem;
+  }
+  .hud-grid b {
+    font-size: 0.92rem;
+  }
+}
+
+/* 移动端适配：<= 760px */
 @media (max-width: 760px) {
   body { padding: 8px; }
   .app-shell { gap: 8px; }
   .topbar h1 { font-size: 1rem; }
-  .hud-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  /* 移动端 HUD 只显示核心 8 项：分数/最高/关卡/段位/连击/护盾/难度/模式 */
+  .hud-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
   .hud-grid span { padding: 6px 8px; font-size: 0.68rem; }
   .hud-grid b { font-size: 0.88rem; }
+  /* 隐藏低频 HUD 项（位置 9-28）：经验/挑战类/统计类全部隐藏 */
+  .hud-grid span:nth-child(n+9) { display: none; }
   .controls-group { width: 100%; }
-  .controls-group > * { flex: 1 1 auto; }
-  .label-inline { justify-content: space-between; width: 100%; }
+  .controls-group > * { flex: 1 1 auto; min-width: 0; }
+  .action-row { gap: 6px; }
+  .action-row button { padding: 7px 10px; font-size: 0.8rem; }
+  .setting-row { gap: 6px 10px; }
+  .label-inline {
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+  .label-inline select,
+  .label-inline input[type="checkbox"] + * { flex-shrink: 0; }
   .account-row span { width: 100%; }
   .tabs-nav {
     flex-wrap: nowrap;
@@ -774,6 +803,22 @@ body.light-mode .hud-grid span {
   }
 }
 
+/* 极小屏幕适配：<= 480px */
+@media (max-width: 480px) {
+  body { padding: 4px; }
+  .topbar h1 { font-size: 0.88rem; }
+  .hud-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+  .hud-grid span { padding: 5px 6px; font-size: 0.65rem; }
+  .hud-grid b { font-size: 0.82rem; }
+  .hud-grid span:nth-child(n+7) { display: none; }
+  .action-row { gap: 4px; }
+  .action-row button { padding: 6px 8px; font-size: 0.75rem; }
+  .board-panel { padding: 10px; }
+  .control-panel { padding: 10px 12px; }
+  .tabs-nav { gap: 1px; padding: 3px; }
+  .tab-button { padding: 6px 10px; font-size: 0.78rem; }
+}
+
 @media (min-width: 780px) {
   .mobile-pad { display: none; }
 }
@@ -783,10 +828,17 @@ body.compact-hud .hud-grid {
   grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
 }
 
+/* 桌面：只隐藏低频项（13-28），保留前12项 */
 body.compact-hud .hud-grid span:nth-child(n+13) { display: none; }
 
+/* 平板（768-1024px）：隐藏到只剩核心 10 项 */
+@media (max-width: 1024px) {
+  body.compact-hud .hud-grid span:nth-child(n+11) { display: none; }
+}
+
+/* 移动端（<=760px）：只显示核心 8 项 */
 @media (max-width: 760px) {
-  body.compact-hud .hud-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.compact-hud .hud-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   body.compact-hud .hud-grid span:nth-child(n+9) { display: none; }
 }
 
