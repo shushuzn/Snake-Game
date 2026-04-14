@@ -7,9 +7,17 @@
     "doc": "docs"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "dev:legacy": "python3 -m http.server 4173"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "vite": "5.4.0"
   },
   "repository": {
     "type": "git",
@@ -22,8 +30,5 @@
   "bugs": {
     "url": "https://github.com/shushuzn/Snake-Game/issues"
   },
-  "homepage": "https://github.com/shushuzn/Snake-Game#readme",
-  "devDependencies": {
-    "@playwright/test": "^1.59.1"
-  }
+  "homepage": "https://github.com/shushuzn/Snake-Game#readme"
 }

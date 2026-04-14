@@ -296,6 +296,10 @@ function setActiveTab(tabName, options = {}) {
   if (normalizedTabName === 'social') {
     refreshProfileTitle();
     renderTitlesList();
+    // Lazy init friends modules on first social tab access
+    refreshFriendsUI();
+    refreshFriendsLeaderboardUI();
+    refreshChallengesUI();
   }
 
   saveActiveTab(normalizedTabName);
@@ -488,6 +492,139 @@ let comboExpireAt = 0;
 let rocks = [];
 let score;
 const storage = window.SnakeStorage.createStorageModule(localStorage);
+
+// ============================================
+// Lazy Initialization Factory
+// Modules are created on first access, not at page load
+// ============================================
+const _lazyModules = {};
+
+function createLazyModule(factory) {
+  let instance = null;
+  return function getInstance() {
+    if (!instance) {
+      instance = factory();
+    }
+    return instance;
+  };
+}
+
+// ============================================
+// Lazy Initialization Framework (v2)
+// ============================================
+const LazyInit = (() => {
+  const registry = new Map();
+  
+  const createLazyRuntime = (name, creator) => {
+    let instance = null;
+    let status = 'pending'; // pending | initializing | ready | error
+    let initTime = null;
+    let error = null;
+    
+    const get = () => {
+      if (!instance) {
+        try {
+          status = 'initializing';
+          const start = performance.now();
+          instance = creator();
+          initTime = Math.round(performance.now() - start);
+          status = 'ready';
+        } catch (e) {
+          error = e.message;
+          status = 'error';
+          console.error(`[LazyInit] ${name} init failed:`, e);
+        }
+      }
+      return instance;
+    };
+    
+    registry.set(name, { name, status: () => status, initTime: () => initTime, error: () => error });
+    return { get, status: () => status, initTime: () => initTime, name };
+  };
+  
+  return {
+    create: createLazyRuntime,
+    list: () => {
+      const result = {};
+      for (const [name, info] of registry) {
+        result[name] = { status: info.status(), initTime: info.initTime() };
+      }
+      return result;
+    },
+    print: () => {
+      console.log('%c[LazyInit] Status', 'font-weight: bold; color: #4CAF50;');
+      console.table(LazyInit.list());
+    }
+  };
+})();
+
+// Prewarm on hover - starts initialization when user hovers over element
+const prewarmOnHover = (element, lazyGetter, timeout = 5000) => {
+  let prewarmed = false;
+  const handler = () => {
+    if (prewarmed) return;
+    prewarmed = true;
+    // Trigger initialization asynchronously
+    setTimeout(() => lazyGetter(), 0);
+    // Clean up listener
+    element.removeEventListener('mouseenter', handler);
+  };
+  element.addEventListener('mouseenter', handler, { once: true });
+  // Auto-cleanup after timeout
+  setTimeout(() => element.removeEventListener('mouseenter', handler), timeout);
+};
+
+// Lazy Friends modules - only initialized when first accessed
+const friendsRuntimeLazy = LazyInit.create('friendsRuntime', () => 
+  window.SnakeFriends.createFriendsModule({ storage })
+);
+
+const friendsLeaderboardRuntimeLazy = LazyInit.create('friendsLeaderboardRuntime', () => 
+  window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
+    storage,
+    friendsRuntime: friendsRuntimeLazy.get(),
+    getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
+  })
+);
+
+const friendsChallengeRuntimeLazy = LazyInit.create('friendsChallengeRuntime', () => 
+  window.SnakeFriendsChallenge.createFriendsChallengeModule({
+    storage,
+    getCurrentPlayerId: () => activeAccount || 'self'
+  })
+);
+
+const getFriendsRuntime = () => friendsRuntimeLazy.get();
+const getFriendsLeaderboardRuntime = () => friendsLeaderboardRuntimeLazy.get();
+const getFriendsChallengeRuntime = () => friendsChallengeRuntimeLazy.get();
+
+// Expose debug tools
+window.LazyInit = LazyInit;
+
+// Setup hover prewarm for social tab - starts initialization before user clicks
+function initSocialTabHover() {
+  const socialTabBtn = document.getElementById('tab-social');
+  if (!socialTabBtn) return;
+  
+  // Prewarm friends modules on hover
+  prewarmOnHover(socialTabBtn, () => {
+    // Trigger lazy initialization early
+    getFriendsRuntime();
+    getFriendsLeaderboardRuntime();
+    getFriendsChallengeRuntime();
+    console.log('[LazyInit] Social tab hover prewarm - friends modules initialized');
+  }, 10000); // 10s timeout for prewarm registration
+  
+  // Also prewarm when user hovers over the friends section in the social panel
+  const friendsSection = document.querySelector('#tab-panel-social section[aria-label="好友系统"]');
+  if (friendsSection) {
+    prewarmOnHover(friendsSection, () => {
+      getFriendsRuntime();
+      console.log('[LazyInit] Friends section hover prewarm - friendsRuntime initialized');
+    }, 10000);
+  }
+}
+
 let bestScore = Number(storage.readText('snake-best', '0'));
 let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
@@ -626,21 +763,7 @@ const dailyRewards = window.SnakeDailyRewards.createDailyRewardsModule({ storage
 // 初始化每日任务系统
 const dailyTasksRuntime = window.SnakeDailyTasks.createDailyTasksModule({ storage });
 
-// 初始化好友系统
-const friendsRuntime = window.SnakeFriends.createFriendsModule({ storage });
-
-// 初始化好友排行榜系统
-const friendsLeaderboardRuntime = window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
-  storage,
-  friendsRuntime,
-  getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
-});
-
-// 初始化好友挑战系统
-const friendsChallengeRuntime = window.SnakeFriendsChallenge.createFriendsChallengeModule({
-  storage,
-  getCurrentPlayerId: () => activeAccount || 'self'
-});
+// Friends modules are now lazy-loaded via getFriendsRuntime(), getFriendsLeaderboardRuntime(), getFriendsChallengeRuntime()
 
 // 初始化游戏统计系统
 const statisticsRuntime = window.SnakeStatistics.createStatisticsModule({ storage });
@@ -2284,6 +2407,7 @@ function refreshDailyTasksUI() {
 }
 
 function refreshFriendsUI() {
+  const friendsRuntime = getFriendsRuntime();
   if (!friendsRuntime || !friendsListEl) return;
   
   const friends = friendsRuntime.getFriends();
@@ -2323,6 +2447,7 @@ function refreshFriendsUI() {
 }
 
 function handleAddFriend() {
+  const friendsRuntime = getFriendsRuntime();
   if (!friendsRuntime || !friendInput) return;
   
   const username = friendInput.value.trim();
@@ -2346,6 +2471,7 @@ function handleAddFriend() {
 }
 
 function removeFriend(friendId) {
+  const friendsRuntime = getFriendsRuntime();
   if (!friendsRuntime) return;
   
   const result = friendsRuntime.removeFriend(friendId);
@@ -2359,6 +2485,7 @@ function removeFriend(friendId) {
 let currentLeaderboardType = 'weekly';
 
 function refreshFriendsLeaderboardUI() {
+  const friendsLeaderboardRuntime = getFriendsLeaderboardRuntime();
   if (!friendsLeaderboardRuntime || !friendsLeaderboardListEl) return;
   
   const { leaderboard, period } = friendsLeaderboardRuntime.getLeaderboard(currentLeaderboardType);
@@ -2408,6 +2535,7 @@ function switchLeaderboardType(type) {
 }
 
 function updateChallengeTargetSelect() {
+  const friendsRuntime = getFriendsRuntime();
   if (!challengeTargetSelect || !friendsRuntime) return;
   
   const friends = friendsRuntime.getFriends();
@@ -2423,6 +2551,7 @@ function updateChallengeTargetSelect() {
 }
 
 function refreshChallengesUI() {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime || !activeChallengesEl || !challengeHistoryEl) return;
   
   // Update stats
@@ -2499,6 +2628,7 @@ function refreshChallengesUI() {
 }
 
 function handleSendChallenge() {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime || !challengeTargetSelect) return;
   
   const targetId = challengeTargetSelect.value;
@@ -2528,6 +2658,7 @@ function handleSendChallenge() {
 }
 
 function acceptChallenge(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.acceptChallenge(challengeId);
@@ -2537,6 +2668,7 @@ function acceptChallenge(challengeId) {
 }
 
 function declineChallenge(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.declineChallenge(challengeId);
@@ -2546,6 +2678,7 @@ function declineChallenge(challengeId) {
 }
 
 function completeChallenge(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.completeChallenge(challengeId, score);
@@ -2559,6 +2692,7 @@ function completeChallenge(challengeId) {
 }
 
 function claimChallengeReward(challengeId) {
+  const friendsChallengeRuntime = getFriendsChallengeRuntime();
   if (!friendsChallengeRuntime) return;
   
   const result = friendsChallengeRuntime.claimReward(challengeId);
@@ -5319,13 +5453,11 @@ loadRogueMeta();
 
 loadLastResult();
 initTabs();
+initSocialTabHover(); // Setup hover prewarm for friends modules
 loadAchievements();
 loadAudioSetting();
 refreshDailyRewardsUI();
 refreshDailyTasksUI();
-refreshFriendsUI();
-refreshFriendsLeaderboardUI();
-refreshChallengesUI();
 refreshStatisticsUI();
 initRecallPanel();
 refreshProfileUI();
