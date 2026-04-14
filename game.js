@@ -788,7 +788,7 @@ const titlesRuntime = window.SnakeTitles.createTitlesModule({ storage });
 const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchievementShowcaseModule();
 
 let discoveredCodex = {};
-let currentSkin = 'classic';
+let currentSkin = 'classic-green';
 let dlcPack = 'none';
 const settlement = window.SnakeSettlement.createSettlementModule({ settlementListEl });
 let activeAccount = '';
