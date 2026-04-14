@@ -373,6 +373,51 @@ body.high-contrast .tab-button {
   background: #000;
 }
 
+body.light-mode {
+  --bg: #f1f5f9;
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-glow: rgba(52, 211, 153, 0.06);
+  --border: rgba(52, 211, 153, 0.3);
+  --border-bright: rgba(52, 211, 153, 0.6);
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #059669;
+  --accent-dim: rgba(5, 150, 105, 0.12);
+  --accent-2: #2563eb;
+  --warn: #d97706;
+  --danger: #dc2626;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(5, 150, 105, 0.1) 0%, transparent 60%),
+    linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 60%, #f1f5f9 100%);
+  color-scheme: light;
+}
+
+body.light-mode .app-shell {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--border);
+}
+
+body.light-mode .panel,
+body.light-mode .board-panel,
+body.light-mode .control-panel,
+body.light-mode .topbar,
+body.light-mode .tabs-nav,
+body.light-mode .tab-button {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: var(--border);
+}
+
+body.light-mode .hud-grid span,
+body.light-mode .label-inline {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+}
+
+body.light-mode .score-value,
+body.light-mode .hud-grid span {
+  color: var(--accent);
+}
+
 /* ---- 响应式 ---- */
 @media (max-width: 760px) {
   body { padding: 8px; }

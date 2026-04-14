@@ -121,6 +121,7 @@ const wrapModeInput = document.getElementById('wrapMode');
 const obstacleModeInput = document.getElementById('obstacleMode');
 const hardcoreModeInput = document.getElementById('hardcoreMode');
 const contrastModeInput = document.getElementById('contrastMode');
+const lightModeInput = document.getElementById('lightMode');
 const miniHudModeInput = document.getElementById('miniHudMode');
 const autoPauseModeInput = document.getElementById('autoPauseMode');
 const swipeThresholdSelect = document.getElementById('swipeThreshold');
@@ -978,6 +979,7 @@ function reloadAllFromStorage() {
   updateLevelText();
   baseSpeed = Number(difficultySelect.value);
   applyContrastMode();
+  applyLightMode();
   applyMiniHudMode();
   refreshModeBestText();
   resetGame(true);
@@ -1019,6 +1021,7 @@ const settingsRuntime = window.SnakeSettings.createSettingsModule({
     obstacleModeInput,
     hardcoreModeInput,
     contrastModeInput,
+    lightModeInput,
     miniHudModeInput,
     autoPauseModeInput,
     swipeThresholdSelect
@@ -1047,6 +1050,10 @@ function getObstacleModeSettingValue() {
 
 function applyContrastMode() {
   settingsRuntime.applyContrastMode();
+}
+
+function applyLightMode() {
+  settingsRuntime.applyLightMode();
 }
 
 function applyMiniHudMode() {
@@ -1125,6 +1132,7 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
     obstacleModeInput,
     hardcoreModeInput,
     contrastModeInput,
+    lightModeInput,
     miniHudModeInput,
     autoPauseModeInput,
     swipeThresholdSelect
@@ -5027,6 +5035,7 @@ obstacleModeInput.addEventListener('change', () => { obstacleModePreference = ob
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 wrapModeInput.addEventListener('change', saveSettings);
 contrastModeInput.addEventListener('change', () => { saveSettings(); applyContrastMode(); });
+lightModeInput.addEventListener('change', () => { saveSettings(); applyLightMode(); });
 miniHudModeInput.addEventListener('change', () => { saveSettings(); applyMiniHudMode(); });
 autoPauseModeInput.addEventListener('change', saveSettings);
 skinSelect.addEventListener('change', () => {

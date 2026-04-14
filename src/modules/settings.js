@@ -26,12 +26,17 @@ window.SnakeSettings = (() => {
       document.body.classList.toggle('high-contrast', Boolean(controls.contrastModeInput?.checked));
     }
 
+    function applyLightMode() {
+      document.body.classList.toggle('light-mode', Boolean(controls.lightModeInput?.checked));
+    }
+
     function applyMiniHudMode() {
       document.body.classList.toggle('compact-hud', Boolean(controls.miniHudModeInput?.checked));
     }
 
     function applyVisualModes() {
       applyContrastMode();
+      applyLightMode();
       applyMiniHudMode();
     }
 
@@ -71,6 +76,7 @@ window.SnakeSettings = (() => {
       setObstacleModePreference(controls.obstacleModeInput.checked);
       controls.hardcoreModeInput.checked = Boolean(parsed.hardcoreMode);
       controls.contrastModeInput.checked = Boolean(parsed.contrastMode);
+      controls.lightModeInput.checked = Boolean(parsed.lightMode);
       controls.miniHudModeInput.checked = Boolean(parsed.miniHudMode);
       controls.autoPauseModeInput.checked = parsed.autoPauseMode !== false;
       if (validators.isValidSwipeThreshold(parsed.swipeThreshold)) controls.swipeThresholdSelect.value = String(parsed.swipeThreshold);
@@ -88,6 +94,7 @@ window.SnakeSettings = (() => {
         obstacleMode: getObstacleModeSettingValue(),
         hardcoreMode: controls.hardcoreModeInput.checked,
         contrastMode: controls.contrastModeInput.checked,
+        lightMode: controls.lightModeInput.checked,
         miniHudMode: controls.miniHudModeInput.checked,
         autoPauseMode: controls.autoPauseModeInput.checked,
         swipeThreshold: controls.swipeThresholdSelect.value
@@ -99,6 +106,7 @@ window.SnakeSettings = (() => {
       getModeSettingValue,
       getObstacleModeSettingValue,
       applyContrastMode,
+      applyLightMode,
       applyMiniHudMode,
       applyVisualModes,
       loadSettings,
