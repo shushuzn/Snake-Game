@@ -1242,7 +1242,12 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
     }
   },
   onCountdownDone: startLoop,
-  onResume: startLoop
+  onResume: startLoop,
+  onRestart: () => resetGame(true),
+  onToggleMute: () => {
+    muted = !muted;
+    saveAudioSetting();
+  }
 });
 
 /**

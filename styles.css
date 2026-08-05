@@ -514,6 +514,11 @@ body::before {
 }
 
 .overlay p { margin: 4px 0; }
+
+/* 暂停菜单等 overlay 内交互控件: 覆盖 pointer-events:none 使其可点击 */
+.overlay button {
+  pointer-events: auto;
+}
 .tips { margin: 10px 0 0; color: var(--muted); font-size: 0.82rem; }
 
 /* ---- 控制面板 ---- */
