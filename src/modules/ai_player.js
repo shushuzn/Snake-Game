@@ -477,12 +477,17 @@ window.SnakeAIBattle = (() => {
     }
 
     function spawnFood() {
+      // 注意: 不能用 isPositionOccupied 判断, 因为它会检查 food 自身,
+      // 而 food 在 do-while 内已被赋值, 导致条件恒 true 死循环。
       do {
         food = {
           x: Math.floor(Math.random() * tileCount.x),
           y: Math.floor(Math.random() * tileCount.y)
         };
-      } while (isPositionOccupied(food));
+      } while (
+        (player && player.snake.some(s => s.x === food.x && s.y === food.y)) ||
+        aiPlayers.some(ai => ai.getSnake().some(s => s.x === food.x && s.y === food.y))
+      );
     }
 
     function update(playerDirection) {

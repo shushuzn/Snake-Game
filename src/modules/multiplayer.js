@@ -129,12 +129,17 @@ window.SnakeMultiplayer = (() => {
     }
 
     function spawnFood() {
+      // 注意: 不能用 isPositionOccupied 判断, 它会检查 food 自身(条件恒 true 死循环),
+      // 且保护区域(dist<5)不适用于食物生成。只排除蛇身与障碍实际占用。
       do {
         food = {
           x: Math.floor(Math.random() * tileCount.x),
           y: Math.floor(Math.random() * tileCount.y)
         };
-      } while (isPositionOccupied(food));
+      } while (
+        players.some(p => p.snake.some(s => s.x === food.x && s.y === food.y)) ||
+        obstacles.some(o => o.x === food.x && o.y === food.y)
+      );
     }
 
     function handleInput(key) {

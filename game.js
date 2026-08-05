@@ -3528,6 +3528,10 @@ function hideOverlay() { overlay.style.display = 'none'; }
 function updateTimeText() { timeEl.textContent = isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--'; }
 function updateLevelText() { levelEl.textContent = mode === 'endless' ? `L${level}` : '--'; }
 
+function updateScoreText() {
+  scoreEl.textContent = String(score);
+}
+
 function refreshStateText(now = performance.now()) {
   if (!running) {
     stateEl.textContent = '待机';
