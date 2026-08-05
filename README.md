@@ -151,6 +151,7 @@ npm start          # 默认 http://127.0.0.1:8787, 可用 PORT 环境变量覆�
 
 ## 最新进展
 
+- v1.34.0：音效音量控制 - 设置区新增音量滑块（0-100%，拖动实时生效，静音键旁）；音量持久化到 localStorage（snake-volume-v1）；与 SnakeSound.setVolume 联动；新增音量设置回归测试（默认 50、修改持久化、刷新保持）。
 - v1.33.0：修复特殊模式致命 bug - 多模式自动试玩诊断发现：AI对战/多人对战切换时主线程卡死（selectOption 超时）。根因：ai_player.js 与 multiplayer.js 的 spawnFood 用 isPositionOccupied 判断位置，而该函数会检查 food 自身（food 在 do-while 内已赋值），条件恒 true 导致无限循环，两个模式从未能启动；另发现 game.js 的 updateScoreText 被 5 处调用但从未定义（AI/多人/观战/每日挑战 reset 流程全部报错），已补定义。新增特殊模式切换回归测试（4 模式零错误）。
 - v1.32.0：修复新手引导 API 失配 - 自动试玩诊断发现死亡结算反复报 `guideRuntime.getGamesPlayed is not a function`；game.js 仍引用旧版引导 API（getGamesPlayed/getCurrentLayer/GUIDE_LAYERS/incrementGamesPlayed），guide 模块已演进为任务式新版（getCurrentPhase/GUIDE_PHASES/进度百分比）；全部迁移至新 API，局数改用 totalPlays，教程面板显示引导进度百分比；新增回归测试（死亡结算+教程按钮零错误）。
 - v1.31.0：音效系统升级 - 独立 WebAudio 合成模块 src/modules/sound.js（零外部资源），7 种音效：吃食物双音、道具上行滑音、碰撞下降音、任务三连音、成就琶音、按钮点击、升级上行琶音；beep() 自动委托新模块，未加载时回退内置单音，调用点零改动；支持静音与音量控制。

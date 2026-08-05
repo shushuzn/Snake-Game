@@ -3,7 +3,8 @@
 > 基于 AGENTS.md 指标驱动开发框架
 
 ## 当前版本
-- **Now (进行中)**: `v1.34.0` - (待规划)
+- **Now (进行中)**: `v1.35.0` - (待规划)
+- **Previous (已完成)**: `v1.34.0` - 音效音量控制 (设置滑块, 实时生效, 持久化) ✅
 - **Previous (已完成)**: `v1.33.0` - 修复特殊模式致命 bug (AI/多人 spawnFood 死循环, updateScoreText 未定义) ✅
 - **Previous (已完成)**: `v1.32.0` - 修复新手引导旧 API 失配 (getGamesPlayed/getCurrentLayer TypeError) ✅
 - **Previous (已完成)**: `v1.31.0` - 音效系统升级 (WebAudio 合成模块, 双音/滑音/琶音, 7 种音效) ✅

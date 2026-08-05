@@ -35,6 +35,7 @@ const restartBtn = document.getElementById('restart');
 const pauseBtn = document.getElementById('pause');
 const clearDataBtn = document.getElementById('clearData');
 const muteBtn = document.getElementById('mute');
+const volumeInput = document.getElementById('volume');
 const shareBtn = document.getElementById('share');
 const helpBtn = document.getElementById('help');
 const tutorialBtn = document.getElementById('tutorial');
@@ -183,6 +184,7 @@ const settingsKey = 'snake-settings-v2';
 const settingsSchemaVersion = 3;
 const statsKey = 'snake-stats-v1';
 const audioKey = 'snake-audio-v1';
+const volumeKey = 'snake-volume-v1';
 const bestByModeKey = 'snake-best-by-mode-v1';
 const achievementsKey = 'snake-achievements-v1';
 const lastResultKey = 'snake-last-result-v1';
@@ -3379,13 +3381,26 @@ function checkAllTasksCompleted() {
 
 function loadAudioSetting() {
   muted = storage.readText(audioKey) === '1';
+  const volume = clampInt100(storage.readText(volumeKey, '50'));
+  if (volumeInput) volumeInput.value = String(volume);
+  if (window.SnakeSound) window.SnakeSound.setVolume(volume / 100);
   muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
 }
 
 function saveAudioSetting() {
   storage.writeText(audioKey, muted ? '1' : '0');
+  if (volumeInput) {
+    storage.writeText(volumeKey, String(volumeInput.value));
+  }
+  if (window.SnakeSound) window.SnakeSound.setVolume(clampInt100(volumeInput ? volumeInput.value : 50) / 100);
   muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
   saveActiveAccountSnapshot();
+}
+
+function clampInt100(v) {
+  const n = Math.floor(Number(v));
+  if (!Number.isFinite(n)) return 50;
+  return Math.min(100, Math.max(0, n));
 }
 
 function beep(type = 'eat') {
@@ -5264,6 +5279,14 @@ shareBtn.addEventListener('click', async () => {
 
 muteBtn.addEventListener('click', () => {
   muted = !muted;
+  saveAudioSetting();
+});
+
+volumeInput.addEventListener('input', () => {
+  // 实时应用音量(拖动过程中即生效)
+  if (window.SnakeSound) window.SnakeSound.setVolume(clampInt100(volumeInput.value) / 100);
+});
+volumeInput.addEventListener('change', () => {
   saveAudioSetting();
 });
 
