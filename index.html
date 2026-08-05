@@ -640,7 +640,9 @@
     <script>
       (function () {
         function boot() {
-          ModuleLoader.bootstrap(window.SNAKE_MODULE_MANIFEST).catch(function (e) {
+          ModuleLoader.bootstrap(window.SNAKE_MODULE_MANIFEST, {
+            lazy: window.SNAKE_LAZY_MODULES || []
+          }).catch(function (e) {
             console.error('[bootstrap] fatal', e);
           });
         }

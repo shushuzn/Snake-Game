@@ -398,11 +398,16 @@ const ModuleLoader = (function() {
    * @param {string[]} manifest - 模块名数组（不含 .js）
    * @param {object} [opts]
    * @param {string} [opts.base='src/modules/']
+   * @param {string[]} [opts.lazy=[]] - 懒加载模块：首批注入完成后即就绪启动，其余后台续注
    * @returns {Promise<void>}
    */
   async function bootstrap(manifest, opts = {}) {
     const base = opts.base || 'src/modules/';
+    const lazy = new Set(opts.lazy || []);
+
+    // 首批: 非懒加载模块, 串行注入; 完成后标记就绪并启动游戏
     for (const name of manifest) {
+      if (lazy.has(name)) continue;
       try {
         await injectScript(base + name + '.js');
         LOADED.add(name);
@@ -413,6 +418,17 @@ const ModuleLoader = (function() {
     }
     window.__SNAKE_MODULES_READY = true;
     window.dispatchEvent(new Event('snake:modules-ready'));
+
+    // 后台续注懒加载模块(不阻塞游戏启动)
+    for (const name of manifest) {
+      if (!lazy.has(name)) continue;
+      try {
+        await injectScript(base + name + '.js');
+        LOADED.add(name);
+      } catch (e) {
+        console.error(`[ModuleLoader] Failed to load module: ${name}`, e);
+      }
+    }
   }
 
   /**

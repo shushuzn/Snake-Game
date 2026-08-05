@@ -4,7 +4,7 @@
 
 | 指标 | 数值 |
 |------|------|
-| 总模块数 | 65 |
+| 总模块数 | 66 |
 | 总大小 | 387.5KB |
 | Gzip 大小 | 135.6KB |
 | 平均大小 | ~6KB/模块 |
@@ -145,6 +145,10 @@ game.js
 
 **核心 API:**
 ```javascript
+// 启动引导: 按 manifest 注入全部模块(经典脚本, 兼容 file://)
+// lazy 清单中的模块不阻塞启动, 就绪后后台续注 (v1.28.0)
+await ModuleLoader.bootstrap(window.SNAKE_MODULE_MANIFEST, { lazy: window.SNAKE_LAZY_MODULES });
+
 // 按需加载模块
 await ModuleLoader.load('achievement_showcase');
 
@@ -160,6 +164,14 @@ ModuleLoader.printStats();  // 控制台可视化
 // 获取原始数据
 ModuleLoader.getUsageStats();
 ```
+
+**懒加载机制 (v1.28.0):**
+- `src/modules/manifest.js` 维护两个清单:
+  - `SNAKE_MODULE_MANIFEST` — 全部 66 模块
+  - `SNAKE_LAZY_MODULES` — 13 个懒加载模块(不阻塞启动, 就绪后后台续注)
+- 两阶段启动: 首批注入非 lazy 模块 → 派发 `snake:modules-ready` → 游戏启动 → 后台续注 lazy 模块
+- 懒加载候选选择依据: 全局不被 game.js 引用、不被其他模块加载期引用
+- 清单由 `node scripts/generate-modules.mjs` 生成, `node scripts/check-manifest.js` 校验一致性
 
 ### 模块分类
 

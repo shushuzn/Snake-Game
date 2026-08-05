@@ -39,9 +39,29 @@ function discoverModules() {
     .sort();
 }
 
+// 懒加载模块 (v1.28.0) — 不阻塞游戏启动，由 bootstrap 在就绪后后台续注。
+// 选择依据: 全局不被 game.js 引用、不被其他模块加载期引用。
+// 新增候选时运行 node scripts/analyze-lazy-candidates.mjs 辅助判断(如保留)。
+const LAZY_MODULES = [
+  'achievement_preview',
+  'ai_engine_selector',
+  'churn_analytics',
+  'churn_warning',
+  'enhanced_newbie_guide',
+  'enhanced_return_rewards',
+  'in_game_hints',
+  'personalized_achievements',
+  'quick_start',
+  'returning_guide',
+  'reward_preview',
+  'season_rewards_preview',
+  'skill_tree'
+];
+
 // 生成 manifest.js 内容
 function generateManifestContent(modules) {
   const list = modules.map(m => `  '${m}'`).join(',\n');
+  const lazy = LAZY_MODULES.map(m => `  '${m}'`).join(',\n');
   return `// 模块清单 — 单一事实来源 (single source of truth)
 //
 // 本文件由 scripts/generate-modules.mjs 自动生成，请勿手动编辑。
@@ -50,6 +70,11 @@ function generateManifestContent(modules) {
 // ModuleLoader.bootstrap() 会按此顺序注入（经典脚本，兼容 file:// 直接打开）。
 window.SNAKE_MODULE_MANIFEST = [
 ${list}
+];
+
+// 懒加载模块 (v1.28.0): 不阻塞游戏启动，就绪后由 bootstrap 后台续注。
+window.SNAKE_LAZY_MODULES = [
+${lazy}
 ];
 `;
 }

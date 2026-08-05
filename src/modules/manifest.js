@@ -72,3 +72,20 @@ window.SNAKE_MODULE_MANIFEST = [
   'workshop',
   'workshop_runtime'
 ];
+
+// 懒加载模块 (v1.28.0): 不阻塞游戏启动，就绪后由 bootstrap 后台续注。
+window.SNAKE_LAZY_MODULES = [
+  'achievement_preview',
+  'ai_engine_selector',
+  'churn_analytics',
+  'churn_warning',
+  'enhanced_newbie_guide',
+  'enhanced_return_rewards',
+  'in_game_hints',
+  'personalized_achievements',
+  'quick_start',
+  'returning_guide',
+  'reward_preview',
+  'season_rewards_preview',
+  'skill_tree'
+];
