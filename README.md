@@ -151,6 +151,7 @@ npm start          # 默认 http://127.0.0.1:8787, 可用 PORT 环境变量覆�
 
 ## 最新进展
 
+- v1.36.0：科幻风格前端重构 - 深空星云背景（青紫双径向渐变）+ 漂移星点层 + 全息网格（径向遮罩）+ 扫描线动画；霓虹青紫主题（CSS 变量全量迁移），面板顶部棱镜高光线、棋盘霓虹边框 + 强发光、标题全息字效（大写 / 字距 / 发光）、按钮青紫霓虹渐变；保留全部 class 结构与游戏逻辑，纯 CSS 重构，零依赖、file:// 可玩、light-mode 同步适配。
 - v1.35.0：暂停菜单 - 暂停时显示操作菜单（▶ 继续 / 🔄 重新开始 / 🔊 音效开关），按钮点击直达，空格/P 快捷恢复；顺带修复 overlay 内按钮无法点击的问题（.overlay 的 pointer-events:none 覆盖按钮，恢复按钮 pointer-events）；新增暂停菜单回归测试。
 - v1.34.0：音效音量控制 - 设置区新增音量滑块（0-100%，拖动实时生效，静音键旁）；音量持久化到 localStorage（snake-volume-v1）；与 SnakeSound.setVolume 联动；新增音量设置回归测试（默认 50、修改持久化、刷新保持）。
 - v1.33.0：修复特殊模式致命 bug - 多模式自动试玩诊断发现：AI对战/多人对战切换时主线程卡死（selectOption 超时）。根因：ai_player.js 与 multiplayer.js 的 spawnFood 用 isPositionOccupied 判断位置，而该函数会检查 food 自身（food 在 do-while 内已赋值），条件恒 true 导致无限循环，两个模式从未能启动；另发现 game.js 的 updateScoreText 被 5 处调用但从未定义（AI/多人/观战/每日挑战 reset 流程全部报错），已补定义。新增特殊模式切换回归测试（4 模式零错误）。
