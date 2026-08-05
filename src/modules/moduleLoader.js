@@ -405,43 +405,56 @@ const ModuleLoader = (function() {
     const base = opts.base || 'src/modules/';
     const lazy = new Set(opts.lazy || []);
 
-    // 首批: 非懒加载模块, 串行注入; 完成后标记就绪并启动游戏
-    for (const name of manifest) {
-      if (lazy.has(name)) continue;
-      try {
-        await injectScript(base + name + '.js');
-        LOADED.add(name);
-      } catch (e) {
-        // 单个模块失败不应阻断整个游戏启动
-        console.error(`[ModuleLoader] Failed to load module: ${name}`, e);
-      }
-    }
+    // 首批: 非懒加载模块, 并行下载 + 保序执行; 完成后标记就绪并启动游戏
+    const first = manifest.filter((n) => !lazy.has(n));
+    const rest = manifest.filter((n) => lazy.has(n));
+
+    const loadedFirst = await injectScripts(first, base);
+    for (const name of loadedFirst) LOADED.add(name);
     window.__SNAKE_MODULES_READY = true;
     window.dispatchEvent(new Event('snake:modules-ready'));
 
     // 后台续注懒加载模块(不阻塞游戏启动)
-    for (const name of manifest) {
-      if (!lazy.has(name)) continue;
-      try {
-        await injectScript(base + name + '.js');
-        LOADED.add(name);
-      } catch (e) {
-        console.error(`[ModuleLoader] Failed to load module: ${name}`, e);
-      }
-    }
+    const loadedRest = await injectScripts(rest, base);
+    for (const name of loadedRest) LOADED.add(name);
   }
 
   /**
-   * 注入单个经典脚本并等待其执行完成。
+   * 批量注入经典脚本（并行下载 + 保序执行）。
+   * async=false 保证动态脚本按插入顺序同步执行（模块依赖顺序不变），
+   * 同时浏览器并行下载，网络环境下显著快于串行 await。
+   *
+   * @param {string[]} names - 模块名数组（不含 .js）
+   * @param {string} base - 目录前缀
+   * @returns {Promise<string[]>} 成功加载的模块名
    */
-  function injectScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      // 注意：不使用 type="module"，否则在 file:// 直接打开时会因 CORS 失败
-      script.onload = () => resolve(src);
-      script.onerror = () => reject(new Error('load failed: ' + src));
-      document.head.appendChild(script);
+  function injectScripts(names, base) {
+    return new Promise((resolve) => {
+      const loaded = [];
+      let remaining = names.length;
+      if (remaining === 0) {
+        resolve(loaded);
+        return;
+      }
+      const done = () => {
+        if (--remaining === 0) resolve(loaded);
+      };
+      for (const name of names) {
+        const script = document.createElement('script');
+        script.src = base + name + '.js';
+        script.async = false; // 保序执行
+        // 注意：不使用 type="module"，否则在 file:// 直接打开时会因 CORS 失败
+        script.onload = () => {
+          loaded.push(name);
+          done();
+        };
+        script.onerror = () => {
+          // 单个模块失败不应阻断整个游戏启动
+          console.error(`[ModuleLoader] Failed to load module: ${name}`);
+          done();
+        };
+        document.head.appendChild(script);
+      }
     });
   }
 
