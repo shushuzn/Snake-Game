@@ -231,6 +231,11 @@ const ModuleLoader = (function() {
       return;
     }
 
+    // 核心模块由 manifest 同步加载，不允许懒加载
+    if (CORE_MODULES.includes(name)) {
+      return;
+    }
+
     if ('requestIdleCallback' in window) {
       requestIdleCallback(() => loadModule(name), { timeout: 2000 });
     } else {
@@ -385,6 +390,45 @@ const ModuleLoader = (function() {
     console.log('%cTip: Run ModuleLoader.getUsageStats() for raw data', 'color: #888');
   }
 
+  /**
+   * 按清单顺序注入模块（经典脚本，确保 file:// 直接打开也能加载）。
+   * 全部加载（或失败）完成后标记就绪并派发 snake:modules-ready 事件，
+   * 供 game.js 在模块全局变量可用后再启动。
+   *
+   * @param {string[]} manifest - 模块名数组（不含 .js）
+   * @param {object} [opts]
+   * @param {string} [opts.base='src/modules/']
+   * @returns {Promise<void>}
+   */
+  async function bootstrap(manifest, opts = {}) {
+    const base = opts.base || 'src/modules/';
+    for (const name of manifest) {
+      try {
+        await injectScript(base + name + '.js');
+        LOADED.add(name);
+      } catch (e) {
+        // 单个模块失败不应阻断整个游戏启动
+        console.error(`[ModuleLoader] Failed to load module: ${name}`, e);
+      }
+    }
+    window.__SNAKE_MODULES_READY = true;
+    window.dispatchEvent(new Event('snake:modules-ready'));
+  }
+
+  /**
+   * 注入单个经典脚本并等待其执行完成。
+   */
+  function injectScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      // 注意：不使用 type="module"，否则在 file:// 直接打开时会因 CORS 失败
+      script.onload = () => resolve(src);
+      script.onerror = () => reject(new Error('load failed: ' + src));
+      document.head.appendChild(script);
+    });
+  }
+
   // 初始化 - 立即预加载候选模块
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -397,6 +441,7 @@ const ModuleLoader = (function() {
   return {
     load: load,
     loadModule: loadModule,
+    bootstrap: bootstrap,
     preload: preload,
     preloadCandidates: preloadCandidates,
     isLoaded: isLoaded,

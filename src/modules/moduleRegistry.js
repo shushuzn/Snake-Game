@@ -155,7 +155,7 @@ const ModuleRegistry = (function() {
     if (!loaded.has(name)) {
       const script = document.createElement('script');
       script.src = `src/modules/${name}.js`;
-      script.type = 'module';
+      // 经典脚本：不使用 type="module"，确保 file:// 直接打开也能加载
       
       await new Promise((resolve, reject) => {
         script.onload = resolve;

@@ -635,74 +635,22 @@
     <script src="src/modules/moduleRegistry.js"></script>
     <script src="src/modules/moduleLoader.js"></script>
     
-    <!-- MODULES START -->
-    <script src="src/modules/account.js"></script>
-    <script src="src/modules/achievement_detail.js"></script>
-    <script src="src/modules/achievement_preview.js"></script>
-    <script src="src/modules/achievement_search.js"></script>
-    <script src="src/modules/achievement_showcase.js"></script>
-    <script src="src/modules/achievement_stats.js"></script>
-    <script src="src/modules/achievement_toast.js"></script>
-    <script src="src/modules/ai_player.js"></script>
-    <script src="src/modules/challenge.js"></script>
-    <script src="src/modules/churn_analytics.js"></script>
-    <script src="src/modules/churn_warning.js"></script>
-    <script src="src/modules/daily_challenge_mode.js"></script>
-    <script src="src/modules/daily_rewards.js"></script>
-    <script src="src/modules/daily_tasks.js"></script>
-    <script src="src/modules/endgame_flow.js"></script>
-    <script src="src/modules/enhanced_newbie_guide.js"></script>
-    <script src="src/modules/enhanced_return_rewards.js"></script>
-    <script src="src/modules/events.js"></script>
-    <script src="src/modules/first_milestone.js"></script>
-    <script src="src/modules/friends.js"></script>
-    <script src="src/modules/friends_challenge.js"></script>
-    <script src="src/modules/friends_leaderboard.js"></script>
-    <script src="src/modules/guide.js"></script>
-    <script src="src/modules/in_game_hints.js"></script>
-    <script src="src/modules/in_game_notifications.js"></script>
-    <script src="src/modules/input.js"></script>
-    <script src="src/modules/item_spawn.js"></script>
-    <script src="src/modules/leaderboard.js"></script>
-    <script src="src/modules/level_unlock.js"></script>
-    <script src="src/modules/loop_timers.js"></script>
-    <script src="src/modules/mode_rules.js"></script>
-    <script src="src/modules/mode_trial.js"></script>
-    <script src="src/modules/modes.js"></script>
-    <script src="src/modules/multiplayer.js"></script>
-    <script src="src/modules/personalized_achievements.js"></script>
-    <script src="src/modules/play_state.js"></script>
-    <script src="src/modules/profile.js"></script>
-    <script src="src/modules/purchase_feedback.js"></script>
-    <script src="src/modules/quick_start.js"></script>
-    <script src="src/modules/recall.js"></script>
-    <script src="src/modules/recap.js"></script>
-    <script src="src/modules/records.js"></script>
-    <script src="src/modules/render.js"></script>
-    <script src="src/modules/replay.js"></script>
-    <script src="src/modules/reset_flow.js"></script>
-    <script src="src/modules/reset_prepare.js"></script>
-    <script src="src/modules/return_center.js"></script>
-    <script src="src/modules/return_missions.js"></script>
-    <script src="src/modules/return_reminder.js"></script>
-    <script src="src/modules/returning_guide.js"></script>
-    <script src="src/modules/reward_preview.js"></script>
-    <script src="src/modules/reward_system.js"></script>
-    <script src="src/modules/round_state.js"></script>
-    <script src="src/modules/season.js"></script>
-    <script src="src/modules/season_rewards_preview.js"></script>
-    <script src="src/modules/settings.js"></script>
-    <script src="src/modules/settlement.js"></script>
-    <script src="src/modules/shop.js"></script>
-    <script src="src/modules/skill_tree.js"></script>
-    <script src="src/modules/ai_worker_bridge.js"></script>
-    <script src="src/modules/ai_engine_selector.js"></script>
-    <script src="src/modules/spectate.js"></script>
-    <script src="src/modules/statistics.js"></script>
-    <script src="src/modules/storage.js"></script>
-    <script src="src/modules/titles.js"></script>
-    <script src="src/modules/workshop.js"></script>
-    <script src="src/modules/workshop_runtime.js"></script>
+    <!-- MODULES START (module list driven by src/modules/manifest.js via ModuleLoader.bootstrap) -->
+    <script src="src/modules/manifest.js"></script>
+    <script>
+      (function () {
+        function boot() {
+          ModuleLoader.bootstrap(window.SNAKE_MODULE_MANIFEST).catch(function (e) {
+            console.error('[bootstrap] fatal', e);
+          });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', boot);
+        } else {
+          boot();
+        }
+      })();
+    </script>
   <!-- MODULES END -->
     <script src="game.js"></script>
   </body>

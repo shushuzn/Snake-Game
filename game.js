@@ -1,3 +1,4 @@
+function bootSnakeGame() {
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
@@ -5516,3 +5517,11 @@ currentSkin = skinSelect.value;
       }
     }
   }
+}
+
+// 模块加载完成后再启动游戏。ModuleLoader.bootstrap 会派发 snake:modules-ready。
+if (window.__SNAKE_MODULES_READY) {
+  bootSnakeGame();
+} else {
+  window.addEventListener('snake:modules-ready', bootSnakeGame, { once: true });
+}

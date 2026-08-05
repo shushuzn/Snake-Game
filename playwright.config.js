@@ -5,13 +5,17 @@ module.exports = defineConfig({
   testDir: './tests',
   timeout: 30000,
   use: {
-    baseURL: 'file:///D:/OpenClaw/workspace/80-PROJECTS/Snake-Game/',
+    baseURL: 'file:///D:/OpenClaw/Snake-Game/',
     headless: true,
   },
   projects: [
     {
       name: 'firefox',
       use: { browserName: 'firefox' },
+    },
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
     },
   ],
 });

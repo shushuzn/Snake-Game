@@ -61,7 +61,6 @@
       const currentSkin = getCurrentSkin();
       const skin = skinThemes[currentSkin];
       const now = performance.now();
-      const isPhaseActive = now < phaseUntil;
       const {
         food,
         bonusFood,
@@ -74,8 +73,10 @@
         magnetFood,
         comboFood,
         rocks,
-        snake
+        snake,
+        phaseUntil
       } = getState();
+      const isPhaseActive = now < phaseUntil;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = skin.board;
