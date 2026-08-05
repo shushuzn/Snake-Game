@@ -3391,6 +3391,11 @@ function saveAudioSetting() {
 
 function beep(type = 'eat') {
   if (muted) return;
+  // 优先使用增强音效模块(WebAudio 合成); 未加载时回退到内置单音
+  if (window.SnakeSound) {
+    window.SnakeSound.play(type);
+    return;
+  }
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtx) return;
   if (!beep.ctx) beep.ctx = new AudioCtx();

@@ -65,6 +65,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'settlement',
   'shop',
   'skill_tree',
+  'sound',
   'spectate',
   'statistics',
   'storage',
