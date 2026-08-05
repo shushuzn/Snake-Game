@@ -1463,7 +1463,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     getLevel: () => level,
     getRemainingTime: () => remainingTime,
     getRoundMaxCombo: () => roundMaxCombo,
-    getGamesPlayed: () => guideRuntime.getGamesPlayed(),
+    getGamesPlayed: () => totalPlays,
     getFoodsEaten: () => foodsEaten,
     getSpectateCount: () => spectateCount,
     getAIBattleDifficulty: () => aiBattleDifficulty,
@@ -1627,7 +1627,6 @@ function saveHistory() {
 
 function addHistoryEntry(score, modeName) {
   recordsRuntime.addHistoryEntry(score, modeName);
-  guideRuntime.incrementGamesPlayed();
 }
 
 function renderHistory() {
@@ -5267,20 +5266,20 @@ muteBtn.addEventListener('click', () => {
 helpBtn.addEventListener('click', () => toggleHelp(helpPanel.style.display === 'none'));
 tutorialBtn.addEventListener('click', () => {
   toggleHelp(true);
-  const currentLayer = guideRuntime.getCurrentLayer();
-  const gamesPlayed = guideRuntime.getGamesPlayed();
+  const currentPhase = guideRuntime.getCurrentPhase();
+  const progress = guideRuntime.getProgressPercent();
   let guideContent = '';
-  
-  if (currentLayer === window.SnakeGuide.GUIDE_LAYERS.BASIC) {
+
+  if (currentPhase === window.SnakeGuide.GUIDE_PHASES.PHASE1_BASIC) {
     guideContent = `
       <div style="text-align:left;max-width:320px;margin:0 auto;">
         <h3>🎮 基础操作</h3>
         <p>📌 使用方向键或 WASD 控制蛇的移动</p>
         <p>📌 吃掉食物让蛇成长，蛇越长得分越高</p>
         <p>📌 小心不要撞到墙壁或自己的身体</p>
-        <hr><p style="color:#888;">已玩 ${gamesPlayed} 局，距离下一阶段还需 ${Math.max(0, 3 - gamesPlayed)} 局</p>
+        <hr><p style="color:#888;">新手引导进度 ${progress}%（当前：基础操作）</p>
       </div>`;
-  } else if (currentLayer === window.SnakeGuide.GUIDE_LAYERS.ITEMS) {
+  } else if (currentPhase === window.SnakeGuide.GUIDE_PHASES.PHASE2_ITEMS) {
     guideContent = `
       <div style="text-align:left;max-width:320px;margin:0 auto;">
         <h3>🛡️ 道具认知</h3>
@@ -5290,7 +5289,17 @@ tutorialBtn.addEventListener('click', () => {
         <p>🔥 连击：大幅提升连击倍数</p>
         <p>❄️ 冻结：暂停所有障碍物</p>
         <p>⏰ 时间：增加剩余时间</p>
-        <hr><p style="color:#888;">已玩 ${gamesPlayed} 局，距离下一阶段还需 ${Math.max(0, 10 - gamesPlayed)} 局</p>
+        <hr><p style="color:#888;">新手引导进度 ${progress}%（当前：道具认知）</p>
+      </div>`;
+  } else if (currentPhase === window.SnakeGuide.GUIDE_PHASES.PHASE3_MODES) {
+    guideContent = `
+      <div style="text-align:left;max-width:320px;margin:0 auto;">
+        <h3>🎯 模式策略</h3>
+        <p>🎯 经典模式：无限时间，尽可能获得最高分</p>
+        <p>⏱️ 计时模式：在限定时间内冲刺最高分</p>
+        <p>⚡ 闪电模式：极短时间，快速反应</p>
+        <p>📋 任务模式：完成目标挑战</p>
+        <hr><p style="color:#888;">新手引导进度 ${progress}%（当前：模式策略）</p>
       </div>`;
   } else {
     guideContent = `
@@ -5300,7 +5309,7 @@ tutorialBtn.addEventListener('click', () => {
         <p>⏱️ 计时模式：在限定时间内冲刺最高分</p>
         <p>⚡ 闪电模式：极短时间，快速反应</p>
         <p>📋 任务模式：完成目标挑战</p>
-        <hr><p style="color:#4ade80;">✅ 新手引导已全部完成！</p>
+        <hr><p style="color:#4ade80;">✅ 新手引导已全部完成（${progress}%）！</p>
       </div>`;
   }
   

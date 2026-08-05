@@ -151,6 +151,7 @@ npm start          # 默认 http://127.0.0.1:8787, 可用 PORT 环境变量覆�
 
 ## 最新进展
 
+- v1.32.0：修复新手引导 API 失配 - 自动试玩诊断发现死亡结算反复报 `guideRuntime.getGamesPlayed is not a function`；game.js 仍引用旧版引导 API（getGamesPlayed/getCurrentLayer/GUIDE_LAYERS/incrementGamesPlayed），guide 模块已演进为任务式新版（getCurrentPhase/GUIDE_PHASES/进度百分比）；全部迁移至新 API，局数改用 totalPlays，教程面板显示引导进度百分比；新增回归测试（死亡结算+教程按钮零错误）。
 - v1.31.0：音效系统升级 - 独立 WebAudio 合成模块 src/modules/sound.js（零外部资源），7 种音效：吃食物双音、道具上行滑音、碰撞下降音、任务三连音、成就琶音、按钮点击、升级上行琶音；beep() 自动委托新模块，未加载时回退内置单音，调用点零改动；支持静音与音量控制。
 - v1.30.0：在线后端（可选）- server/ Express 服务提供排行榜 + 账号 API（health/leaderboard/account 三组）；JSON 文件原子写存储；前端排行榜可配置接入后端（window.SNAKE_SERVER_URL 或 localStorage），配置后远端榜实时拉取、分数异步上报，后端不可达自动回退本地；新增前后端联调 E2E（2/2）；未配置后端时保持纯离线零依赖。
 - v1.29.0：启动性能优化 - 模块注入改为并行下载+保序执行（async=false 动态脚本），网络环境下总下载时间从串行叠加降为最大单文件，本地实测 modules-ready 228ms→156ms（-31.6%）；bootSnakeGame 同步初始化实测仅 ~20ms；新增启动性能监测测试（含 1s 警戒断言）。

@@ -3,7 +3,8 @@
 > 基于 AGENTS.md 指标驱动开发框架
 
 ## 当前版本
-- **Now (进行中)**: `v1.32.0` - (待规划)
+- **Now (进行中)**: `v1.33.0` - (待规划)
+- **Previous (已完成)**: `v1.32.0` - 修复新手引导旧 API 失配 (getGamesPlayed/getCurrentLayer TypeError) ✅
 - **Previous (已完成)**: `v1.31.0` - 音效系统升级 (WebAudio 合成模块, 双音/滑音/琶音, 7 种音效) ✅
 - **Previous (已完成)**: `v1.30.0` - 在线后端 (server/ Express: 排行榜 + 账号 API, 前端可配置接入, 离线回退) ✅
 - **Previous (已完成)**: `v1.29.0` - 启动性能优化 (模块并行下载+保序注入, modules-ready 228ms→156ms) ✅
