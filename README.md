@@ -116,8 +116,42 @@ git diff --check
 python3 skills/snake-feature-evolver/scripts/bump_version.py 0.99.0
 ```
 
+## 在线后端 (可选)
+
+`server/` 目录提供可选的 Node/Express 后端（排行榜 + 账号），**不影响纯前端零依赖承诺**——不配置后端时游戏完全离线可用。
+
+### 启动后端
+
+```bash
+cd server
+npm install
+npm start          # 默认 http://127.0.0.1:8787, 可用 PORT 环境变量覆盖
+```
+
+### 前端接入
+
+两种方式配置后端地址（二选一）：
+- 页面加载前设置 `window.SNAKE_SERVER_URL`（部署时注入）
+- 浏览器控制台 `localStorage.setItem('snake_server_url', 'http://127.0.0.1:8787')`
+
+配置后：排行榜「远端榜」从后端拉取，对局结束分数异步上报；后端不可达时自动回退本地数据。
+
+### API 一览
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/health` | 健康检查 |
+| GET | `/api/leaderboard?mode=&limit=` | 排行榜（分数降序） |
+| POST | `/api/leaderboard` | 提交分数 `{player,score,mode,challengeSeed?,dlcPack?}` |
+| POST | `/api/account/register` | 注册账号 `{name}` → `{id,token}` |
+| GET | `/api/account/:id` | 读取账号数据 |
+| PUT | `/api/account/:id` | 更新账号 `{token,name?,data?}` |
+
+数据存储于 `server/data/*.json`（原子写，自动创建，已 gitignore）。
+
 ## 最新进展
 
+- v1.30.0：在线后端（可选）- server/ Express 服务提供排行榜 + 账号 API（health/leaderboard/account 三组）；JSON 文件原子写存储；前端排行榜可配置接入后端（window.SNAKE_SERVER_URL 或 localStorage），配置后远端榜实时拉取、分数异步上报，后端不可达自动回退本地；新增前后端联调 E2E（2/2）；未配置后端时保持纯离线零依赖。
 - v1.29.0：启动性能优化 - 模块注入改为并行下载+保序执行（async=false 动态脚本），网络环境下总下载时间从串行叠加降为最大单文件，本地实测 modules-ready 228ms→156ms（-31.6%）；bootSnakeGame 同步初始化实测仅 ~20ms；新增启动性能监测测试（含 1s 警戒断言）。
 - v1.28.0：模块懒加载两阶段启动 - 13 个低频模块（成就预览/流失分析/技能树/快速上手等，全局不被启动路径引用）纳入 SNAKE_LAZY_MODULES，游戏就绪即启动、lazy 模块后台续注，缩短首屏就绪时间；check-manifest.js 校验 lazy 清单一致性；新增 lazy 注入 E2E 测试（全量 20/20 通过）。
 - v1.27.0：模块加载系统重构 - 模块清单 manifest.js 单一事实来源；ModuleLoader.bootstrap() 按清单顺序注入经典脚本，支持 file:// 直接打开（无需本地服务器）；game.js 改为事件驱动启动；index.html 移除 60+ 手动 script 标签；修复 preload 对核心模块的未处理异常；修复 render.js phaseUntil 作用域 bug；新增主循环 E2E 测试（4/4 通过）。

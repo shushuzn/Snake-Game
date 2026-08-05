@@ -18,6 +18,7 @@ window.SnakeLeaderboard = (() => {
     let dimension = 'all';
     let remoteMeta = { ok: false, message: '未请求远端榜单' };
     const remoteUrl = String(remoteConfig.url || '').trim();
+    const remoteSubmitUrl = String(remoteConfig.submitUrl || '').trim();
     const remoteTimeoutMs = Number(remoteConfig.timeoutMs || 1800);
 
     function getDimensionLabel() {
@@ -123,6 +124,32 @@ window.SnakeLeaderboard = (() => {
       storage.writeJson(key, allEntries);
       onPersist();
       if (source !== 'remote') render();
+      // 异步上报远端(仅当配置了后端, 失败静默不影响本地)
+      submitToRemote(score, mode, meta);
+    }
+
+    /**
+     * 异步提交分数到后端 (fire-and-forget)。
+     * 离线或后端不可达时静默失败, 不影响游戏流程。
+     */
+    async function submitToRemote(score, mode, meta = {}) {
+      if (!remoteSubmitUrl || !score) return;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), Math.max(600, remoteTimeoutMs));
+      try {
+        await fetch(remoteSubmitUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ player: meta.player || 'Anonymous', score, mode, ...meta }),
+          signal: controller.signal
+        });
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.debug('[Leaderboard] remote submit failed:', err?.message);
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
     function clear() {

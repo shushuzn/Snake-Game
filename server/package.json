@@ -1,0 +1,16 @@
+{
+  "name": "snake-game-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Snake Game 在线后端: 排行榜 + 账号 API (Express + JSON 文件存储)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

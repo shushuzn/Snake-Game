@@ -1243,6 +1243,27 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   onResume: startLoop
 });
 
+/**
+ * 排行榜远端配置:
+ * - 未配置后端 -> 保持原静态 JSON (离线模式, 零依赖承诺不变)
+ * - 配置后端 (window.SNAKE_SERVER_URL 或 localStorage['snake_server_url'])
+ *   -> 榜单读取与分数提交均走后端 API, 失败自动回退本地数据
+ */
+function getLeaderboardRemoteConfig() {
+  const serverUrl = (
+    (typeof window.SNAKE_SERVER_URL === 'string' && window.SNAKE_SERVER_URL.trim()) ||
+    localStorage.getItem('snake_server_url') || ''
+  ).replace(/\/+$/, '');
+  if (!serverUrl) {
+    return { url: './src/data/leaderboard_remote.json', timeoutMs: 2000 };
+  }
+  return {
+    url: serverUrl + '/api/leaderboard',
+    submitUrl: serverUrl + '/api/leaderboard',
+    timeoutMs: 2000
+  };
+}
+
 const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
   storage,
   key: leaderboardKey,
@@ -1254,10 +1275,7 @@ const leaderboardRuntime = window.SnakeLeaderboard.createLeaderboardModule({
   getModeLabel: SnakeModes.getModeLabel,
   getCurrentChallengeSeed: () => SnakeModes.getLocalDateSeed(),
   onPersist: saveActiveAccountSnapshot,
-  remoteConfig: {
-    url: './leaderboard_remote.json',
-    timeoutMs: 2000
-  }
+  remoteConfig: getLeaderboardRemoteConfig()
 });
 
 const recallRuntime = window.SnakeRecall.createRecallModule({ storage });
