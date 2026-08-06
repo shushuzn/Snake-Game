@@ -43,6 +43,7 @@
 | B2g | 账号域 (activeAccount/accountStore → account 模块) | 中 | ✅ 2026-08-07 |
 | B2h | 生命周期统计域 (foodsEaten/totalPlays/streakWins → lifetime_stats 模块) | 中 | ✅ 2026-08-07 |
 | B2i | 肉鸽模式域 (roguePerks 持久化 + 本局突变 5 状态 → rogue_manager 模块) | 中 | ✅ 2026-08-07 |
+| B3-1 | 效果计时域 (scoreMultiplier/multiplierExpireAt/freezeUntil/phaseUntil/magnetUntil/comboGuardUntil → effect_timer 模块) | 中 | ✅ 2026-08-07 |
 | B3 | 道具效果域(吃道具/计时) | 中 | 待办 |
 | B4 | 棋盘域(移动/碰撞) | 高 | 待办 |
 | B5 | 游戏主循环状态 | 高 | 待办 |
