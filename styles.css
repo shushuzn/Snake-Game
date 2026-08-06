@@ -586,6 +586,71 @@ body::after {
 
 .overlay p { margin: 4px 0; }
 
+/* ---- 全息启动界面 ---- */
+.start-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 28px;
+  user-select: none;
+}
+
+.start-logo {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #f0f8ff;
+  text-shadow:
+    0 0 16px rgba(0, 229, 255, 0.7),
+    0 0 48px rgba(0, 229, 255, 0.35),
+    0 0 90px rgba(167, 139, 250, 0.3);
+  animation: startLogoPulse 3s ease-in-out infinite;
+  margin: 0 0 2px;
+}
+
+.start-logo-sub {
+  font-size: 0.9rem;
+  letter-spacing: 0.3em;
+  color: var(--accent-2);
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.8);
+  margin-left: 6px;
+}
+
+@keyframes startLogoPulse {
+  0%, 100% { text-shadow: 0 0 16px rgba(0,229,255,0.7), 0 0 48px rgba(0,229,255,0.35), 0 0 90px rgba(167,139,250,0.3); }
+  50%      { text-shadow: 0 0 24px rgba(0,229,255,0.95), 0 0 70px rgba(0,229,255,0.5), 0 0 120px rgba(167,139,250,0.45); }
+}
+
+.start-tagline {
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  color: #a5f3fc;
+  opacity: 0.85;
+  margin: 2px 0 10px;
+}
+
+.start-prompt {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  animation: startPromptBlink 1.6s ease-in-out infinite;
+  margin: 8px 0 2px;
+}
+
+@keyframes startPromptBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+.start-controls {
+  font-size: 0.72rem;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
 /* 暂停菜单等 overlay 内交互控件: 覆盖 pointer-events:none 使其可点击 */
 .overlay button {
   pointer-events: auto;

@@ -50,9 +50,11 @@
         <div class="board-wrap">
           <canvas id="board" width="500" height="500" aria-label="贪吃蛇棋盘"></canvas>
           <div class="overlay" id="overlay">
-            <div>
-              <p><strong>按方向键开始游戏</strong></p>
-              <p>支持方向键 / WASD / 触屏方向键 / 滑动</p>
+            <div class="start-screen">
+              <p class="start-logo">🐍 SNAKE<span class="start-logo-sub">// 协议</span></p>
+              <p class="start-tagline">深空贪吃蛇 · 连击 · 道具 · 多模式</p>
+              <p class="start-prompt">▶ 按方向键开始游戏</p>
+              <p class="start-controls">方向键 / WASD / 触屏方向键 / 滑动</p>
             </div>
           </div>
           <div id="gameHint" class="game-hint" style="display:none; position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:#fff; padding:8px 16px; border-radius:20px; font-size:13px; z-index:10; max-width:80%; text-align:center;"></div>

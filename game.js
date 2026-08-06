@@ -1454,7 +1454,14 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
     refreshStateText,
     updateTimeText,
     updateLevelText,
-    showStartOverlay: () => showOverlay('<p><strong>按方向键开始游戏</strong></p><p>W/A/S/D、触屏方向键或滑动都可控制</p>')
+    showStartOverlay: () => showOverlay(
+      '<div class="start-screen">' +
+        '<p class="start-logo">🐍 SNAKE<span class="start-logo-sub">// 协议</span></p>' +
+        '<p class="start-tagline">深空贪吃蛇 · 连击 · 道具 · 多模式</p>' +
+        '<p class="start-prompt">▶ 按方向键开始游戏</p>' +
+        '<p class="start-controls">方向键 / WASD / 触屏方向键 / 滑动</p>' +
+      '</div>'
+    )
   },
   timers: {
     stopAll: () => loopTimersRuntime.stopAll()
