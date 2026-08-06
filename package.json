@@ -10,9 +10,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "playwright test",
+    "test": "playwright test --workers=4",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
+    "test:core": "playwright test tests/main_loop.spec.js tests/game.spec.js tests/guide_regression.spec.js tests/special_modes.spec.js --workers=4",
+    "server": "node server/index.js",
+    "gen": "node scripts/generate-modules.mjs",
+    "check": "bash skills/snake-feature-evolver/scripts/run_required_checks.sh",
+    "verify": "pnpm test && pnpm check",
     "dev:legacy": "python3 -m http.server 4173"
   },
   "devDependencies": {
