@@ -494,6 +494,18 @@ const codexManager = window.SnakeCodexManager.createModule({
   progressEl: codexProgressEl,
   listEl: codexListEl
 });
+
+// B2e 迁移: 最佳纪录管理模块
+const bestManager = window.SnakeBestManager.createModule({
+  storage,
+  keys: {
+    best: 'snake-best',
+    bestByMode: bestByModeKey,
+    endlessBestLevel: endlessBestLevelKey
+  },
+  onSnapshot: saveActiveAccountSnapshot,
+  onRefreshModeBest: refreshModeBestText
+});
 // 兼容展示模块 (achievement showcase 读取 window.ACHIEVEMENT_KEYS)
 window.ACHIEVEMENT_KEYS = achievementsManager.ACHIEVEMENT_KEYS;
 
@@ -587,7 +599,7 @@ const friendsLeaderboardRuntimeLazy = LazyInit.create('friendsLeaderboardRuntime
   window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
     storage,
     friendsRuntime: friendsRuntimeLazy.get(),
-    getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestScore })
+    getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestManager.getBestScore() })
   })
 );
 
@@ -629,8 +641,6 @@ function initSocialTabHover() {
   }
 }
 
-let bestScore = Number(storage.readText('snake-best', '0'));
-let bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
 let running = false;
 let paused = false;
 let baseSpeed = Number(difficultySelect.value);
@@ -640,7 +650,6 @@ let trialStartTime = 0; // Trial mode start time
 let remainingTime = timedModeDuration;
 let level = 1;
 let levelTargetScore = 100;
-let endlessBestLevel = 0;
 let lastTickMs = 0;
 let combo = 1;
 let lastEatMs = 0;
@@ -734,7 +743,7 @@ let rogueStartShield = 0;
 let customRocks = [];
 let roundStartTime = 0;
 
-bestEl.textContent = String(bestScore);
+bestEl.textContent = String(bestManager.getBestScore());
 versionTag.textContent = `v${GAME_VERSION}`;
 versionTag.title = `Snake build ${GAME_VERSION}`;
 bestLevelEl.textContent = '0';
@@ -896,12 +905,13 @@ function reloadAllFromStorage() {
   loadLifetimeStats();
   loadHistory();
   codexManager.load();
-  loadEndlessBestLevel();
+  bestManager.loadEndlessBestLevel();
   loadRogueMeta();
   loadLastResult();
   loadAchievements();
   loadAudioSetting();
-  loadBestByMode();
+  bestManager.loadBestScore();
+  bestManager.loadBestByMode();
   loadSettings();
   loadCustomRocks();
   settingsRuntime.setCurrentSkin(skinSelect.value);
@@ -1451,24 +1461,12 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     persist: saveLifetimeStats
   },
   bests: {
-    getBestScore: () => bestScore,
-    setBestScore: (value) => {
-      bestScore = value;
-      bestEl.textContent = String(bestScore);
-      storage.writeText('snake-best', String(bestScore));
-      saveActiveAccountSnapshot();
-    },
-    getModeBest: (modeName) => bestByMode[modeName] || 0,
-    setModeBest: (modeName, value) => {
-      bestByMode[modeName] = value;
-      saveBestByMode();
-      refreshModeBestText();
-    },
-    getEndlessBestLevel: () => endlessBestLevel,
-    setEndlessBestLevel: (value) => {
-      endlessBestLevel = value;
-      saveEndlessBestLevel();
-    }
+    getBestScore: () => bestManager.getBestScore(),
+    setBestScore: (value) => bestManager.setBestScore(value),
+    getModeBest: (modeName) => bestManager.getModeBest(modeName),
+    setModeBest: (modeName, value) => bestManager.setModeBest(modeName, value),
+    getEndlessBestLevel: () => bestManager.getEndlessBestLevel(),
+    setEndlessBestLevel: (value) => bestManager.setEndlessBestLevel(value)
   },
   settlement: {
     refresh: refreshSettlementPanel
@@ -1732,14 +1730,14 @@ function renderAchievementShowcase() {
 
   // Get current stats for progress calculation
   const currentStats = {
-    bestScore: bestScore,
+    bestScore: bestManager.getBestScore(),
     highestCombo: roundMaxCombo,
     totalGames: totalPlays,
     totalFoodsEaten: foodsEaten,
     streakWins: streakWins,
     dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0,
     endlessLevel: 0,
-    modeBestScores: bestByMode || {},
+    modeBestScores: bestManager.getModeBestMap(),
     codexDiscovered: codexManager.getDiscoveredCount()
   };
 
@@ -2080,7 +2078,7 @@ function setupAchievementSearchSort() {
             const body = showcasePanel.querySelector('.achievement-showcase-body');
             if (body && window.achievementShowcaseRuntime) {
               const currentStats = {
-                bestScore: bestScore,
+                bestScore: bestManager.getBestScore(),
                 highestCombo: roundMaxCombo,
                 totalGames: totalPlays,
                 totalFoodsEaten: foodsEaten,
@@ -2111,7 +2109,7 @@ function setupAchievementSearchSort() {
             const body = showcasePanel.querySelector('.achievement-showcase-body');
             if (body && window.achievementShowcaseRuntime) {
               const currentStats = {
-                bestScore: bestScore,
+                bestScore: bestManager.getBestScore(),
                 highestCombo: roundMaxCombo,
                 totalGames: totalPlays,
                 totalFoodsEaten: foodsEaten,
@@ -2166,7 +2164,7 @@ function shareAchievementShowcase() {
   if (!achievementShowcaseRuntime) return;
 
   const currentStats = {
-    bestScore: bestScore,
+    bestScore: bestManager.getBestScore(),
     highestCombo: roundMaxCombo,
     totalGames: totalPlays,
     totalFoodsEaten: foodsEaten,
@@ -2193,7 +2191,7 @@ function checkAndUnlockTitles() {
   // Get current stats for title checking
   const stats = {
     totalGames: totalPlays,
-    bestScore: bestScore,
+    bestScore: bestManager.getBestScore(),
     highestCombo: roundMaxCombo,
     maxSurvivalTime: Math.floor((Date.now() - roundStartTime) / 1000),
     modeStats: {}
@@ -2202,7 +2200,7 @@ function checkAndUnlockTitles() {
   // Get mode-specific stats
   for (const mode of validModes) {
     stats.modeStats[mode] = {
-      bestScore: bestByMode[mode] || 0
+      bestScore: bestManager.getModeBest(mode) || 0
     };
   }
 
@@ -2625,7 +2623,7 @@ function handleSendChallenge() {
     return;
   }
   
-  const result = friendsChallengeRuntime.createChallenge(targetId, mode, bestScore);
+  const result = friendsChallengeRuntime.createChallenge(targetId, mode, bestManager.getBestScore());
   
   if (result.success) {
     challengeTargetSelect.value = '';
@@ -3377,22 +3375,8 @@ function beep(type = 'eat') {
   osc.stop(t + dur + 0.01);
 }
 
-function loadBestByMode() {
-  const parsed = storage.readJson(bestByModeKey, {});
-  bestByMode.classic = Number(parsed.classic || 0);
-  bestByMode.timed = Number(parsed.timed || 0);
-  bestByMode.blitz = Number(parsed.blitz || 0);
-  bestByMode.endless = Number(parsed.endless || 0);
-  bestByMode.roguelike = Number(parsed.roguelike || 0);
-}
-
-function saveBestByMode() {
-  storage.writeJson(bestByModeKey, bestByMode);
-  saveActiveAccountSnapshot();
-}
-
 function refreshModeBestText() {
-  modeBestEl.textContent = String(bestByMode[mode] || 0);
+  modeBestEl.textContent = String(bestManager.getModeBest(mode) || 0);
 }
 
 function loadLifetimeStats() {
@@ -3407,17 +3391,6 @@ function loadLifetimeStats() {
 
 function saveLifetimeStats() {
   storage.writeJson(statsKey, { foodsEaten, totalPlays, streakWins });
-  saveActiveAccountSnapshot();
-}
-
-function loadEndlessBestLevel() {
-  endlessBestLevel = Number(storage.readText(endlessBestLevelKey, '0'));
-  bestLevelEl.textContent = String(endlessBestLevel);
-}
-
-function saveEndlessBestLevel() {
-  storage.writeText(endlessBestLevelKey, String(endlessBestLevel));
-  bestLevelEl.textContent = String(endlessBestLevel);
   saveActiveAccountSnapshot();
 }
 
@@ -4271,7 +4244,7 @@ function endGame(reasonText) {
   // 检查首次通关所有模式里程碑
   if (window.SnakeFirstMilestone) {
     const allModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike'];
-    const completedModes = allModes.filter(m => (bestByMode[m] || 0) > 0);
+    const completedModes = allModes.filter(m => bestManager.getModeBest(m) > 0);
     window.SnakeFirstMilestone.checkAllModesMilestone(completedModes, (reward) => addScore(reward, 'allModesMilestone'));
   }
 
@@ -4744,9 +4717,8 @@ function update() {
       }
 
       pushRoundKeyframe('升级节点', `进入第 ${level} 关`);
-      if (level > endlessBestLevel) {
-        endlessBestLevel = level;
-        saveEndlessBestLevel();
+      if (level > bestManager.getEndlessBestLevel()) {
+        bestManager.setEndlessBestLevel(level);
       }
 
       updateLevelText();
@@ -5219,9 +5191,9 @@ document.addEventListener('visibilitychange', () => {
 
 clearDataBtn.addEventListener('click', () => {
   storage.removeMany(['snake-best', settingsKey, statsKey, bestByModeKey, audioKey, achievementsKey, lastResultKey, historyKey, codexKey, endlessBestLevelKey, rogueMetaKey, customRocksKey, leaderboardKey, seasonMetaKey, recapKey, guideKey, activeTabKey]);
-  bestScore = 0;
+  bestManager.reset();
   bestEl.textContent = '0';
-  bestByMode = { classic: 0, timed: 0, blitz: 0, endless: 0, roguelike: 0 };
+  bestManager.reset();
   refreshModeBestText();
   foodsEaten = 0;
   totalPlays = 0;
@@ -5241,8 +5213,8 @@ clearDataBtn.addEventListener('click', () => {
   refreshSeasonRewardPreview();
   codexManager.load();
   refreshCodex();
-  endlessBestLevel = 0;
-  saveEndlessBestLevel();
+
+  bestManager.saveEndlessBestLevel();
   roguePerks = 0;
   saveRogueMeta();
   customRocks = [];
@@ -5256,7 +5228,7 @@ clearDataBtn.addEventListener('click', () => {
 shareBtn.addEventListener('click', async () => {
   const modeLabel = SnakeModes.getModeLabel(mode);
   const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
-  const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
+  const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${bestManager.getEndlessBestLevel()}）` : '';
   const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${settingsRuntime.getCurrentChallenge()?.label || '无'}，活动：${eventsRuntime.getLabel()}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
   try {
     if (navigator.clipboard?.writeText) {
@@ -5514,7 +5486,7 @@ seasonRuntime.load();
 refreshSeasonRewardPreview();
 recapRuntime.load();
 codexManager.load();
-loadEndlessBestLevel();
+bestManager.loadEndlessBestLevel();
 loadRogueMeta();
 
   // 初始化皮肤选择器
@@ -5530,7 +5502,8 @@ refreshDailyTasksUI();
 refreshStatisticsUI();
 initRecallPanel();
 refreshProfileUI();
-loadBestByMode();
+bestManager.loadBestScore();
+bestManager.loadBestByMode();
 loadSettings();
 initLevelUnlockSystem();
 renderDlcComparePanel();

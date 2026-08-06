@@ -15,6 +15,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'achievements_manager',
   'ai_engine_selector',
   'ai_player',
+  'best_manager',
   'challenge',
   'churn_analytics',
   'churn_warning',
