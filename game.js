@@ -465,19 +465,6 @@ const codexCatalog = [
 ];
 
 
-const skinThemes = {
-  'classic-green': { board: '#0f1322', head: '#7dffa5', body: '#22c55e', phaseHead: '#d8b4fe', grid: 'rgba(255,255,255,0.07)' },
-  'classic-blue': { board: '#0f1722', head: '#60a5fa', body: '#3b82f6', phaseHead: '#93c5fd', grid: 'rgba(255,255,255,0.07)' },
-  'classic-red': { board: '#1f0f0f', head: '#f87171', body: '#ef4444', phaseHead: '#fca5a5', grid: 'rgba(255,255,255,0.07)' },
-  'neon-purple': { board: '#130f2b', head: '#c084fc', body: '#a855f7', phaseHead: '#67e8f9', grid: 'rgba(255,255,255,0.1)' },
-  'golden': { board: '#1a1408', head: '#fbbf24', body: '#f59e0b', phaseHead: '#fde047', grid: 'rgba(255,255,255,0.08)' },
-  'rainbow': { board: '#0f1322', head: '#f472b6', body: '#ec4899', phaseHead: '#f9a8d4', grid: 'rgba(255,255,255,0.07)' },
-  'christmas': { board: '#0f1f0f', head: '#4ade80', body: '#22c55e', phaseHead: '#86efac', grid: 'rgba(255,255,255,0.07)' },
-  'halloween': { board: '#1f0f1a', head: '#fb923c', body: '#f97316', phaseHead: '#fdba74', grid: 'rgba(255,255,255,0.08)' },
-  'spring': { board: '#0f1a0f', head: '#f472b6', body: '#22c55e', phaseHead: '#d8b4fe', grid: 'rgba(255,255,255,0.07)' },
-  'dragon': { board: '#1a0f0f', head: '#ef4444', body: '#dc2626', phaseHead: '#f87171', grid: 'rgba(255,255,255,0.07)' },
-  'phoenix': { board: '#1f0f00', head: '#f97316', body: '#ea580c', phaseHead: '#fb923c', grid: 'rgba(255,255,255,0.08)' }
-};
 
 let snake;
 let direction;
@@ -793,7 +780,6 @@ const titlesRuntime = window.SnakeTitles.createTitlesModule({ storage });
 const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchievementShowcaseModule();
 
 let discoveredCodex = {};
-let currentSkin = 'classic-green';
 let dlcPack = 'none';
 const settlement = window.SnakeSettlement.createSettlementModule({ settlementListEl });
 let activeAccount = '';
@@ -977,7 +963,7 @@ function reloadAllFromStorage() {
   loadBestByMode();
   loadSettings();
   loadCustomRocks();
-  currentSkin = skinSelect.value;
+  settingsRuntime.setCurrentSkin(skinSelect.value);
   dlcPack = dlcPackSelect.value;
   mode = modeSelect.value;
   updateLevelText();
@@ -1036,7 +1022,6 @@ const settingsRuntime = window.SnakeSettings.createSettingsModule({
     isValidDlcPack: isValidDlcPackValue,
     isValidSwipeThreshold: isValidSwipeThresholdValue
   },
-  skinThemes,
   onSave: saveActiveAccountSnapshot
 });
 
@@ -1093,12 +1078,12 @@ const Workshop = window.SnakeWorkshop.createWorkshopModule({
   inputEl: workshopCodeInput,
   isValidMode: isValidModeValue,
   isValidDifficulty: isValidDifficultyValue,
-  isValidSkin: (value) => Object.hasOwn(skinThemes, value),
+  isValidSkin: (value) => settingsRuntime.isValidSkin(value),
   isValidDlcPack: isValidDlcPackValue,
   applyVisualModes: () => settingsRuntime.applyVisualModes(),
   saveSettings,
   syncRuntime: ({ skin, mode, difficulty }) => {
-    currentSkin = skin;
+    settingsRuntime.setCurrentSkin(skin);
     mode = mode;
     baseSpeed = Number(difficulty);
     updateLevelText();
@@ -3235,7 +3220,7 @@ function recordGameStats(result) {
 // Update mode trial UI based on current mode
 function updateModeTrialUI() {
   if (typeof modeTrialRuntime === 'undefined' || !modeTrialContainer) return;
-  if (typeof currentSkin === 'undefined') return; // Guard: skin not loaded yet
+  if (typeof settingsRuntime.getCurrentSkin() === 'undefined') return; // Guard: skin not loaded yet
 
   const currentMode = modeSelect.value;
   const status = modeTrialRuntime.getModeTrialStatus(currentMode);
@@ -4092,7 +4077,7 @@ function initSkinSelector() {
 
   // 设置当前装备的皮肤
   skinSelect.value = equippedSkin.id;
-  currentSkin = equippedSkin.id;
+  settingsRuntime.setCurrentSkin(equippedSkin.id);
 }
 
 // 打开皮肤商店
@@ -4883,8 +4868,8 @@ const renderer = SnakeRender.createRenderer({
   canvas,
   gridSize,
   tileCount,
-  getSkinThemes: () => skinThemes,
-  getCurrentSkin: () => currentSkin,
+  getSkinThemes: () => settingsRuntime.getSkinThemes(),
+  getCurrentSkin: () => settingsRuntime.getCurrentSkin(),
   getState: () => ({
     food, bonusFood, shieldFood, boostFood, timeFood, freezeFood,
     phaseFood, crownFood, magnetFood, comboFood, ghostFood, rocks, snake, phaseUntil, ghostUntil
@@ -5168,7 +5153,7 @@ skinSelect.addEventListener('change', () => {
   }
 
   saveSettings();
-  currentSkin = selectedSkin;
+  settingsRuntime.setCurrentSkin(selectedSkin);
   renderer.draw();
 });
 
@@ -5615,7 +5600,7 @@ initLevelUnlockSystem();
 renderDlcComparePanel();
 loadCustomRocks();
 refreshMapSummary(customRocks);
-currentSkin = skinSelect.value;
+settingsRuntime.setCurrentSkin(skinSelect.value);
   mode = modeSelect.value;
   updateLevelText();
   updateModeTrialUI();

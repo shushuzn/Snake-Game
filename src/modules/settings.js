@@ -1,16 +1,48 @@
 window.SnakeSettings = (() => {
+  // B1b-2 迁移: 皮肤主题从 game.js 迁入
+  const skinThemes = {
+    'classic-green': { board: '#0f1322', head: '#7dffa5', body: '#22c55e', phaseHead: '#d8b4fe', grid: 'rgba(255,255,255,0.07)' },
+    'classic-blue': { board: '#0f1722', head: '#60a5fa', body: '#3b82f6', phaseHead: '#93c5fd', grid: 'rgba(255,255,255,0.07)' },
+    'classic-red': { board: '#1f0f0f', head: '#f87171', body: '#ef4444', phaseHead: '#fca5a5', grid: 'rgba(255,255,255,0.07)' },
+    'neon-purple': { board: '#130f2b', head: '#c084fc', body: '#a855f7', phaseHead: '#67e8f9', grid: 'rgba(255,255,255,0.1)' },
+    'golden': { board: '#1a1408', head: '#fbbf24', body: '#f59e0b', phaseHead: '#fde047', grid: 'rgba(255,255,255,0.08)' },
+    'rainbow': { board: '#0f1322', head: '#f472b6', body: '#ec4899', phaseHead: '#f9a8d4', grid: 'rgba(255,255,255,0.07)' },
+    'christmas': { board: '#0f1f0f', head: '#4ade80', body: '#22c55e', phaseHead: '#86efac', grid: 'rgba(255,255,255,0.07)' },
+    'halloween': { board: '#1f0f1a', head: '#fb923c', body: '#f97316', phaseHead: '#fdba74', grid: 'rgba(255,255,255,0.08)' },
+    'spring': { board: '#0f1a0f', head: '#f472b6', body: '#22c55e', phaseHead: '#d8b4fe', grid: 'rgba(255,255,255,0.07)' },
+    'dragon': { board: '#1a0f0f', head: '#ef4444', body: '#dc2626', phaseHead: '#f87171', grid: 'rgba(255,255,255,0.07)' },
+    'phoenix': { board: '#1f0f00', head: '#f97316', body: '#ea580c', phaseHead: '#fb923c', grid: 'rgba(255,255,255,0.08)' }
+  };
+
   function createSettingsModule({
     storage,
     settingsKey,
     settingsSchemaVersion,
     controls,
     validators,
-    skinThemes,
     onSave
   }) {
     // B1b 迁移: 模式偏好状态从 game.js 闭包移入模块内部
     let modePreference = controls.modeSelect.value;
     let obstacleModePreference = controls.obstacleModeInput.checked;
+    // B1b-2 迁移: 当前皮肤状态
+    let currentSkin = 'classic-green';
+
+    function getSkinThemes() {
+      return skinThemes;
+    }
+
+    function getCurrentSkin() {
+      return currentSkin;
+    }
+
+    function setCurrentSkin(value) {
+      if (Object.hasOwn(skinThemes, value)) currentSkin = value;
+    }
+
+    function isValidSkin(value) {
+      return Object.hasOwn(skinThemes, value);
+    }
 
     function getModePreference() {
       return modePreference;
@@ -125,6 +157,10 @@ window.SnakeSettings = (() => {
       setModePreference,
       getObstacleModePreference,
       setObstacleModePreference,
+      getSkinThemes,
+      getCurrentSkin,
+      setCurrentSkin,
+      isValidSkin,
       applyContrastMode,
       applyLightMode,
       applyMiniHudMode,
