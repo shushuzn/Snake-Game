@@ -17,6 +17,19 @@ window.SnakeSound = (() => {
   let ctx = null;
   let enabled = true;
   let masterVolume = 0.5;
+  let muted = false;
+  const AUDIO_KEY = 'snake-audio-v1';
+
+  // 静音状态管理 (B1 迁移: 从 game.js 闭包迁入音效域)
+  function isMuted() { return muted; }
+  function setMuted(v) { muted = !!v; }
+  function toggleMuted() { muted = !muted; return muted; }
+  function loadMuted(storage) {
+    muted = storage.readText(AUDIO_KEY) === '1';
+  }
+  function persistMuted(storage) {
+    storage.writeText(AUDIO_KEY, muted ? '1' : '0');
+  }
 
   function ensureCtx() {
     if (!ctx) {
@@ -103,6 +116,7 @@ window.SnakeSound = (() => {
   };
 
   function play(type) {
+    if (muted) return;
     const fn = SFX[type] || SFX.eat;
     fn();
   }
@@ -118,5 +132,5 @@ window.SnakeSound = (() => {
     masterVolume = Math.min(1, Math.max(0, Number(v) || 0));
   }
 
-  return { play, setEnabled, setVolume };
+  return { play, setEnabled, setVolume, isMuted, setMuted, toggleMuted, loadMuted, persistMuted };
 })();

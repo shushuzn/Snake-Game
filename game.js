@@ -662,7 +662,6 @@ let foodsEaten = 0;
 let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
-let muted = false;
 const ACHIEVEMENT_KEYS = [
   // 分数类成就
   'score200',
@@ -1252,7 +1251,7 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   onResume: startLoop,
   onRestart: () => resetGame(true),
   onToggleMute: () => {
-    muted = !muted;
+    if (window.SnakeSound) window.SnakeSound.toggleMuted();
     saveAudioSetting();
   }
 });
@@ -3414,20 +3413,20 @@ function checkAllTasksCompleted() {
 }
 
 function loadAudioSetting() {
-  muted = storage.readText(audioKey) === '1';
+  if (window.SnakeSound) window.SnakeSound.loadMuted(storage);
   const volume = clampInt100(storage.readText(volumeKey, '50'));
   if (volumeInput) volumeInput.value = String(volume);
   if (window.SnakeSound) window.SnakeSound.setVolume(volume / 100);
-  muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
+  muteBtn.textContent = window.SnakeSound && window.SnakeSound.isMuted() ? '🔇 音效关' : '🔊 音效开';
 }
 
 function saveAudioSetting() {
-  storage.writeText(audioKey, muted ? '1' : '0');
+  if (window.SnakeSound) window.SnakeSound.persistMuted(storage);
   if (volumeInput) {
     storage.writeText(volumeKey, String(volumeInput.value));
   }
   if (window.SnakeSound) window.SnakeSound.setVolume(clampInt100(volumeInput ? volumeInput.value : 50) / 100);
-  muteBtn.textContent = muted ? '🔇 音效关' : '🔊 音效开';
+  muteBtn.textContent = window.SnakeSound && window.SnakeSound.isMuted() ? '🔇 音效关' : '🔊 音效开';
   saveActiveAccountSnapshot();
 }
 
@@ -3438,7 +3437,7 @@ function clampInt100(v) {
 }
 
 function beep(type = 'eat') {
-  if (muted) return;
+  if (window.SnakeSound && window.SnakeSound.isMuted()) return;
   // 优先使用增强音效模块(WebAudio 合成); 未加载时回退到内置单音
   if (window.SnakeSound) {
     window.SnakeSound.play(type);
@@ -4906,7 +4905,7 @@ SnakeInput.createInputController({
   onTogglePause: () => togglePause(),
   onRestart: () => resetGame(true),
   onToggleMute: () => {
-    muted = !muted;
+    if (window.SnakeSound) window.SnakeSound.toggleMuted();
     saveAudioSetting();
   },
   onToggleHelp: () => toggleHelp(helpPanel.style.display === 'none'),
@@ -5311,7 +5310,7 @@ clearDataBtn.addEventListener('click', () => {
   foodsEaten = 0;
   totalPlays = 0;
   streakWins = 0;
-  muted = false;
+  if (window.SnakeSound) window.SnakeSound.setMuted(false);
   saveAudioSetting();
   foodsEl.textContent = '0';
   playsEl.textContent = '0';
@@ -5357,7 +5356,7 @@ shareBtn.addEventListener('click', async () => {
 });
 
 muteBtn.addEventListener('click', () => {
-  muted = !muted;
+  if (window.SnakeSound) window.SnakeSound.toggleMuted();
   saveAudioSetting();
 });
 
