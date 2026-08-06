@@ -517,6 +517,20 @@ const lifetimeStatsRuntime = window.SnakeLifetimeStats.createModule({
   elements: { foodsEl, playsEl, streakEl },
   onPersist: saveActiveAccountSnapshot
 });
+
+// B2i 迁移: 肉鸽模式管理模块
+const rogueManager = window.SnakeRogueManager.createModule({
+  storage,
+  key: rogueMetaKey,
+  elements: { perksEl: roguePerksEl, mutatorEl: rogueMutatorEl },
+  isRoguelikeMode: () => mode === 'roguelike',
+  onSyncShop: (perks) => {
+    if (!shopRuntime) shopRuntime = window.SnakeShop.createShopModule(storage);
+    shopRuntime.setRoguePoints(perks);
+  },
+  onPersist: saveActiveAccountSnapshot,
+  onRefreshDlcHud: refreshDlcHud
+});
 // 兼容展示模块 (achievement showcase 读取 window.ACHIEVEMENT_KEYS)
 window.ACHIEVEMENT_KEYS = achievementsManager.ACHIEVEMENT_KEYS;
 
@@ -737,12 +751,6 @@ const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchieve
 
 let dlcPack = 'none';
 const settlement = window.SnakeSettlement.createSettlementModule({ settlementListEl });
-let roguePerks = 0;
-let rogueMutatorLabel = '--';
-let rogueSpeedDelta = 0;
-let rogueScoreBonus = 0;
-let rogueComboWindowBonus = 0;
-let rogueStartShield = 0;
 let customRocks = [];
 let roundStartTime = 0;
 
@@ -903,7 +911,7 @@ function reloadAllFromStorage() {
   loadHistory();
   codexManager.load();
   bestManager.loadEndlessBestLevel();
-  loadRogueMeta();
+  rogueManager.load();
   loadLastResult();
   loadAchievements();
   loadAudioSetting();
@@ -1308,9 +1316,9 @@ const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
     setSnake: (value) => { snake = value; },
     setDirection: (value) => { direction = value; },
     syncPendingDirection: () => { pendingDirection = direction; },
-    applyRoguelikeMutator,
-    getRogueSpeedDelta: () => rogueSpeedDelta,
-    getRogueStartShield: () => rogueStartShield
+    applyRoguelikeMutator: () => rogueManager.applyMutator(),
+    getRogueSpeedDelta: () => rogueManager.getSpeedDelta(),
+    getRogueStartShield: () => rogueManager.getStartShield()
   },
   world: {
     resetRocksFromCustom: () => { rocks = customRocks.map(item => ({ ...item })); },
@@ -1470,8 +1478,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
   },
   roguelike: {
     addPerks: (gain) => {
-      roguePerks += gain;
-      saveRogueMeta();
+      rogueManager.addPerks(gain);
     }
   },
   ui: {
@@ -3365,58 +3372,6 @@ function refreshModeBestText() {
   modeBestEl.textContent = String(bestManager.getModeBest(mode) || 0);
 }
 
-function loadRogueMeta() {
-  const parsed = storage.readJson(rogueMetaKey, {});
-  roguePerks = Number(parsed.perks || 0);
-  roguePerksEl.textContent = String(roguePerks);
-
-  // 初始化皮肤商店并同步肉鸽点
-  if (!shopRuntime) {
-    shopRuntime = window.SnakeShop.createShopModule(storage);
-  }
-  shopRuntime.setRoguePoints(roguePerks);
-}
-
-function saveRogueMeta() {
-  storage.writeJson(rogueMetaKey, { perks: roguePerks });
-  roguePerksEl.textContent = String(roguePerks);
-
-  // 同步皮肤商店肉鸽点
-  if (shopRuntime) {
-    shopRuntime.setRoguePoints(roguePerks);
-  }
-
-  saveActiveAccountSnapshot();
-}
-
-function applyRoguelikeMutator() {
-  rogueSpeedDelta = 0;
-  rogueScoreBonus = 0;
-  rogueComboWindowBonus = 0;
-  rogueStartShield = 0;
-  rogueMutatorLabel = '--';
-
-  if (mode !== 'roguelike') {
-    rogueMutatorEl.textContent = '--';
-refreshDlcHud();
-    return;
-  }
-
-  const pool = [
-    { label: '疾风', speedDelta: -10, comboWindowBonus: -200 },
-    { label: '丰收', scoreBonus: 2 },
-    { label: '稳健', startShield: 1 },
-    { label: '连击', comboWindowBonus: 350 }
-  ];
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  const perkBoost = Math.min(roguePerks, 10);
-  rogueMutatorLabel = pick.label;
-  rogueSpeedDelta = (pick.speedDelta || 0) - Math.floor(perkBoost / 4);
-  rogueScoreBonus = (pick.scoreBonus || 0) + Math.floor(perkBoost / 3);
-  rogueComboWindowBonus = (pick.comboWindowBonus || 0) + Math.floor(perkBoost / 2) * 20;
-  rogueStartShield = pick.startShield ? 1 : 0;
-  rogueMutatorEl.textContent = rogueMutatorLabel;
-}
 
 
 function toggleHelp(show) {
@@ -3965,7 +3920,7 @@ function initSkinSelector() {
 function openSkinShop() {
   if (!shopRuntime) {
     shopRuntime = window.SnakeShop.createShopModule(storage);
-    shopRuntime.setRoguePoints(roguePerks);
+    shopRuntime.setRoguePoints(rogueManager.getPerks());
   }
 
   // 这里可以触发显示商店UI
@@ -3999,8 +3954,7 @@ function buySkin(skinId) {
 
   if (result.success) {
     // 扣除肉鸽点
-    roguePerks = shopRuntime.getRoguePoints();
-    saveRogueMeta();
+    rogueManager.setPerks(shopRuntime.getRoguePoints());
 
     // 刷新皮肤选择器
     initSkinSelector();
@@ -4088,8 +4042,7 @@ function completeDailyChallenge(survived) {
   if (result.success) {
     if (result.completed) {
       // 获得奖励
-      roguePerks += result.reward;
-      saveRogueMeta();
+      rogueManager.addPerks(result.reward);
 
       overlay.innerHTML = `
         <p><strong>🎉 挑战完成！</strong></p>
@@ -4431,7 +4384,7 @@ function update() {
   let ate = false;
   if (head.x === food.x && head.y === food.y) {
     ate = true;
-    addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
+    addScore((10 + rogueManager.getScoreBonus()) * scoreMultiplier, 'food');
     lifetimeStatsRuntime.incrementFood();
     roundStatsManager.recordFood();
     // Update daily task progress
@@ -4620,7 +4573,7 @@ function update() {
 
   if (ate) {
     const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
-    const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
+    const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueManager.getComboWindowBonus();
     combo = eatDelta <= comboWindow ? Math.min(combo + 1, 15) : 1;
     roundStatsManager.recordCombo(combo);
     // 检查首次连击里程碑
@@ -4660,7 +4613,7 @@ function update() {
   } else {
     const speedBoost = Math.floor(score / 50) * 5;
     const hardcoreDelta2 = hardcoreModeInput.checked ? -20 : 0;
-    speed = Math.max(45, baseSpeed + hardcoreDelta2 - speedBoost + rogueSpeedDelta);
+    speed = Math.max(45, baseSpeed + hardcoreDelta2 - speedBoost + rogueManager.getSpeedDelta());
     if (running && !paused) startLoop();
   }
 
@@ -4838,7 +4791,7 @@ difficultySelect.addEventListener('change', () => {
   baseSpeed = Number(difficultySelect.value);
   const speedBoost = Math.floor(score / 50) * 5;
   const hardcoreDelta3 = hardcoreModeInput.checked ? -20 : 0;
-  speed = Math.max(45, baseSpeed + hardcoreDelta3 - speedBoost + rogueSpeedDelta);
+  speed = Math.max(45, baseSpeed + hardcoreDelta3 - speedBoost + rogueManager.getSpeedDelta());
   if (running && !paused) startLoop();
 });
 
@@ -5179,8 +5132,7 @@ clearDataBtn.addEventListener('click', () => {
   refreshCodex();
 
   bestManager.saveEndlessBestLevel();
-  roguePerks = 0;
-  saveRogueMeta();
+  rogueManager.reset();
   customRocks = [];
   saveCustomRocks();
   saveActiveAccountSnapshot();
@@ -5451,7 +5403,7 @@ refreshSeasonRewardPreview();
 recapRuntime.load();
 codexManager.load();
 bestManager.loadEndlessBestLevel();
-loadRogueMeta();
+rogueManager.load();
 
   // 初始化皮肤选择器
   initSkinSelector();

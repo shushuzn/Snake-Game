@@ -62,6 +62,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'returning_guide',
   'reward_preview',
   'reward_system',
+  'rogue_manager',
   'round_state',
   'round_stats_manager',
   'season',
