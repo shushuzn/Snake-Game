@@ -4460,6 +4460,26 @@ function applyComboMilestoneReward(now, comboValue) {
       }, 700);
     }
   }
+  if (comboValue === 12) {
+    addScore(20 * scoreMultiplier, 'comboMilestone12');
+    pushRoundKeyframe('连击里程碑', '连击达到 x12，额外 +20 分');
+    if (running && !paused) {
+      showOverlay('<p><strong>🔥 连击里程碑 x12</strong></p><p>额外奖励 +20 分</p>');
+      setTimeout(() => {
+        if (running && !paused) hideOverlay();
+      }, 700);
+    }
+  }
+  if (comboValue === 15) {
+    addScore(30 * scoreMultiplier, 'comboMilestone15');
+    pushRoundKeyframe('连击里程碑', '连击达到 x15（满），额外 +30 分');
+    if (running && !paused) {
+      showOverlay('<p><strong>👑 连击里程碑 x15</strong></p><p>满连击！额外奖励 +30 分</p>');
+      setTimeout(() => {
+        if (running && !paused) hideOverlay();
+      }, 700);
+    }
+  }
 }
 
 function update() {
@@ -4737,7 +4757,7 @@ function update() {
   if (ate) {
     const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
     const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
-    combo = eatDelta <= comboWindow ? Math.min(combo + 1, 9) : 1;
+    combo = eatDelta <= comboWindow ? Math.min(combo + 1, 15) : 1;
     roundMaxCombo = Math.max(roundMaxCombo, combo);
     // 检查首次连击里程碑
     if (window.SnakeFirstMilestone) {
@@ -4757,8 +4777,18 @@ function update() {
     lastEatMs = now;
     itemSpawnRuntime.maybeAddRock();
   } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000) && now > comboGuardUntil) {
+    // 断连反馈: 连击 >=3 中断时红色闪烁提示
+    if (combo > 2) {
+      comboEl.style.color = '#ff5c7a';
+      comboEl.textContent = `x${combo} 中断`;
+      setTimeout(() => {
+        comboEl.style.color = '';
+        comboEl.textContent = 'x1';
+      }, 600);
+    } else {
+      comboEl.textContent = 'x1';
+    }
     combo = 1;
-    comboEl.textContent = 'x1';
   }
 
   if (!ate) {
