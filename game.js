@@ -1190,6 +1190,32 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
  * - 配置后端 (window.SNAKE_SERVER_URL 或 localStorage['snake_server_url'])
  *   -> 榜单读取与分数提交均走后端 API, 失败自动回退本地数据
  */
+
+// 测试钩子 (改革 B3 可测试性): 暴露核心状态只读接口, 供 E2E 精确验证
+// (如读取食物坐标实现贪吃策略, 覆盖此前无法自动化的吃食物/道具路径)
+window.__SNAKE_TEST__ = {
+  getState: () => ({
+    food,
+    snake,
+    direction,
+    score,
+    mode,
+    running,
+    paused,
+    combo,
+    items: {
+      bonusFood, shieldFood, boostFood, timeFood, freezeFood,
+      phaseFood, crownFood, magnetFood, comboFood, ghostFood
+    },
+    effects: {
+      scoreMultiplier,
+      freezeUntil,
+      phaseUntil,
+      magnetUntil
+    }
+  })
+};
+
 function getLeaderboardRemoteConfig() {
   const serverUrl = (
     (typeof window.SNAKE_SERVER_URL === 'string' && window.SNAKE_SERVER_URL.trim()) ||
