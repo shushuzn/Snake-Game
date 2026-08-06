@@ -38,6 +38,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'item_spawn',
   'leaderboard',
   'level_unlock',
+  'lifetime_stats',
   'loop_timers',
   'mode_rules',
   'mode_trial',

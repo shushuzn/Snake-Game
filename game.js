@@ -509,6 +509,14 @@ const bestManager = window.SnakeBestManager.createModule({
   onSnapshot: saveActiveAccountSnapshot,
   onRefreshModeBest: refreshModeBestText
 });
+
+// B2h 迁移: 生命周期统计模块
+const lifetimeStatsRuntime = window.SnakeLifetimeStats.createModule({
+  storage,
+  key: statsKey,
+  elements: { foodsEl, playsEl, streakEl },
+  onPersist: saveActiveAccountSnapshot
+});
 // 兼容展示模块 (achievement showcase 读取 window.ACHIEVEMENT_KEYS)
 window.ACHIEVEMENT_KEYS = achievementsManager.ACHIEVEMENT_KEYS;
 
@@ -659,9 +667,6 @@ let lastEatMs = 0;
 let shields = 0;
 let missionTarget = 120;
 let missionAchieved = false;
-let foodsEaten = 0;
-let totalPlays = 0;
-let streakWins = 0;
 let playCountedThisRound = false;
 let scoreMultiplier = 1;
 let multiplierExpireAt = 0;
@@ -894,7 +899,7 @@ function applyProfileSnapshot(snapshot) {
 }
 
 function reloadAllFromStorage() {
-  loadLifetimeStats();
+  lifetimeStatsRuntime.load();
   loadHistory();
   codexManager.load();
   bestManager.loadEndlessBestLevel();
@@ -1161,9 +1166,7 @@ const playStateRuntime = window.SnakePlayState.createPlayStateModule({
   timers: loopTimersRuntime,
   stats: {
     incrementTotalPlays: () => {
-      totalPlays += 1;
-      playsEl.textContent = String(totalPlays);
-      saveLifetimeStats();
+      lifetimeStatsRuntime.incrementPlays();
     }
   },
   onCountdownDone: startLoop,
@@ -1426,8 +1429,8 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     getLevel: () => level,
     getRemainingTime: () => remainingTime,
     getRoundMaxCombo: () => roundStatsManager.getMaxCombo(),
-    getGamesPlayed: () => totalPlays,
-    getFoodsEaten: () => foodsEaten,
+    getGamesPlayed: () => lifetimeStatsRuntime.getTotalPlays(),
+    getFoodsEaten: () => lifetimeStatsRuntime.getFoodsEaten(),
     getSpectateCount: () => spectateCount,
     getAIBattleDifficulty: () => aiBattleDifficulty,
     getMultiplayerPlayerCount: () => multiplayerPlayerCount,
@@ -1435,14 +1438,13 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     getTotalCodexCount: () => codexManager.getTotalCount()
   },
   stats: {
-    getStreak: () => streakWins,
+    getStreak: () => lifetimeStatsRuntime.getStreak(),
     setStreak: (value) => {
-      streakWins = value;
-      streakEl.textContent = String(streakWins);
+      lifetimeStatsRuntime.setStreak(value);
     },
-    getFoodsEaten: () => foodsEaten,
+    getFoodsEaten: () => lifetimeStatsRuntime.getFoodsEaten(),
     getSpectateCount: () => spectateCount,
-    persist: saveLifetimeStats
+    persist: () => lifetimeStatsRuntime.save()
   },
   bests: {
     getBestScore: () => bestManager.getBestScore(),
@@ -1459,7 +1461,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     recordRound: (nextScore, modeName) => {
       recordsRuntime.recordRound(nextScore, modeName);
       leaderboardRuntime.recordRound(nextScore, modeName, { dlcPack, challengeSeed: SnakeModes.getLocalDateSeed() });
-      seasonRuntime.recordRound(nextScore, modeName, combo, foodsEaten);
+      seasonRuntime.recordRound(nextScore, modeName, combo, lifetimeStatsRuntime.getFoodsEaten());
       refreshSeasonRewardPreview();
     }
   },
@@ -1716,9 +1718,9 @@ function renderAchievementShowcase() {
   const currentStats = {
     bestScore: bestManager.getBestScore(),
     highestCombo: roundStatsManager.getMaxCombo(),
-    totalGames: totalPlays,
-    totalFoodsEaten: foodsEaten,
-    streakWins: streakWins,
+    totalGames: lifetimeStatsRuntime.getTotalPlays(),
+    totalFoodsEaten: lifetimeStatsRuntime.getFoodsEaten(),
+    streakWins: lifetimeStatsRuntime.getStreak(),
     dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0,
     endlessLevel: 0,
     modeBestScores: bestManager.getModeBestMap(),
@@ -2064,9 +2066,9 @@ function setupAchievementSearchSort() {
               const currentStats = {
                 bestScore: bestManager.getBestScore(),
                 highestCombo: roundStatsManager.getMaxCombo(),
-                totalGames: totalPlays,
-                totalFoodsEaten: foodsEaten,
-                streakWins: streakWins,
+                totalGames: lifetimeStatsRuntime.getTotalPlays(),
+                totalFoodsEaten: lifetimeStatsRuntime.getFoodsEaten(),
+                streakWins: lifetimeStatsRuntime.getStreak(),
                 dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
               };
               const items = achievementShowcaseRuntime.renderAchievementItems(sorted, currentStats);
@@ -2095,9 +2097,9 @@ function setupAchievementSearchSort() {
               const currentStats = {
                 bestScore: bestManager.getBestScore(),
                 highestCombo: roundStatsManager.getMaxCombo(),
-                totalGames: totalPlays,
-                totalFoodsEaten: foodsEaten,
-                streakWins: streakWins,
+                totalGames: lifetimeStatsRuntime.getTotalPlays(),
+                totalFoodsEaten: lifetimeStatsRuntime.getFoodsEaten(),
+                streakWins: lifetimeStatsRuntime.getStreak(),
                 dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
               };
               const items = achievementShowcaseRuntime.renderAchievementItems(sorted, currentStats);
@@ -2150,9 +2152,9 @@ function shareAchievementShowcase() {
   const currentStats = {
     bestScore: bestManager.getBestScore(),
     highestCombo: roundStatsManager.getMaxCombo(),
-    totalGames: totalPlays,
-    totalFoodsEaten: foodsEaten,
-    streakWins: streakWins,
+    totalGames: lifetimeStatsRuntime.getTotalPlays(),
+    totalFoodsEaten: lifetimeStatsRuntime.getFoodsEaten(),
+    streakWins: lifetimeStatsRuntime.getStreak(),
     dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
   };
 
@@ -2174,7 +2176,7 @@ function checkAndUnlockTitles() {
 
   // Get current stats for title checking
   const stats = {
-    totalGames: totalPlays,
+    totalGames: lifetimeStatsRuntime.getTotalPlays(),
     bestScore: bestManager.getBestScore(),
     highestCombo: roundStatsManager.getMaxCombo(),
     maxSurvivalTime: Math.floor((Date.now() - roundStartTime) / 1000),
@@ -3363,21 +3365,6 @@ function refreshModeBestText() {
   modeBestEl.textContent = String(bestManager.getModeBest(mode) || 0);
 }
 
-function loadLifetimeStats() {
-  const parsed = storage.readJson(statsKey, {});
-  foodsEaten = Number(parsed.foodsEaten || 0);
-  totalPlays = Number(parsed.totalPlays || 0);
-  streakWins = Number(parsed.streakWins || 0);
-  foodsEl.textContent = String(foodsEaten);
-  playsEl.textContent = String(totalPlays);
-  streakEl.textContent = String(streakWins);
-}
-
-function saveLifetimeStats() {
-  storage.writeJson(statsKey, { foodsEaten, totalPlays, streakWins });
-  saveActiveAccountSnapshot();
-}
-
 function loadRogueMeta() {
   const parsed = storage.readJson(rogueMetaKey, {});
   roguePerks = Number(parsed.perks || 0);
@@ -4445,7 +4432,7 @@ function update() {
   if (head.x === food.x && head.y === food.y) {
     ate = true;
     addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
-    foodsEaten += 1;
+    lifetimeStatsRuntime.incrementFood();
     roundStatsManager.recordFood();
     // Update daily task progress
     if (dailyTasksRuntime) {
@@ -4460,11 +4447,9 @@ function update() {
       if (roundFoods === 1 || roundFoods === 5 || roundFoods === 10) {
       pushRoundKeyframe('进食里程碑', `本局累计 ${roundStatsManager.getFoodsEaten()} 个`);
     }
-    foodsEl.textContent = String(foodsEaten);
-    saveLifetimeStats();
     // 检查首次吃食物里程碑
     if (window.SnakeFirstMilestone) {
-      window.SnakeFirstMilestone.checkFoodsMilestone(foodsEaten, (reward) => addScore(reward, 'foodsMilestone'));
+      window.SnakeFirstMilestone.checkFoodsMilestone(lifetimeStatsRuntime.getFoodsEaten(), (reward) => addScore(reward, 'foodsMilestone'));
     }
     food = randomFoodPosition();
     itemSpawnRuntime.spawnOnFoodEat(now);
@@ -4476,17 +4461,15 @@ function update() {
     ate = true;
     const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
     addScore(bonusBase * scoreMultiplier, 'bonus');
-    foodsEaten += 1;
+    lifetimeStatsRuntime.incrementFood();
     roundStatsManager.recordFood();
     const roundFoods = roundStatsManager.getFoodsEaten();
       if (roundFoods === 1 || roundFoods === 5 || roundFoods === 10) {
       pushRoundKeyframe('进食里程碑', `本局累计 ${roundStatsManager.getFoodsEaten()} 个`);
     }
-    foodsEl.textContent = String(foodsEaten);
-    saveLifetimeStats();
     // 检查首次吃食物里程碑
     if (window.SnakeFirstMilestone) {
-      window.SnakeFirstMilestone.checkFoodsMilestone(foodsEaten, (reward) => addScore(reward, 'foodsMilestone'));
+      window.SnakeFirstMilestone.checkFoodsMilestone(lifetimeStatsRuntime.getFoodsEaten(), (reward) => addScore(reward, 'foodsMilestone'));
     }
     bonusFood = null;
     discoverCodex('bonus', '奖励果');
@@ -5181,14 +5164,9 @@ clearDataBtn.addEventListener('click', () => {
   bestEl.textContent = '0';
   bestManager.reset();
   refreshModeBestText();
-  foodsEaten = 0;
-  totalPlays = 0;
-  streakWins = 0;
+  lifetimeStatsRuntime.reset();
   if (window.SnakeSound) window.SnakeSound.setMuted(false);
   saveAudioSetting();
-  foodsEl.textContent = '0';
-  playsEl.textContent = '0';
-  streakEl.textContent = '0';
   achievementsManager.load();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
@@ -5464,7 +5442,7 @@ setInterval(() => {
   refreshSeasonRewardPreview();
 }, 60000);
 renderVersionEvents();
-loadLifetimeStats();
+lifetimeStatsRuntime.load();
 loadHistory();
 leaderboardRuntime.load();
 leaderboardRuntime.bindEvents();
