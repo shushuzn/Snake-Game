@@ -39,6 +39,9 @@
 | B3 | 可测试性增强 (__SNAKE_TEST__ 只读钩子 + 贪吃 E2E) | 低 | ✅ 2026-08-06 |
 | B3+ | 道具效果域迁移 | **高(273 处引用, 与主循环深度耦合, 建议保持闭包)** | 暂缓 |
 | B4-B5 | 棋盘域/主循环 | 高(同属核心玩法域, 迁移收益低于风险) | 暂缓 |
+| B2f | 本局统计域 (roundMaxCombo/roundFoodsEaten/roundKeyframes → round_stats_manager 模块) | 中 | ✅ 2026-08-07 |
+| B2g | 账号域 (activeAccount/accountStore → account 模块) | 中 | ✅ 2026-08-07 |
+| B2h | 生命周期统计域 (foodsEaten/totalPlays/streakWins → lifetime_stats 模块) | 中 | ✅ 2026-08-07 |
 | B3 | 道具效果域(吃道具/计时) | 中 | 待办 |
 | B4 | 棋盘域(移动/碰撞) | 高 | 待办 |
 | B5 | 游戏主循环状态 | 高 | 待办 |
