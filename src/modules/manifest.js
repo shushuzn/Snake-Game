@@ -18,6 +18,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'challenge',
   'churn_analytics',
   'churn_warning',
+  'codex_manager',
   'daily_challenge_mode',
   'daily_rewards',
   'daily_tasks',

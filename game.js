@@ -450,19 +450,6 @@ const versionEvents = [
 ];
 
 
-const codexCatalog = [
-  { id: 'food', label: '基础果', hint: '常规食物，稳定加分。' },
-  { id: 'bonus', label: '奖励果', hint: '短时出现，高额分数。' },
-  { id: 'shield', label: '护盾果', hint: '提供护盾，容错更高。' },
-  { id: 'boost', label: '倍率果', hint: '短时间分数 x2。' },
-  { id: 'time', label: '时间果', hint: '限时模式可延长倒计时。' },
-  { id: 'freeze', label: '冰冻果', hint: '暂时减速，便于走位。' },
-  { id: 'phase', label: '相位果', hint: '短时间穿越障碍石。' },
-  { id: 'crown', label: '王冠果', hint: '触发随机奖励：加分/护盾/增益时间。' },
-  { id: 'magnet', label: '磁力果', hint: '短时间吸附附近道具。' },
-  { id: 'combo', label: '连击果', hint: '提供连击护航，短时不断连。' },
-  { id: 'ghost', label: '幽灵果', hint: '短时间无敌，可穿越墙壁与自身。' }
-];
 
 
 
@@ -499,6 +486,13 @@ const achievementsManager = window.SnakeAchievementsManager.createModule({
   storage,
   key: achievementsKey,
   el: achievementsEl
+});
+// B2c 迁移: 图鉴管理模块
+const codexManager = window.SnakeCodexManager.createModule({
+  storage,
+  key: codexKey,
+  progressEl: codexProgressEl,
+  listEl: codexListEl
 });
 // 兼容展示模块 (achievement showcase 读取 window.ACHIEVEMENT_KEYS)
 window.ACHIEVEMENT_KEYS = achievementsManager.ACHIEVEMENT_KEYS;
@@ -728,7 +722,6 @@ const titlesRuntime = window.SnakeTitles.createTitlesModule({ storage });
 // 初始化成就展示系统
 const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchievementShowcaseModule();
 
-let discoveredCodex = {};
 let dlcPack = 'none';
 const settlement = window.SnakeSettlement.createSettlementModule({ settlementListEl });
 let activeAccount = '';
@@ -903,7 +896,7 @@ function applyProfileSnapshot(snapshot) {
 function reloadAllFromStorage() {
   loadLifetimeStats();
   loadHistory();
-  loadCodex();
+  codexManager.load();
   loadEndlessBestLevel();
   loadRogueMeta();
   loadLastResult();
@@ -1442,8 +1435,8 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     getSpectateCount: () => spectateCount,
     getAIBattleDifficulty: () => aiBattleDifficulty,
     getMultiplayerPlayerCount: () => multiplayerPlayerCount,
-    getDiscoveredCodexCount: () => Object.values(discoveredCodex).filter(Boolean).length,
-    getTotalCodexCount: () => codexCatalog.length
+    getDiscoveredCodexCount: () => codexManager.getDiscoveredCount(),
+    getTotalCodexCount: () => codexManager.getTotalCount()
   },
   stats: {
     getStreak: () => streakWins,
@@ -1560,35 +1553,10 @@ function effectiveSpeed() {
   return speed;
 }
 
-function defaultCodexState() {
-  return Object.fromEntries(codexCatalog.map(item => [item.id, false]));
-}
-
-function refreshCodex() {
-  const discoveredCount = codexCatalog.filter(item => discoveredCodex[item.id]).length;
-  codexProgressEl.textContent = `${discoveredCount}/${codexCatalog.length}`;
-  codexListEl.innerHTML = codexCatalog.map(item => {
-    if (!discoveredCodex[item.id]) return `<li>❓ 未发现道具</li>`;
-    return `<li>✅ <strong>${item.label}</strong>：${item.hint}</li>`;
-  }).join('');
-}
-
-function saveCodex() {
-  storage.writeJson(codexKey, discoveredCodex);
-}
-
-function loadCodex() {
-  const base = defaultCodexState();
-  const parsed = storage.readJson(codexKey, {});
-  discoveredCodex = { ...base, ...parsed };
-  refreshCodex();
-}
-
 function discoverCodex(id, label) {
-  if (discoveredCodex[id]) return;
-  discoveredCodex[id] = true;
-  saveCodex();
-  refreshCodex();
+  // B2c: 状态操作委托模块; 新发现才触发反馈
+  const isNew = codexManager.discover(id);
+  if (!isNew) return;
   if (running && !paused) {
     showOverlay(`<p><strong>📘 图鉴解锁</strong></p><p>${label}</p>`);
     setTimeout(() => {
@@ -1770,7 +1738,7 @@ function renderAchievementShowcase() {
     dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0,
     endlessLevel: 0,
     modeBestScores: bestByMode || {},
-    codexDiscovered: Object.keys(discoveredCodex).length
+    codexDiscovered: codexManager.getDiscoveredCount()
   };
 
   // Use the existing achievements state from achievementsManager
@@ -5269,7 +5237,7 @@ clearDataBtn.addEventListener('click', () => {
   seasonRuntime.clear();
   recapRuntime.clear();
   refreshSeasonRewardPreview();
-  discoveredCodex = defaultCodexState();
+  codexManager.load();
   refreshCodex();
   endlessBestLevel = 0;
   saveEndlessBestLevel();
@@ -5543,7 +5511,7 @@ leaderboardRuntime.bindEvents();
 seasonRuntime.load();
 refreshSeasonRewardPreview();
 recapRuntime.load();
-loadCodex();
+codexManager.load();
 loadEndlessBestLevel();
 loadRogueMeta();
 
