@@ -531,6 +531,10 @@ const rogueManager = window.SnakeRogueManager.createModule({
   onPersist: saveActiveAccountSnapshot,
   onRefreshDlcHud: refreshDlcHud
 });
+
+// B3 迁移: 效果计时域模块 (本局效果计时: 倍率/冰冻/相位/磁力/连击护航)
+const effectTimer = window.SnakeEffectTimer.createEffectTimerModule();
+
 // 兼容展示模块 (achievement showcase 读取 window.ACHIEVEMENT_KEYS)
 window.ACHIEVEMENT_KEYS = achievementsManager.ACHIEVEMENT_KEYS;
 
@@ -682,12 +686,6 @@ let shields = 0;
 let missionTarget = 120;
 let missionAchieved = false;
 let playCountedThisRound = false;
-let scoreMultiplier = 1;
-let multiplierExpireAt = 0;
-let freezeUntil = 0;
-let phaseUntil = 0;
-let magnetUntil = 0;
-let comboGuardUntil = 0;
 
 // AI对战模式变量
 let aiBattleController = null;
@@ -1210,10 +1208,10 @@ window.__SNAKE_TEST__ = {
       phaseFood, crownFood, magnetFood, comboFood, ghostFood
     },
     effects: {
-      scoreMultiplier,
-      freezeUntil,
-      phaseUntil,
-      magnetUntil
+      scoreMultiplier: effectTimer.getMultiplier(),
+      freezeUntil: effectTimer.getFreezeUntil(),
+      phaseUntil: effectTimer.getPhaseUntil(),
+      magnetUntil: effectTimer.getMagnetUntil()
     }
   })
 };
@@ -1386,12 +1384,7 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
       missionTarget = roundMeta.missionTarget;
       missionAchieved = roundMeta.missionAchieved;
       playCountedThisRound = roundMeta.playCountedThisRound;
-      scoreMultiplier = roundMeta.scoreMultiplier;
-      multiplierExpireAt = roundMeta.multiplierExpireAt;
-      freezeUntil = roundMeta.freezeUntil;
-      phaseUntil = roundMeta.phaseUntil;
-      magnetUntil = roundMeta.magnetUntil;
-      comboGuardUntil = roundMeta.comboGuardUntil;
+      effectTimer.setFromSnapshot(roundMeta);
     },
     getShields: () => shields,
     getMissionTarget: () => missionTarget
@@ -3404,23 +3397,23 @@ function refreshStateText(now = performance.now()) {
     stateEl.textContent = '暂停';
     return;
   }
-  if (now < freezeUntil) {
+  if (now < effectTimer.getFreezeUntil()) {
     stateEl.textContent = '冰冻减速';
     return;
   }
-  if (now < phaseUntil) {
+  if (now < effectTimer.getPhaseUntil()) {
     stateEl.textContent = '相位穿越';
     return;
   }
-  if (now < magnetUntil) {
+  if (now < effectTimer.getMagnetUntil()) {
     stateEl.textContent = '磁力吸附';
     return;
   }
-  if (now < comboGuardUntil) {
+  if (now < effectTimer.getComboGuardUntil()) {
     stateEl.textContent = '连击护航';
     return;
   }
-  if (now < multiplierExpireAt) {
+  if (now < effectTimer.getMultiplierExpireAt()) {
     stateEl.textContent = '倍率加成';
     return;
   }
@@ -4145,7 +4138,7 @@ function shouldIgnoreHotkeys(event) {
 }
 
 function isCollision(head) {
-  const inPhase = performance.now() < phaseUntil;
+  const inPhase = performance.now() < effectTimer.getPhaseUntil();
   const inGhost = performance.now() < ghostUntil;
   // 幽灵状态: 无视墙壁/自身/障碍
   if (inGhost) return false;
@@ -4250,14 +4243,14 @@ window.claimRewardAndContinue = function(ruleId) {
 };
 
 function canMagnetCollect(head, pickup, now, range = 2) {
-  if (!pickup || now >= magnetUntil) return false;
+  if (!pickup || now >= effectTimer.getMagnetUntil()) return false;
   const dist = Math.abs(head.x - pickup.x) + Math.abs(head.y - pickup.y);
   return dist <= range;
 }
 
 function applyComboMilestoneReward(now, comboValue) {
   if (comboValue === 5) {
-    addScore(15 * scoreMultiplier, 'comboMilestone5');
+    addScore(15 * effectTimer.getMultiplier(), 'comboMilestone5');
     pushRoundKeyframe('连击里程碑', '连击达到 x5，额外 +15 分');
     if (running && !paused) {
       showOverlay('<p><strong>🔥 连击里程碑 x5</strong></p><p>额外奖励 +15 分</p>');
@@ -4268,8 +4261,7 @@ function applyComboMilestoneReward(now, comboValue) {
     return;
   }
   if (comboValue === 8) {
-    scoreMultiplier = 2;
-    multiplierExpireAt = Math.max(multiplierExpireAt, now + 4000);
+    effectTimer.setMultiplier(2, now + 4000);
     multiplierEl.textContent = 'x2';
     pushRoundKeyframe('连击里程碑', '连击达到 x8，触发倍率冲刺 4 秒');
     if (running && !paused) {
@@ -4280,7 +4272,7 @@ function applyComboMilestoneReward(now, comboValue) {
     }
   }
   if (comboValue === 12) {
-    addScore(20 * scoreMultiplier, 'comboMilestone12');
+    addScore(20 * effectTimer.getMultiplier(), 'comboMilestone12');
     pushRoundKeyframe('连击里程碑', '连击达到 x12，额外 +20 分');
     if (running && !paused) {
       showOverlay('<p><strong>🔥 连击里程碑 x12</strong></p><p>额外奖励 +20 分</p>');
@@ -4290,7 +4282,7 @@ function applyComboMilestoneReward(now, comboValue) {
     }
   }
   if (comboValue === 15) {
-    addScore(30 * scoreMultiplier, 'comboMilestone15');
+    addScore(30 * effectTimer.getMultiplier(), 'comboMilestone15');
     pushRoundKeyframe('连击里程碑', '连击达到 x15（满），额外 +30 分');
     if (running && !paused) {
       showOverlay('<p><strong>👑 连击里程碑 x15</strong></p><p>满连击！额外奖励 +30 分</p>');
@@ -4346,14 +4338,10 @@ function update() {
   if (magnetFood && now > magnetExpireAt) magnetFood = null;
   if (comboFood && now > comboExpireAt) comboFood = null;
   if (ghostFood && now > ghostExpireAt) ghostFood = null;
-  if (scoreMultiplier > 1 && now > multiplierExpireAt) {
-    scoreMultiplier = 1;
+  const expireResult = effectTimer.expireCheck(now);
+  if (expireResult.multiplierExpired) {
     multiplierEl.textContent = 'x1';
   }
-  if (now > freezeUntil) freezeUntil = 0;
-  if (now > phaseUntil) phaseUntil = 0;
-  if (now > magnetUntil) magnetUntil = 0;
-  if (now > comboGuardUntil) comboGuardUntil = 0;
   refreshStateText(now);
 
   direction = pendingDirection;
@@ -4384,7 +4372,7 @@ function update() {
   let ate = false;
   if (head.x === food.x && head.y === food.y) {
     ate = true;
-    addScore((10 + rogueManager.getScoreBonus()) * scoreMultiplier, 'food');
+    addScore((10 + rogueManager.getScoreBonus()) * effectTimer.getMultiplier(), 'food');
     lifetimeStatsRuntime.incrementFood();
     roundStatsManager.recordFood();
     // Update daily task progress
@@ -4413,7 +4401,7 @@ function update() {
   if (bonusFood && ((head.x === bonusFood.x && head.y === bonusFood.y) || canMagnetCollect(head, bonusFood, now))) {
     ate = true;
     const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
-    addScore(bonusBase * scoreMultiplier, 'bonus');
+    addScore(bonusBase * effectTimer.getMultiplier(), 'bonus');
     lifetimeStatsRuntime.incrementFood();
     roundStatsManager.recordFood();
     const roundFoods = roundStatsManager.getFoodsEaten();
@@ -4442,8 +4430,7 @@ function update() {
 
   if (boostFood && ((head.x === boostFood.x && head.y === boostFood.y) || canMagnetCollect(head, boostFood, now))) {
     ate = true;
-    scoreMultiplier = 2;
-    multiplierExpireAt = now + 8000;
+    effectTimer.setMultiplier(2, now + 8000);
     multiplierEl.textContent = 'x2';
     boostFood = null;
     discoverCodex('boost', '倍率果');
@@ -4467,7 +4454,7 @@ function update() {
       settlement.addTimeBonus('fruit', extraSeconds);
       updateTimeText();
     } else {
-      addScore(15 * scoreMultiplier, 'timeFruit');
+      addScore(15 * effectTimer.getMultiplier(), 'timeFruit');
     }
     timeFood = null;
     discoverCodex('time', '时间果');
@@ -4476,7 +4463,7 @@ function update() {
 
   if (freezeFood && ((head.x === freezeFood.x && head.y === freezeFood.y) || canMagnetCollect(head, freezeFood, now))) {
     ate = true;
-    freezeUntil = now + 6000;
+    effectTimer.setFreeze(now + 6000);
     freezeFood = null;
     refreshStateText(now);
     discoverCodex('freeze', '冰冻果');
@@ -4488,7 +4475,7 @@ function update() {
 
   if (phaseFood && ((head.x === phaseFood.x && head.y === phaseFood.y) || canMagnetCollect(head, phaseFood, now))) {
     ate = true;
-    phaseUntil = now + 6000;
+    effectTimer.setPhase(now + 6000);
     phaseFood = null;
     refreshStateText(now);
     discoverCodex('phase', '相位果');
@@ -4501,7 +4488,7 @@ function update() {
     const rewardRoll = Math.floor(Math.random() * 4);
     let rewardText = '';
     if (rewardRoll === 0) {
-      addScore(40 * scoreMultiplier, 'crown');
+      addScore(40 * effectTimer.getMultiplier(), 'crown');
       rewardText = '奖励 +40 分';
     } else if (rewardRoll === 1) {
       if (!hardcoreModeInput.checked) {
@@ -4509,12 +4496,11 @@ function update() {
         shieldEl.textContent = String(shields);
         rewardText = '奖励 护盾 +1';
       } else {
-        addScore(20 * scoreMultiplier, 'crown');
+        addScore(20 * effectTimer.getMultiplier(), 'crown');
         rewardText = '硬核补偿 +20 分';
       }
     } else if (rewardRoll === 2) {
-      scoreMultiplier = 2;
-      multiplierExpireAt = Math.max(multiplierExpireAt, now + 6000);
+      effectTimer.setMultiplier(2, now + 6000);
       multiplierEl.textContent = 'x2';
       rewardText = '奖励 倍率 x2';
     } else {
@@ -4525,7 +4511,7 @@ function update() {
         updateTimeText();
         rewardText = `奖励 +${extraSeconds} 秒`;
       } else {
-        phaseUntil = Math.max(phaseUntil, now + 4000);
+        effectTimer.setPhase(now + 4000);
         refreshStateText(now);
         rewardText = '奖励 相位 4 秒';
       }
@@ -4542,7 +4528,7 @@ function update() {
 
   if (magnetFood && ((head.x === magnetFood.x && head.y === magnetFood.y) || canMagnetCollect(head, magnetFood, now, 3))) {
     ate = true;
-    magnetUntil = now + 7000;
+    effectTimer.setMagnet(now + 7000);
     magnetFood = null;
     refreshStateText(now);
     discoverCodex('magnet', '磁力果');
@@ -4558,8 +4544,8 @@ function update() {
   if (comboFood && ((head.x === comboFood.x && head.y === comboFood.y) || canMagnetCollect(head, comboFood, now, 2))) {
     ate = true;
     comboFood = null;
-    comboGuardUntil = now + 6000;
-    addScore(20 * scoreMultiplier, 'comboFruit');
+    effectTimer.setComboGuard(now + 6000);
+    addScore(20 * effectTimer.getMultiplier(), 'comboFruit');
     refreshStateText(now);
     discoverCodex('combo', '连击果');
     beep('bonus');
@@ -4588,12 +4574,12 @@ function update() {
         checkAllTasksCompleted();
       }
     }
-    addScore((combo - 1) * 2 * scoreMultiplier, 'comboChain');
+    addScore((combo - 1) * 2 * effectTimer.getMultiplier(), 'comboChain');
     comboEl.textContent = `x${combo}`;
     applyComboMilestoneReward(now, combo);
     lastEatMs = now;
     itemSpawnRuntime.maybeAddRock();
-  } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000) && now > comboGuardUntil) {
+  } else if (lastEatMs && now - lastEatMs > (hardcoreModeInput.checked ? 2000 : 3000) && now > effectTimer.getComboGuardUntil()) {
     // 断连反馈: 连击 >=3 中断时红色闪烁提示
     if (combo > 2) {
       comboEl.style.color = '#ff5c7a';
@@ -4633,7 +4619,7 @@ function update() {
           shieldEl.textContent = String(shields);
           milestoneText = '里程碑奖励：护盾 +1';
         } else {
-          addScore(25 * scoreMultiplier, 'milestone');
+          addScore(25 * effectTimer.getMultiplier(), 'milestone');
           milestoneText = '里程碑奖励：硬核补偿 +25 分';
         }
       }
@@ -4703,7 +4689,7 @@ const renderer = SnakeRender.createRenderer({
   getCurrentSkin: () => settingsRuntime.getCurrentSkin(),
   getState: () => ({
     food, bonusFood, shieldFood, boostFood, timeFood, freezeFood,
-    phaseFood, crownFood, magnetFood, comboFood, ghostFood, rocks, snake, phaseUntil, ghostUntil
+    phaseFood, crownFood, magnetFood, comboFood, ghostFood, rocks, snake, phaseUntil: effectTimer.getPhaseUntil(), ghostUntil
   })
 });
 

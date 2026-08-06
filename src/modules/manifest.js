@@ -23,6 +23,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'daily_challenge_mode',
   'daily_rewards',
   'daily_tasks',
+  'effect_timer',
   'endgame_flow',
   'enhanced_newbie_guide',
   'enhanced_return_rewards',
