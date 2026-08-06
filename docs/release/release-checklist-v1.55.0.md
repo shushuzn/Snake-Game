@@ -4,8 +4,9 @@
 - **发布负责人**: release-ops-lead（路远行）
 - **线上部署当前版本**: v1.45.0（滞后，本次同步至 v1.55.0）
 - **git HEAD**: `6bd45d4`（docs: 改革路线图更新 B2i 完成）
-- **部署类型**: 静态站点（纯前端零依赖，可选 Node 后端）
-- **部署方式**: `_snake_deploy/` → CloudStudio Sandbox（复用，URL 不变）
+- **部署类型**: 静态站点（Vite 构建产物，可选 Node 后端）
+- **部署方式**: `dist/`（Vite build 输出）→ CloudStudio Sandbox（复用，URL 不变）
+- **⚠️ 架构变更（v2.0 现代化）**: 项目已从 IIFE+全局迁移至 ESM+Vite，部署产物由 `_snake_deploy/`（手动拷贝）改为 `dist/`（构建输出）。旧部署流程见 §1.5 历史记录。
 
 ---
 
@@ -30,24 +31,30 @@
 - [x] 存档导出（L1022/L1030）、结算版本标记（L1564）、分享文案（L5148）均读取 GAME_VERSION，自动同步
 
 ### 1.4 构建产物
-- [x] 纯前端零依赖，无需编译构建；`_snake_deploy/` 直接拷贝静态文件
-- [x] 部署产物清单：`index.html` / `styles.css` / `game.js` / `favicon.svg` / `src/`
+- [x] **v2.0 现代化**: ESM + Vite 构建，产物为 `dist/`（index.html + assets/）
+- [x] 部署产物清单：`dist/index.html` / `dist/assets/*`（构建产出，非手动拷贝）
+- [x] 构建命令：`npm run build`（vite build）
 - [ ] （可选，未启用）Node 后端 `server/` 独立部署，本次不影响前端静态站
 
-### 1.5 部署步骤（历史流程 2026-08-06 记录）
+### 1.5 部署步骤（v2.0 现代化流程）
 ```bash
-rm -rf _snake_deploy
-mkdir -p _snake_deploy
-cp index.html styles.css game.js favicon.svg _snake_deploy/
-cp -r src _snake_deploy/
-# 调用 cloudstudio_deploy(_snake_deploy) 复用 sandbox，URL 不变
+npm run build          # 产出 dist/
+# 调用 cloudstudio_deploy(dist) 复用 sandbox，URL 不变
 ```
+
+> 历史流程（2026-08-06，v1.55.0 旧版，已废弃）：
+> ```bash
+> rm -rf _snake_deploy && mkdir -p _snake_deploy
+> cp index.html styles.css game.js favicon.svg _snake_deploy/ && cp -r src _snake_deploy/
+> # 调用 cloudstudio_deploy(_snake_deploy)
+> ```
+> 该流程基于 IIFE+经典脚本架构，ESM 化后不再适用，`_snake_deploy/` 已删除。
 
 ### 1.6 回滚预案
 - 回滚目标版本：v1.45.0（线上部署的上一稳定版）
-- 回滚方式：静态站点无数据库/无服务端状态，将 `_snake_deploy/` 替换为 v1.45.0 对应文件（`git checkout 33acce2 -- game.js index.html styles.css favicon.svg src/` 后重新部署）即可
+- 回滚方式：静态站点无数据库/无服务端状态，`git checkout` 回退源码后 `npm run build` 重新部署 `dist/` 即可
 - 回滚触发条件：页面白屏 / 核心玩法不可用 / 存档读写异常（P0 级）
-- 本地缓存提示：玩家浏览器可能缓存旧 game.js，可提示硬刷新（Ctrl+F5）
+- 本地缓存提示：Vite 构建产物带 hash 文件名（assets/main-*.js），无缓存问题；部署后硬刷新（Ctrl+F5）即可
 
 ---
 

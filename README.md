@@ -1,6 +1,12 @@
 # Snake 多文件网页游戏
 
-这是一个**无需构建工具、无需安装依赖**的贪吃蛇网页项目，现已从单文件结构发展为多文件结构。
+这是一个**ESM + Vite 构建**的贪吃蛇网页项目。模块层全部采用 ES Modules（`import/export`），由 Vite 打包；游戏逻辑在 `game.js`（`bootSnakeGame` 入口闭包），纯前端零运行时依赖（可选 Node 后端仅用于在线排行榜）。
+
+> **架构说明（v2.0 现代化重构）**：项目已从「IIFE + window 全局 + 运行时脚本注入」迁移至「ESM + Vite 静态打包」。
+> - 入口：`src/main.js`（静态 import 全部 75 个模块 → `bootSnakeGame()`）
+> - 构建：`npm run build` → `dist/`（部署产物，含 hash 文件名）
+> - 启动：`npm run dev`（Vite dev server，HMR）或 `npm run preview`（构建产物预览）
+> - 不再支持 `file://` 直接打开（ESM CORS 限制），需本地 HTTP 服务
 
 ## 当前能力（持续发展中）
 
@@ -17,15 +23,16 @@
 
 ```text
 .
-├── index.html                      # 页面结构
+├── index.html                      # 页面结构（type=module 入口）
 ├── styles.css                      # 页面样式
-├── game.js                        # 主编排入口（模块拼装）
-├── README.md                       # 项目说明
-├── ROADMAP.md                     # 开发路线图
-├── docs/
-│   └── AGENTS.md                  # 指标驱动开发框架
+├── game.js                        # 游戏主编排（bootSnakeGame 闭包，ESM 导出）
+├── vite.config.js                 # Vite 构建配置
 ├── src/
-│   ├── modules/                   # 游戏模块
+│   ├── main.js                     # ESM 入口（import 全部模块 + 启动游戏，由脚本生成）
+│   ├── game/                       # 从 game.js 抽取的独立模块
+│   │   ├── config.js               # 常量 / 存储键 / 验证函数
+│   │   └── utils.js                # 纯工具函数
+│   ├── modules/                   # 游戏模块（75 个，ESM export + window 兼容挂载）
 │   │   ├── account.js             # 账号系统
 │   │   ├── ai_player.js           # AI玩家与AI对战系统
 │   │   ├── challenge.js           # 每日挑战
@@ -56,8 +63,15 @@
 │   │   ├── storage.js             # 存储系统
 │   │   ├── workshop.js             # 工坊系统
 │   │   └── workshop_runtime.js     # 工坊运行时
+│   ├── workers/
+│   │   └── ai_worker.js           # AI Worker（可选，未启用时降级主线程）
 │   └── data/
 │       └── leaderboard_remote.json # 远端榜单数据
+├── dist/                           # 构建产物（npm run build 生成，部署用）
+├── scripts/
+│   ├── generate-modules.mjs        # 生成 src/main.js 的模块 import 列表（单一事实来源）
+│   ├── check-manifest.js           # 校验 main.js imports 与磁盘一致性
+│   └── esmify-modules.cjs          # （历史工具）IIFE→ESM 批量迁移脚本
 ├── balance/
 │   ├── baseline.json              # 平衡基准
 │   └── search_space.json          # 搜索空间
@@ -86,11 +100,13 @@
 ## 快速开始
 
 ```bash
-python3 -m http.server 4173
-# 浏览器访问 http://localhost:4173/index.html
+npm install        # 安装 Vite / Playwright
+npm run dev        # 启动 Vite dev server → http://localhost:5173
+npm run build      # 构建产物 → dist/
+npm run preview    # 预览构建产物 → http://localhost:4173
 ```
 
-也可直接打开 `index.html`，但建议优先使用本地静态服务器。
+> v2.0 起不再支持 `file://` 直接打开（ESM 模块受浏览器 CORS 限制），必须通过 HTTP 服务访问。
 
 ## 开发自检
 
@@ -103,9 +119,16 @@ bash skills/snake-feature-evolver/scripts/run_required_checks.sh
 ### 2) 手工检查（等价）
 
 ```bash
-node --check $(git ls-files '*.js')
-rg -n "styles.css|workshop.js|modes.js|input.js|render.js|game.js" index.html
+node --check $(git ls-files '*.js' | grep -v '\.mjs$')
+bash skills/snake-feature-evolver/scripts/run_required_checks.sh
 git diff --check
+```
+
+### 3) 模块清单一致性（ESM 版本）
+
+```bash
+node scripts/generate-modules.mjs   # 生成 src/main.js 的模块 import 列表
+node scripts/check-manifest.js      # 校验 imports 与磁盘文件一致
 ```
 
 ## 版本维护

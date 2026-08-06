@@ -133,60 +133,54 @@ game.js
 
 ## 维护建议
 
-1. game.js 过大，建议未来拆分
+1. game.js 仍偏大（~5250 行，bootSnakeGame 闭包），常量/纯工具已抽至 `src/game/`；更深拆分需状态对象化（共享 314 变量）
 2. 模块遵循 MODULE_API_STANDARD
-3. 新模块必须注册到 index.html
+3. 新模块必须加入 `src/main.js`（运行 `node scripts/generate-modules.mjs` 自动生成）
 
-## 模块加载系统
+## 模块加载系统（v2.0 ESM）
 
-### ModuleLoader (src/modules/moduleLoader.js)
+### 入口 (src/main.js)
 
-提供模块懒加载和使用追踪功能。
+新架构使用 **ESM + Vite 静态打包**，取代旧的 ModuleLoader 运行时脚本注入：
 
-**核心 API:**
 ```javascript
-// 启动引导: 按 manifest 注入全部模块(经典脚本, 兼容 file://)
-// lazy 清单中的模块不阻塞启动, 就绪后后台续注 (v1.28.0)
-await ModuleLoader.bootstrap(window.SNAKE_MODULE_MANIFEST, { lazy: window.SNAKE_LAZY_MODULES });
+// src/main.js（由 scripts/generate-modules.mjs 生成 import 区）
+import './modules/account.js';
+import './modules/achievement_detail.js';
+// ... 全部 75 个模块（依赖顺序由 import 图保证）
+import { bootSnakeGame } from '../game.js';
 
-// 按需加载模块
-await ModuleLoader.load('achievement_showcase');
-
-// 预加载 (空闲时)
-ModuleLoader.preload('reward_preview');
-
-// 检查是否已加载
-if (ModuleLoader.isLoaded('achievement_showcase')) { ... }
-
-// 查看使用统计
-ModuleLoader.printStats();  // 控制台可视化
-
-// 获取原始数据
-ModuleLoader.getUsageStats();
+window.__SNAKE_MODULES_READY = true;   // 兼容标志（旧测试依赖）
+window.dispatchEvent(new Event('snake:modules-ready')); // 兼容事件
+bootSnakeGame();
 ```
 
-**懒加载机制 (v1.28.0):**
-- `src/modules/manifest.js` 维护两个清单:
-  - `SNAKE_MODULE_MANIFEST` — 全部 66 模块
-  - `SNAKE_LAZY_MODULES` — 13 个懒加载模块(不阻塞启动, 就绪后后台续注)
-- 两阶段启动: 首批注入非 lazy 模块 → 派发 `snake:modules-ready` → 游戏启动 → 后台续注 lazy 模块
-- 懒加载候选选择依据: 全局不被 game.js 引用、不被其他模块加载期引用
-- 清单由 `node scripts/generate-modules.mjs` 生成, `node scripts/check-manifest.js` 校验一致性
+**核心机制:**
+- 模块全部为 ESM 文件：`const SnakeX = (() => {...})(); export { SnakeX }; window.SnakeX = SnakeX;`
+  - `export` 供 Vite 静态打包（tree-shaking / 代码分割）
+  - `window.SnakeX` 兼容挂载，供 game.js 与测试直接访问
+- 无懒加载：全部模块静态 import，Vite 打包进 `dist/assets/main-*.js`（gzip ~106KB）
+- 构建: `npm run build` → `dist/`（部署产物）
+- 模块清单一致性: `node scripts/check-manifest.js` 校验 main.js imports 与磁盘文件
+
+**旧机制（v1.x，已废弃删除）:**
+- `src/modules/moduleLoader.js` / `moduleRegistry.js` / `manifest.js` 已删除
+- 原 `ModuleLoader.bootstrap(manifest)` 两阶段注入、`SNAKE_LAZY_MODULES` 懒加载均不再需要
 
 ### 模块分类
 
-**核心模块 (43个)** - game.js 直接引用，必须同步加载:
+**核心模块 (43个)** - game.js 直接引用：
 - 核心: storage, events, play_state, round_state, input, render, modes, mode_rules, settlement, statistics, settings, records
 - 功能: challenge, season, shop, account, friends, leaderboard 等
 
-**懒加载模块 (41个)** - 按需加载:
-- achievement_preview, ai_player, battle_pass, clan, tutorial 等
+**其余模块** - 全部静态 import（无懒加载，统一打包）
 
 ### 优化建议
 
-1. **当前状态**: 135KB gzip 可接受，暂不需要优化
+1. **当前状态**: gzip ~106KB，可接受
 2. **未来优化方向**:
-   - 使用 esbuild/rollup 打包核心模块
+   - game.js 状态对象化拆分（314 共享变量 → state 对象，按职责拆 <800 行/文件）
+   - 视需要将低频模块（成就展示、AI、工坊等）改为 Vite 动态 `import()` 代码分割
    - 合并小模块 (< 2KB)
    - 实现真正的懒加载激活
 3. **监控工具**:
