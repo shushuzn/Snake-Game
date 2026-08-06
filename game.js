@@ -460,7 +460,8 @@ const codexCatalog = [
   { id: 'phase', label: '相位果', hint: '短时间穿越障碍石。' },
   { id: 'crown', label: '王冠果', hint: '触发随机奖励：加分/护盾/增益时间。' },
   { id: 'magnet', label: '磁力果', hint: '短时间吸附附近道具。' },
-  { id: 'combo', label: '连击果', hint: '提供连击护航，短时不断连。' }
+  { id: 'combo', label: '连击果', hint: '提供连击护航，短时不断连。' },
+  { id: 'ghost', label: '幽灵果', hint: '短时间无敌，可穿越墙壁与自身。' }
 ];
 
 
@@ -484,6 +485,9 @@ let pendingDirection;
 let food;
 let bonusFood = null;
 let bonusExpireAt = 0;
+let ghostFood = null;
+let ghostExpireAt = 0;
+let ghostUntil = 0;
 let shieldFood = null;
 let shieldExpireAt = 0;
 let boostFood = null;
@@ -1189,6 +1193,8 @@ const itemSpawnRuntime = window.SnakeItemSpawn.createItemSpawnModule({
     hasCrownFood: () => Boolean(crownFood),
     hasMagnetFood: () => Boolean(magnetFood),
     hasComboFood: () => Boolean(comboFood),
+    hasGhostFood: () => Boolean(ghostFood),
+    isGhostActive: () => performance.now() < ghostUntil,
     setBonusFood: (pos, expireAt) => { bonusFood = pos; bonusExpireAt = expireAt; },
     setShieldFood: (pos, expireAt) => { shieldFood = pos; shieldExpireAt = expireAt; },
     setBoostFood: (pos, expireAt) => { boostFood = pos; boostExpireAt = expireAt; },
@@ -1197,6 +1203,7 @@ const itemSpawnRuntime = window.SnakeItemSpawn.createItemSpawnModule({
     setPhaseFood: (pos, expireAt) => { phaseFood = pos; phaseExpireAt = expireAt; },
     setCrownFood: (pos, expireAt) => { crownFood = pos; crownExpireAt = expireAt; },
     setMagnetFood: (pos, expireAt) => { magnetFood = pos; magnetExpireAt = expireAt; },
+    setGhostFood: (pos, expireAt) => { ghostFood = pos; ghostExpireAt = expireAt; },
     setComboFood: (pos, expireAt) => { comboFood = pos; comboExpireAt = expireAt; }
   }
 });
@@ -4262,6 +4269,7 @@ function randomFreeCell() {
     (crownFood && crownFood.x === position.x && crownFood.y === position.y) ||
     (magnetFood && magnetFood.x === position.x && magnetFood.y === position.y) ||
     (comboFood && comboFood.x === position.x && comboFood.y === position.y) ||
+    (ghostFood && ghostFood.x === position.x && ghostFood.y === position.y) ||
     rocks.some(rock => rock.x === position.x && rock.y === position.y)
   );
   return position;
@@ -4304,6 +4312,9 @@ function shouldIgnoreHotkeys(event) {
 
 function isCollision(head) {
   const inPhase = performance.now() < phaseUntil;
+  const inGhost = performance.now() < ghostUntil;
+  // 幽灵状态: 无视墙壁/自身/障碍
+  if (inGhost) return false;
   const hitWall = !wrapModeInput.checked && (head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount);
   const hitSelf = snake.some(seg => seg.x === head.x && seg.y === head.y);
   const hitRock = !inPhase && rocks.some(rock => rock.x === head.x && rock.y === head.y);
@@ -4480,6 +4491,7 @@ function update() {
   if (crownFood && now > crownExpireAt) crownFood = null;
   if (magnetFood && now > magnetExpireAt) magnetFood = null;
   if (comboFood && now > comboExpireAt) comboFood = null;
+  if (ghostFood && now > ghostExpireAt) ghostFood = null;
   if (scoreMultiplier > 1 && now > multiplierExpireAt) {
     scoreMultiplier = 1;
     multiplierEl.textContent = 'x1';
@@ -4496,7 +4508,8 @@ function update() {
   // 检测高风险转向和失误前状态
   detectPathRisk(head, direction);
 
-  if (wrapModeInput.checked) {
+  const inGhostMove = performance.now() < ghostUntil;
+  if (wrapModeInput.checked || inGhostMove) {
     if (head.x < 0) head.x = tileCount - 1;
     if (head.x >= tileCount) head.x = 0;
     if (head.y < 0) head.y = tileCount - 1;
@@ -4583,6 +4596,15 @@ function update() {
     boostFood = null;
     discoverCodex('boost', '倍率果');
     beep('mission');
+  }
+
+  if (ghostFood && ((head.x === ghostFood.x && head.y === ghostFood.y) || canMagnetCollect(head, ghostFood, now))) {
+    ate = true;
+    ghostUntil = now + 6000;
+    ghostFood = null;
+    discoverCodex('ghost', '幽灵果');
+    beep('mission');
+    pushRoundKeyframe('吃到幽灵果', '6 秒内无敌，可穿越墙壁与自身');
   }
 
   if (timeFood && ((head.x === timeFood.x && head.y === timeFood.y) || canMagnetCollect(head, timeFood, now))) {
@@ -4820,7 +4842,7 @@ const renderer = SnakeRender.createRenderer({
   getCurrentSkin: () => currentSkin,
   getState: () => ({
     food, bonusFood, shieldFood, boostFood, timeFood, freezeFood,
-    phaseFood, crownFood, magnetFood, comboFood, rocks, snake, phaseUntil
+    phaseFood, crownFood, magnetFood, comboFood, ghostFood, rocks, snake, phaseUntil, ghostUntil
   })
 });
 

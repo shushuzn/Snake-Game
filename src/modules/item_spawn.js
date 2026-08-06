@@ -81,6 +81,15 @@ window.SnakeItemSpawn = (() => {
       if (!runtime.hasComboFood() && score >= 70 && runtime.getCombo() >= 4 && score % 75 === 0) {
         runtime.setComboFood(runtime.randomFreeCell(), now + 4200);
       }
+
+      // 幽灵果: 得分 >= 120 后每 130 分生成一次 (无敌中不重复生成)
+      maybeSpawnItem({
+        active: runtime.hasGhostFood() || runtime.isGhostActive(),
+        score,
+        minScore: 120,
+        step: 130,
+        spawn: () => runtime.setGhostFood(runtime.randomFreeCell(), now + 4200)
+      });
     }
 
     function maybeAddRock() {

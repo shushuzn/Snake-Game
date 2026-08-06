@@ -72,11 +72,14 @@
         crownFood,
         magnetFood,
         comboFood,
+        ghostFood,
         rocks,
         snake,
-        phaseUntil
+        phaseUntil,
+        ghostUntil
       } = getState();
       const isPhaseActive = now < phaseUntil;
+      const isGhostActive = now < ghostUntil;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = skin.board;
@@ -92,9 +95,12 @@
       if (crownFood) drawCell(crownFood, '#fde047', 8);
       if (magnetFood) drawCell(magnetFood, '#60a5fa', 8);
       if (comboFood) drawCell(comboFood, '#fb7185', 8);
+      if (ghostFood) drawCell(ghostFood, '#e2e8f0', 8);
       rocks.forEach((rock) => drawCell(rock, '#64748b', 5));
       const headColor = isPhaseActive ? skin.phaseHead : skin.head;
+      if (isGhostActive) ctx.globalAlpha = 0.55; // 幽灵状态: 蛇体半透明
       snake.forEach((segment, index) => drawCell(segment, index === 0 ? headColor : skin.body));
+      if (isGhostActive) ctx.globalAlpha = 1;
     }
 
     return { draw };
