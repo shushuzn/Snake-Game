@@ -34,7 +34,8 @@
 | B1b-1 | 模式偏好迁移 (modePreference/obstacleModePreference → settings 模块) | 中 | ✅ 2026-08-06 |
 | B1b-2 | 皮肤域 (currentSkin/skinThemes → settings 模块) | 中 | ✅ 2026-08-06 |
 | B1 ✅ | 设置域全部迁移完成 | - | ✅ |
-| B2 | 结算/成就域(结算卡片/成就解锁) | 中 | 待办 |
+| B2a | 成就状态管理 (ACHIEVEMENT_KEYS + achievements → achievements_manager 模块) | 中 | ✅ 2026-08-06 |
+| B2b | 成就解锁逻辑迁移/结算域收尾 | 中 | 待办 |
 | B3 | 道具效果域(吃道具/计时) | 中 | 待办 |
 | B4 | 棋盘域(移动/碰撞) | 高 | 待办 |
 | B5 | 游戏主循环状态 | 高 | 待办 |
