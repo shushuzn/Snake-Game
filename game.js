@@ -174,7 +174,7 @@ const shareScoreBtn = document.getElementById('shareScore');
 const shareAchievementBtn = document.getElementById('shareAchievement');
 const titlesListEl = document.getElementById('titlesList');
 
-const GAME_VERSION = '1.4.0';
+const GAME_VERSION = '1.55.0';
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 const timedModeDuration = 60;
