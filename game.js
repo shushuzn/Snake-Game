@@ -1548,7 +1548,22 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
         dlcText: getDlcStatusText(),
         timeline: roundKeyframes
       });
-      showOverlay(`<p><strong>${reasonText}</strong></p><p>最终得分 ${nextScore}</p><p>按方向键或点击“重新开始”再来一局</p>`);
+      // 结算卡片: 展示本局完整表现(数据均由 recap 采集, 零新增逻辑)
+      const statChip = (icon, label, value) =>
+        `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);border-radius:8px;padding:4px 10px;font-size:0.8rem;color:#a5f3fc;">${icon} ${label} <b style="color:#fff;">${value}</b></span>`;
+      const chips = [
+        statChip('⚡', '最高连击', `x${roundMaxCombo}`),
+        statChip('🍎', '本局食物', String(roundFoodsEaten)),
+        statChip('🧩', 'DLC', getDlcStatusText()),
+        mode === 'endless' ? statChip('🎚', '关卡', `L${level}`) : '',
+        isTimerMode() ? statChip('⏱', '剩余', `${Math.max(0, Math.ceil(remainingTime))}s`) : ''
+      ].filter(Boolean).join('');
+      showOverlay(
+        `<p><strong>${reasonText}</strong></p>` +
+        `<p style="font-size:1.7rem;font-weight:800;color:var(--accent);margin:6px 0;text-shadow:0 0 16px rgba(0,229,255,0.5);">${nextScore} 分</p>` +
+        `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0 8px;">${chips}</div>` +
+        `<p style="font-size:12px;color:#94a3b8;">按方向键或点击“重新开始”再来一局</p>`
+      );
     }
   },
   audio: {
