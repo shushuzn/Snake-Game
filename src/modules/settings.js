@@ -6,12 +6,28 @@ window.SnakeSettings = (() => {
     controls,
     validators,
     skinThemes,
-    getModePreference,
-    setModePreference,
-    getObstacleModePreference,
-    setObstacleModePreference,
     onSave
   }) {
+    // B1b 迁移: 模式偏好状态从 game.js 闭包移入模块内部
+    let modePreference = controls.modeSelect.value;
+    let obstacleModePreference = controls.obstacleModeInput.checked;
+
+    function getModePreference() {
+      return modePreference;
+    }
+
+    function setModePreference(value) {
+      modePreference = value;
+    }
+
+    function getObstacleModePreference() {
+      return obstacleModePreference;
+    }
+
+    function setObstacleModePreference(value) {
+      obstacleModePreference = value;
+    }
+
     function getModeSettingValue() {
       if (controls.modeSelect.disabled) return getModePreference();
       return controls.modeSelect.value;
@@ -105,6 +121,10 @@ window.SnakeSettings = (() => {
     return {
       getModeSettingValue,
       getObstacleModeSettingValue,
+      getModePreference,
+      setModePreference,
+      getObstacleModePreference,
+      setObstacleModePreference,
       applyContrastMode,
       applyLightMode,
       applyMiniHudMode,

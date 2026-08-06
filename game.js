@@ -731,8 +731,6 @@ let phaseUntil = 0;
 let magnetUntil = 0;
 let comboGuardUntil = 0;
 let currentChallenge = SnakeModes.dailyChallengeOptions[0];
-let obstacleModePreference = obstacleModeInput.checked;
-let modePreference = modeSelect.value;
 
 // AI对战模式变量
 let aiBattleController = null;
@@ -762,11 +760,11 @@ const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   runtime: {
     isRunning: () => running,
     getCurrentChallenge: () => currentChallenge,
-    getModePreference: () => modePreference,
-    setModePreference: (value) => { modePreference = value; },
+    getModePreference: () => settingsRuntime.getModePreference(),
+    setModePreference: (value) => settingsRuntime.setModePreference(value),
     syncMode: (value) => { mode = value; },
-    getObstacleModePreference: () => obstacleModePreference,
-    setObstacleModePreference: (value) => { obstacleModePreference = value; }
+    getObstacleModePreference: () => settingsRuntime.getObstacleModePreference(),
+    setObstacleModePreference: (value) => settingsRuntime.setObstacleModePreference(value)
   },
   setCurrentChallenge: (value) => { currentChallenge = value; }
 });
@@ -1039,10 +1037,6 @@ const settingsRuntime = window.SnakeSettings.createSettingsModule({
     isValidSwipeThreshold: isValidSwipeThresholdValue
   },
   skinThemes,
-  getModePreference: () => modePreference,
-  setModePreference: (value) => { modePreference = value; },
-  getObstacleModePreference: () => obstacleModePreference,
-  setObstacleModePreference: (value) => { obstacleModePreference = value; },
   onSave: saveActiveAccountSnapshot
 });
 
@@ -1146,8 +1140,8 @@ const workshopRuntime = window.SnakeWorkshopRuntime.createWorkshopRuntime({
   runtime: {
     getModeSettingValue,
     getObstacleModeSettingValue,
-    setModePreference: (value) => { modePreference = value; },
-    setObstacleModePreference: (value) => { obstacleModePreference = value; },
+    setModePreference: (value) => settingsRuntime.setModePreference(value),
+    setObstacleModePreference: (value) => settingsRuntime.setObstacleModePreference(value),
     getMapCode: () => encodeMapCode(customRocks)
   },
   ui: {
@@ -4986,7 +4980,7 @@ difficultySelect.addEventListener('change', () => {
 });
 
 modeSelect.addEventListener('change', () => {
-  modePreference = modeSelect.value;
+  settingsRuntime.setModePreference(modeSelect.value);
   saveSettings();
   mode = modeSelect.value;
   updateLevelText();
@@ -5151,7 +5145,7 @@ window.claimReturnMission = function(missionId) {
   }
 };
 
-obstacleModeInput.addEventListener('change', () => { obstacleModePreference = obstacleModeInput.checked; saveSettings(); resetGame(true); });
+obstacleModeInput.addEventListener('change', () => { settingsRuntime.setObstacleModePreference(obstacleModeInput.checked); saveSettings(); resetGame(true); });
 hardcoreModeInput.addEventListener('change', () => { saveSettings(); resetGame(true); });
 wrapModeInput.addEventListener('change', saveSettings);
 contrastModeInput.addEventListener('change', () => { saveSettings(); applyContrastMode(); });
