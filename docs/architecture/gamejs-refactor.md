@@ -31,7 +31,8 @@
 |------|------|------|------|
 | B0 | 架构设计 + 全量引用审计 | 低 | ✅ 2026-08-06 |
 | B1a | 音效设置子域迁移 (muted + 持久化 → sound 模块) | 低 | ✅ 2026-08-06 |
-| B1b | 设置域剩余 (modePreference/obstacleModePreference/currentSkin) | 中 | 待办 |
+| B1b-1 | 模式偏好迁移 (modePreference/obstacleModePreference → settings 模块) | 中 | ✅ 2026-08-06 |
+| B1b-2 | 皮肤域 (currentSkin/skinThemes → settings 模块) | 中 | 待办 |
 | B2 | 结算/成就域(结算卡片/成就解锁) | 中 | 待办 |
 | B3 | 道具效果域(吃道具/计时) | 中 | 待办 |
 | B4 | 棋盘域(移动/碰撞) | 高 | 待办 |
