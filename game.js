@@ -494,6 +494,14 @@ let comboExpireAt = 0;
 let rocks = [];
 let score;
 const storage = window.SnakeStorage.createStorageModule(localStorage);
+// B2a 迁移: 成就状态管理模块
+const achievementsManager = window.SnakeAchievementsManager.createModule({
+  storage,
+  key: achievementsKey,
+  el: achievementsEl
+});
+// 兼容展示模块 (achievement showcase 读取 window.ACHIEVEMENT_KEYS)
+window.ACHIEVEMENT_KEYS = achievementsManager.ACHIEVEMENT_KEYS;
 
 // ============================================
 // Lazy Initialization Factory
@@ -649,65 +657,6 @@ let foodsEaten = 0;
 let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
-const ACHIEVEMENT_KEYS = [
-  // 分数类成就
-  'score200',
-  'score500',
-  'score1000',
-  'score2000',
-  // 连击类成就
-  'combo5',
-  'combo10',
-  'combo15',
-  // 限时模式成就
-  'timedClear',
-  // 游戏次数成就
-  'games10',
-  'games50',
-  'games100',
-  // 每日签到成就
-  'dailyStreak7',
-  'dailyStreak30',
-  // 每日任务成就
-  'firstTask',
-  'allTasks',
-  // 对战类成就 - AI对战
-  'aiBeatEasy',
-  'aiBeatNormal',
-  'aiBeatHard',
-  'aiBeatHell',
-  // 对战类成就 - 多人对战
-  'multiplayerWin2',
-  'multiplayerWin3',
-  'multiplayerWin4',
-  // 对战类成就 - 观战
-  'spectate5',
-  'spectate20',
-  // 收集类成就 - 食物收集
-  'foods100',
-  'foods500',
-  'foods1000',
-  // 收集类成就 - 图鉴收集
-  'codex5',
-  'codex10',
-  'allCodex',
-  // 无尽模式成就
-  'endlessLevel5',
-  'endlessLevel10',
-  'endlessLevel20'
-];
-
-// Expose ACHIEVEMENT_KEYS for achievement showcase module
-window.ACHIEVEMENT_KEYS = ACHIEVEMENT_KEYS;
-
-function createDefaultAchievements() {
-  return ACHIEVEMENT_KEYS.reduce((acc, key) => {
-    acc[key] = false;
-    return acc;
-  }, {});
-}
-
-let achievements = createDefaultAchievements();
 let roundMaxCombo = 1;
 let roundFoodsEaten = 0;
 let roundKeyframes = [];
@@ -1660,23 +1609,16 @@ function refreshLastResultText() {
 }
 
 function loadAchievements() {
-  const parsed = storage.readJson(achievementsKey, {});
-  achievements = createDefaultAchievements();
-  ACHIEVEMENT_KEYS.forEach((key) => {
-    achievements[key] = Boolean(parsed[key]);
-  });
-  refreshAchievementsText();
+  achievementsManager.load();
 }
 
 function saveAchievements() {
-  storage.writeJson(achievementsKey, achievements);
+  achievementsManager.save();
   saveActiveAccountSnapshot();
 }
 
 function refreshAchievementsText() {
-  const keys = Object.keys(achievements);
-  const count = keys.filter(k => achievements[k]).length;
-  achievementsEl.textContent = `${count}/${keys.length}`;
+  achievementsManager.refresh();
 }
 
 function refreshProfileTitle() {
@@ -1805,8 +1747,8 @@ function renderAchievementShowcase() {
     codexDiscovered: Object.keys(discoveredCodex).length
   };
 
-  // Use the existing achievements object from game.js
-  const allAchievements = achievementShowcaseRuntime.getAllAchievements(achievements, currentStats);
+  // Use the existing achievements state from achievementsManager
+  const allAchievements = achievementShowcaseRuntime.getAllAchievements(achievementsManager.getState(), currentStats);
   const totalCount = allAchievements.length;
   const unlockedCount = allAchievements.filter(a => a.unlocked).length;
 
@@ -2236,7 +2178,7 @@ function shareAchievementShowcase() {
     dailyStreak: dailyRewardsRuntime ? dailyRewardsRuntime.getStreakStatus().streak : 0
   };
 
-  const shareText = achievementShowcaseRuntime.generateShareText(achievements, currentStats);
+  const shareText = achievementShowcaseRuntime.generateShareText(achievementsManager.getState(), currentStats);
 
   if (navigator.clipboard) {
     navigator.clipboard.writeText(shareText).then(() => {
@@ -3302,8 +3244,8 @@ function handleShareScore() {
 }
 
 function handleShareAchievement() {
-  const unlockedCount = Object.values(achievements).filter(a => a).length;
-  const totalCount = Object.keys(achievements).length;
+  const unlockedCount = achievementsManager.getUnlockedCount();
+  const totalCount = achievementsManager.getTotalCount();
   const text = `我在贪吃蛇游戏中解锁了 ${unlockedCount}/${totalCount} 个成就！`;
   if (navigator.share) {
     navigator.share({
@@ -3354,10 +3296,9 @@ function handleClaimDaily() {
 }
 
 function unlockAchievement(key, label) {
-  if (!Object.prototype.hasOwnProperty.call(achievements, key) || achievements[key]) return;
-  achievements[key] = true;
-  saveAchievements();
-  refreshAchievementsText();
+  // B2a: 状态操作委托模块; 新解锁才触发反馈
+  const isNew = achievementsManager.unlock(key);
+  if (!isNew) return;
   beep('achievement');
   if (running && !paused) {
     showOverlay(`<p><strong>🏆 解锁成就</strong></p><p>${label}</p>`);
@@ -5294,8 +5235,7 @@ clearDataBtn.addEventListener('click', () => {
   foodsEl.textContent = '0';
   playsEl.textContent = '0';
   streakEl.textContent = '0';
-  achievements = createDefaultAchievements();
-  refreshAchievementsText();
+  achievementsManager.load();
   recordsRuntime.clearLastResult();
   recordsRuntime.clearHistory();
   leaderboardRuntime.clear();

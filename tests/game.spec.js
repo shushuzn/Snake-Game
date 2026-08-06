@@ -36,8 +36,9 @@ test.describe('Snake Game E2E Tests', () => {
   });
 
   test('ACHIEVEMENT_KEYS count is correct', () => {
-    const gameJsPath = path.join(__dirname, '..', 'game.js');
-    const content = fs.readFileSync(gameJsPath, 'utf8');
+    // B2a 迁移: ACHIEVEMENT_KEYS 迁入 achievements_manager 模块
+    const modulePath = path.join(__dirname, '..', 'src', 'modules', 'achievements_manager.js');
+    const content = fs.readFileSync(modulePath, 'utf8');
     const match = content.match(/const ACHIEVEMENT_KEYS = \[([\s\S]*?)\];/);
     expect(match).not.toBeNull();
 

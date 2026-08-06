@@ -12,6 +12,7 @@ window.SNAKE_MODULE_MANIFEST = [
   'achievement_showcase',
   'achievement_stats',
   'achievement_toast',
+  'achievements_manager',
   'ai_engine_selector',
   'ai_player',
   'challenge',
