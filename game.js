@@ -495,6 +495,9 @@ const codexManager = window.SnakeCodexManager.createModule({
   listEl: codexListEl
 });
 
+// B2f 迁移: 本局统计管理模块
+const roundStatsManager = window.SnakeRoundStatsManager.createModule();
+
 // B2e 迁移: 最佳纪录管理模块
 const bestManager = window.SnakeBestManager.createModule({
   storage,
@@ -660,9 +663,6 @@ let foodsEaten = 0;
 let totalPlays = 0;
 let streakWins = 0;
 let playCountedThisRound = false;
-let roundMaxCombo = 1;
-let roundFoodsEaten = 0;
-let roundKeyframes = [];
 let scoreMultiplier = 1;
 let multiplierExpireAt = 0;
 let freezeUntil = 0;
@@ -777,13 +777,7 @@ function addShield(next = 1) {
 }
 
 function pushRoundKeyframe(label, detail) {
-  const safeLabel = String(label || '').trim();
-  const safeDetail = String(detail || '').trim();
-  if (!safeLabel || !safeDetail) return;
-  const duplicated = roundKeyframes.some(item => item.label === safeLabel && item.detail === safeDetail);
-  if (duplicated) return;
-  roundKeyframes.push({ label: safeLabel, detail: safeDetail });
-  if (roundKeyframes.length > 8) roundKeyframes = roundKeyframes.slice(-8);
+  roundStatsManager.recordKeyframe(label, detail);
 }
 
 // 检测高风险转向和失误前状态
@@ -1383,7 +1377,7 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
       lastTickMs = roundMeta.lastTickMs;
       speed = roundMeta.speed;
       combo = roundMeta.combo;
-      roundMaxCombo = roundMeta.roundMaxCombo;
+      roundStatsManager.setFromSnapshot(roundMeta);
       lastEatMs = roundMeta.lastEatMs;
       shields = roundMeta.shields;
       missionTarget = roundMeta.missionTarget;
@@ -1395,8 +1389,6 @@ const resetFlowRuntime = window.SnakeResetFlow.createResetFlowModule({
       phaseUntil = roundMeta.phaseUntil;
       magnetUntil = roundMeta.magnetUntil;
       comboGuardUntil = roundMeta.comboGuardUntil;
-      roundFoodsEaten = roundMeta.roundFoodsEaten;
-      roundKeyframes = roundMeta.roundKeyframes || [];
     },
     getShields: () => shields,
     getMissionTarget: () => missionTarget
@@ -1441,7 +1433,7 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
     getMode: () => mode,
     getLevel: () => level,
     getRemainingTime: () => remainingTime,
-    getRoundMaxCombo: () => roundMaxCombo,
+    getRoundMaxCombo: () => roundStatsManager.getMaxCombo(),
     getGamesPlayed: () => totalPlays,
     getFoodsEaten: () => foodsEaten,
     getSpectateCount: () => spectateCount,
@@ -1494,19 +1486,19 @@ const endgameFlowRuntime = window.SnakeEndgameFlow.createEndgameFlowModule({
         reason: reasonText,
         score: nextScore,
         mode,
-        maxCombo: roundMaxCombo,
-        roundFoods: roundFoodsEaten,
+        maxCombo: roundStatsManager.getMaxCombo(),
+        roundFoods: roundStatsManager.getFoodsEaten(),
         levelLabel: mode === 'endless' ? `L${level}` : '--',
         remainingTimeLabel: isTimerMode() ? `${Math.max(0, Math.ceil(remainingTime))}s` : '--',
         dlcText: getDlcStatusText(),
-        timeline: roundKeyframes
+        timeline: roundStatsManager.getTimeline()
       });
       // 结算卡片: 展示本局完整表现(数据均由 recap 采集, 零新增逻辑)
       const statChip = (icon, label, value) =>
         `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);border-radius:8px;padding:4px 10px;font-size:0.8rem;color:#a5f3fc;">${icon} ${label} <b style="color:#fff;">${value}</b></span>`;
       const chips = [
-        statChip('⚡', '最高连击', `x${roundMaxCombo}`),
-        statChip('🍎', '本局食物', String(roundFoodsEaten)),
+        statChip('⚡', '最高连击', `x${roundStatsManager.getMaxCombo()}`),
+        statChip('🍎', '本局食物', String(roundStatsManager.getFoodsEaten())),
         statChip('🧩', 'DLC', getDlcStatusText()),
         mode === 'endless' ? statChip('🎚', '关卡', `L${level}`) : '',
         isTimerMode() ? statChip('⏱', '剩余', `${Math.max(0, Math.ceil(remainingTime))}s`) : ''
@@ -1731,7 +1723,7 @@ function renderAchievementShowcase() {
   // Get current stats for progress calculation
   const currentStats = {
     bestScore: bestManager.getBestScore(),
-    highestCombo: roundMaxCombo,
+    highestCombo: roundStatsManager.getMaxCombo(),
     totalGames: totalPlays,
     totalFoodsEaten: foodsEaten,
     streakWins: streakWins,
@@ -2079,7 +2071,7 @@ function setupAchievementSearchSort() {
             if (body && window.achievementShowcaseRuntime) {
               const currentStats = {
                 bestScore: bestManager.getBestScore(),
-                highestCombo: roundMaxCombo,
+                highestCombo: roundStatsManager.getMaxCombo(),
                 totalGames: totalPlays,
                 totalFoodsEaten: foodsEaten,
                 streakWins: streakWins,
@@ -2110,7 +2102,7 @@ function setupAchievementSearchSort() {
             if (body && window.achievementShowcaseRuntime) {
               const currentStats = {
                 bestScore: bestManager.getBestScore(),
-                highestCombo: roundMaxCombo,
+                highestCombo: roundStatsManager.getMaxCombo(),
                 totalGames: totalPlays,
                 totalFoodsEaten: foodsEaten,
                 streakWins: streakWins,
@@ -2165,7 +2157,7 @@ function shareAchievementShowcase() {
 
   const currentStats = {
     bestScore: bestManager.getBestScore(),
-    highestCombo: roundMaxCombo,
+    highestCombo: roundStatsManager.getMaxCombo(),
     totalGames: totalPlays,
     totalFoodsEaten: foodsEaten,
     streakWins: streakWins,
@@ -2192,7 +2184,7 @@ function checkAndUnlockTitles() {
   const stats = {
     totalGames: totalPlays,
     bestScore: bestManager.getBestScore(),
-    highestCombo: roundMaxCombo,
+    highestCombo: roundStatsManager.getMaxCombo(),
     maxSurvivalTime: Math.floor((Date.now() - roundStartTime) / 1000),
     modeStats: {}
   };
@@ -3145,7 +3137,7 @@ function recordGameStats(result) {
   statisticsRuntime.recordGame({
     mode: mode,
     score: score,
-    combo: roundMaxCombo,
+    combo: roundStatsManager.getMaxCombo(),
     duration: Math.floor((Date.now() - roundStartTime) / 1000),
     result: result
   });
@@ -4462,18 +4454,19 @@ function update() {
     ate = true;
     addScore((10 + rogueScoreBonus) * scoreMultiplier, 'food');
     foodsEaten += 1;
-    roundFoodsEaten += 1;
+    roundStatsManager.recordFood();
     // Update daily task progress
     if (dailyTasksRuntime) {
-      const result = dailyTasksRuntime.updateTaskProgressByType('eatFood', roundFoodsEaten);
+      const result = dailyTasksRuntime.updateTaskProgressByType('eatFood', roundStatsManager.getFoodsEaten());
       if (result && result.completed) {
         unlockAchievement('firstTask', '完成首个每日任务');
         checkAllTasksCompleted();
       }
       refreshDailyTasksUI();
     }
-    if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
-      pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
+    const roundFoods = roundStatsManager.getFoodsEaten();
+      if (roundFoods === 1 || roundFoods === 5 || roundFoods === 10) {
+      pushRoundKeyframe('进食里程碑', `本局累计 ${roundStatsManager.getFoodsEaten()} 个`);
     }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
@@ -4492,9 +4485,10 @@ function update() {
     const bonusBase = dlcPack === 'frenzy' ? 40 : 30;
     addScore(bonusBase * scoreMultiplier, 'bonus');
     foodsEaten += 1;
-    roundFoodsEaten += 1;
-    if (roundFoodsEaten === 1 || roundFoodsEaten === 5 || roundFoodsEaten === 10) {
-      pushRoundKeyframe('进食里程碑', `本局累计 ${roundFoodsEaten} 个`);
+    roundStatsManager.recordFood();
+    const roundFoods = roundStatsManager.getFoodsEaten();
+      if (roundFoods === 1 || roundFoods === 5 || roundFoods === 10) {
+      pushRoundKeyframe('进食里程碑', `本局累计 ${roundStatsManager.getFoodsEaten()} 个`);
     }
     foodsEl.textContent = String(foodsEaten);
     saveLifetimeStats();
@@ -4653,10 +4647,10 @@ function update() {
     const eatDelta = lastEatMs ? now - lastEatMs : Infinity;
     const comboWindow = (hardcoreModeInput.checked ? 2000 : 3000) + rogueComboWindowBonus;
     combo = eatDelta <= comboWindow ? Math.min(combo + 1, 15) : 1;
-    roundMaxCombo = Math.max(roundMaxCombo, combo);
+    roundStatsManager.recordCombo(combo);
     // 检查首次连击里程碑
     if (window.SnakeFirstMilestone) {
-      window.SnakeFirstMilestone.checkComboMilestone(roundMaxCombo, (reward) => addScore(reward, 'comboMilestone'));
+      window.SnakeFirstMilestone.checkComboMilestone(roundStatsManager.getMaxCombo(), (reward) => addScore(reward, 'comboMilestone'));
     }
     // Update achieveCombo daily task progress
     if (dailyTasksRuntime) {

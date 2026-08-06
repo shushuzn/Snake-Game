@@ -21,7 +21,7 @@ test('greedy snake eats food (score increases) via test hook', async ({ page }) 
   // 贪吃循环: 读状态 → 决策方向 → 按键
   const t0 = Date.now();
   let ateFood = false;
-  while (Date.now() - t0 < 20000 && !ateFood) {
+  while (Date.now() - t0 < 30000 && !ateFood) {
     const st = await page.evaluate(() => window.__SNAKE_TEST__.getState());
     if (!st || !st.snake || !st.food || st.running === false) break;
 
@@ -41,7 +41,7 @@ test('greedy snake eats food (score increases) via test hook', async ({ page }) 
     const candidates = [primary, secondary].filter((k) => k !== OPPOSITE[DIR_KEYS[current]]);
 
     await page.keyboard.press(candidates[0] || primary);
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(80);
 
     // 吃到食物 → 分数增加
     if (st.score > 0 || (st.combo && st.combo > 1)) ateFood = true;

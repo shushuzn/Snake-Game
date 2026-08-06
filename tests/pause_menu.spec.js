@@ -5,7 +5,9 @@ test('pause menu shows and buttons work', async ({ page }) => {
   await page.goto('index.html');
   await page.waitForFunction(() => window.__SNAKE_MODULES_READY === true, null, { timeout: 15000 });
   await page.keyboard.press('ArrowRight'); // 开始
-  await page.waitForTimeout(800);
+  // 等待游戏真正开始(倒计时结束), 避免并行负载下时序脆弱
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('overlay')).display === 'none', null, { timeout: 4000 });
+  await page.waitForTimeout(300);
   await page.keyboard.press('KeyP'); // 暂停
 
   // 暂停菜单出现
@@ -30,7 +32,8 @@ test('pause menu shows and buttons work', async ({ page }) => {
 
   // 再暂停, 点静音(不报错)
   await page.keyboard.press('ArrowRight');
-  await page.waitForTimeout(500);
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('overlay')).display === 'none', null, { timeout: 4000 });
+  await page.waitForTimeout(300);
   await page.keyboard.press('KeyP');
   await page.waitForTimeout(300);
   await page.click('#pauseMuteBtn');
