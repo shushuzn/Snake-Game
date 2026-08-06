@@ -502,3 +502,6 @@ window.SnakeFirstMilestone = (() => {
     init
   };
 })();
+
+const SnakeFirstMilestone = window.SnakeFirstMilestone;
+export { SnakeFirstMilestone };

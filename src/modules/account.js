@@ -129,3 +129,6 @@ window.SnakeAccount = (() => {
 
   return { createAccountModule };
 })();
+
+const SnakeAccount = window.SnakeAccount;
+export { SnakeAccount };

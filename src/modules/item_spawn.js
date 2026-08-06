@@ -110,3 +110,6 @@ window.SnakeItemSpawn = (() => {
 
   return { createItemSpawnModule };
 })();
+
+const SnakeItemSpawn = window.SnakeItemSpawn;
+export { SnakeItemSpawn };

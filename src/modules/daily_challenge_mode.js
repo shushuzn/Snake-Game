@@ -352,3 +352,6 @@ window.SnakeDailyChallengeMode = (() => {
 
   return { createDailyChallengeMode };
 })();
+
+const SnakeDailyChallengeMode = window.SnakeDailyChallengeMode;
+export { SnakeDailyChallengeMode };

@@ -128,3 +128,6 @@
 
   window.SnakeNotifications = { createNotificationModule };
 })();
+
+const SnakeNotifications = window.SnakeNotifications;
+export { SnakeNotifications };

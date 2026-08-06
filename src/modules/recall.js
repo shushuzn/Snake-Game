@@ -310,3 +310,6 @@ window.SnakeRecall = (() => {
 
   return { createRecallModule };
 })();
+
+const SnakeRecall = window.SnakeRecall;
+export { SnakeRecall };

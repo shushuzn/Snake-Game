@@ -72,3 +72,6 @@ window.SnakePlayState = (() => {
 
   return { createPlayStateModule };
 })();
+
+const SnakePlayState = window.SnakePlayState;
+export { SnakePlayState };

@@ -169,3 +169,6 @@
     createQuickStartModule
   };
 })();
+
+const SnakeQuickStart = window.SnakeQuickStart;
+export { SnakeQuickStart };

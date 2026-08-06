@@ -82,3 +82,6 @@ window.SnakeRoundState = (() => {
 
   return { createRoundStateModule };
 })();
+
+const SnakeRoundState = window.SnakeRoundState;
+export { SnakeRoundState };

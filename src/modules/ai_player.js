@@ -704,3 +704,7 @@ window.SnakeAIBattle = (() => {
 
   return { createAIBattleController };
 })();
+
+const SnakeAIPlayer = window.SnakeAIPlayer;
+const SnakeAIBattle = window.SnakeAIBattle;
+export { SnakeAIPlayer, SnakeAIBattle };

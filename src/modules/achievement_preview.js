@@ -175,3 +175,6 @@
     createAchievementPreviewModule
   };
 })();
+
+const SnakeAchievementPreview = window.SnakeAchievementPreview;
+export { SnakeAchievementPreview };

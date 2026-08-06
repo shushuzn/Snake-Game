@@ -223,3 +223,6 @@ window.SnakeFriendsChallenge = (() => {
 
   return { createFriendsChallengeModule };
 })();
+
+const SnakeFriendsChallenge = window.SnakeFriendsChallenge;
+export { SnakeFriendsChallenge };

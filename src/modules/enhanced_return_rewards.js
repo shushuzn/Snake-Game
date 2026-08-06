@@ -181,3 +181,6 @@
     createEnhancedReturnRewardsModule
   };
 })();
+
+const SnakeEnhancedReturnRewards = window.SnakeEnhancedReturnRewards;
+export { SnakeEnhancedReturnRewards };

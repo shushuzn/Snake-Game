@@ -100,3 +100,6 @@
     createAchievementStatsModule
   };
 })();
+
+const SnakeAchievementStats = window.SnakeAchievementStats;
+export { SnakeAchievementStats };

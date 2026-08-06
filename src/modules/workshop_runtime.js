@@ -125,3 +125,6 @@ window.SnakeWorkshopRuntime = (() => {
 
   return { createWorkshopRuntime };
 })();
+
+const SnakeWorkshopRuntime = window.SnakeWorkshopRuntime;
+export { SnakeWorkshopRuntime };

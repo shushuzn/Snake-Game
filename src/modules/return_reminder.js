@@ -124,3 +124,6 @@
 
   window.SnakeReturnReminder = { createReturnReminderModule };
 })();
+
+const SnakeReturnReminder = window.SnakeReturnReminder;
+export { SnakeReturnReminder };

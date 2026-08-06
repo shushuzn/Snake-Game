@@ -341,3 +341,6 @@ window.SnakeAchievementShowcase = (() => {
 
   return { createAchievementShowcaseModule };
 })();
+
+const SnakeAchievementShowcase = window.SnakeAchievementShowcase;
+export { SnakeAchievementShowcase };

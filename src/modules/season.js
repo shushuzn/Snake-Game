@@ -361,3 +361,6 @@ window.SnakeSeason = (() => {
 
   return { createSeasonModule };
 })();
+
+const SnakeSeason = window.SnakeSeason;
+export { SnakeSeason };

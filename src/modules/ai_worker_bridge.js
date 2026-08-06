@@ -13,7 +13,7 @@ window.AIWorkerBridge = (() => {
   function init() {
     if (worker) return;
     
-    worker = new Worker(new URL('./workers/ai_worker.js', import.meta.url), { type: 'module' });
+    worker = new Worker(new URL('../workers/ai_worker.js', import.meta.url), { type: 'module' });
     
     worker.onmessage = function(e) {
       const { type, data, error } = e.data;
@@ -222,3 +222,6 @@ window.AIWorkerBridge = (() => {
 
   return { createAIPlayer, terminate };
 })();
+
+const AIWorkerBridge = window.AIWorkerBridge;
+export { AIWorkerBridge };

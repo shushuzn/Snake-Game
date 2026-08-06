@@ -57,3 +57,6 @@
     createAchievementDetailModule
   };
 })();
+
+const SnakeAchievementDetail = window.SnakeAchievementDetail;
+export { SnakeAchievementDetail };

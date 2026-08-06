@@ -68,3 +68,6 @@ window.SnakeRoundStatsManager = (() => {
 
   return { createModule };
 })();
+
+const SnakeRoundStatsManager = window.SnakeRoundStatsManager;
+export { SnakeRoundStatsManager };

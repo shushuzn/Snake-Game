@@ -195,3 +195,6 @@
     createChurnAnalyticsModule
   };
 })();
+
+const SnakeChurnAnalytics = window.SnakeChurnAnalytics;
+export { SnakeChurnAnalytics };

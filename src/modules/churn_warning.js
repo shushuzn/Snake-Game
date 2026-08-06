@@ -148,3 +148,6 @@
     createChurnWarningModule
   };
 })();
+
+const SnakeChurnWarning = window.SnakeChurnWarning;
+export { SnakeChurnWarning };

@@ -56,3 +56,6 @@ window.SnakeLoopTimers = (() => {
 
   return { createLoopTimersModule };
 })();
+
+const SnakeLoopTimers = window.SnakeLoopTimers;
+export { SnakeLoopTimers };

@@ -188,3 +188,6 @@ window.SnakeFriendsLeaderboard = (() => {
 
   return { createFriendsLeaderboardModule };
 })();
+
+const SnakeFriendsLeaderboard = window.SnakeFriendsLeaderboard;
+export { SnakeFriendsLeaderboard };

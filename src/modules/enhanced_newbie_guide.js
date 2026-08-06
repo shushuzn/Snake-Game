@@ -202,3 +202,6 @@
     createEnhancedNewbieGuideModule
   };
 })();
+
+const SnakeEnhancedNewbieGuide = window.SnakeEnhancedNewbieGuide;
+export { SnakeEnhancedNewbieGuide };

@@ -166,3 +166,6 @@
     createSeasonRewardsPreviewModule
   };
 })();
+
+const SnakeSeasonRewardsPreview = window.SnakeSeasonRewardsPreview;
+export { SnakeSeasonRewardsPreview };

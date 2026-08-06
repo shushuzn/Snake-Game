@@ -151,3 +151,6 @@
     createReturningGuideModule
   };
 })();
+
+const SnakeReturningGuide = window.SnakeReturningGuide;
+export { SnakeReturningGuide };

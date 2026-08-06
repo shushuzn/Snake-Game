@@ -131,3 +131,6 @@ window.SnakeChallenge = (() => {
 
   return { createChallengeModule };
 })();
+
+const SnakeChallenge = window.SnakeChallenge;
+export { SnakeChallenge };

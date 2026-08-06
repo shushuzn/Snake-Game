@@ -181,3 +181,6 @@
     createInGameHintsModule
   };
 })();
+
+const SnakeInGameHints = window.SnakeInGameHints;
+export { SnakeInGameHints };

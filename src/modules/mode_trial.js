@@ -144,3 +144,6 @@
     createModeTrialModule
   };
 })();
+
+const SnakeModeTrial = window.SnakeModeTrial;
+export { SnakeModeTrial };

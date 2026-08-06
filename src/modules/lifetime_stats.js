@@ -73,3 +73,6 @@ window.SnakeLifetimeStats = (() => {
 
   return { createModule };
 })();
+
+const SnakeLifetimeStats = window.SnakeLifetimeStats;
+export { SnakeLifetimeStats };

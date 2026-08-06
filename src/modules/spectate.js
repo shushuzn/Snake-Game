@@ -265,3 +265,6 @@ window.SnakeSpectate = (() => {
 
   return { createSpectateController };
 })();
+
+const SnakeSpectate = window.SnakeSpectate;
+export { SnakeSpectate };

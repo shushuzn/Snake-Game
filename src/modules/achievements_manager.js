@@ -101,3 +101,6 @@ window.SnakeAchievementsManager = (() => {
 
   return { createModule, ACHIEVEMENT_KEYS };
 })();
+
+const SnakeAchievementsManager = window.SnakeAchievementsManager;
+export { SnakeAchievementsManager };

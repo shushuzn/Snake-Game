@@ -104,3 +104,6 @@
 
   window.SnakeReturnCenter = { createReturnCenterModule };
 })();
+
+const SnakeReturnCenter = window.SnakeReturnCenter;
+export { SnakeReturnCenter };

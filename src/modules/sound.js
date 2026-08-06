@@ -134,3 +134,6 @@ window.SnakeSound = (() => {
 
   return { play, setEnabled, setVolume, isMuted, setMuted, toggleMuted, loadMuted, persistMuted };
 })();
+
+const SnakeSound = window.SnakeSound;
+export { SnakeSound };

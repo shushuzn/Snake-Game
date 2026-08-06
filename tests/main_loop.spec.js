@@ -2,8 +2,17 @@ const { test, expect } = require('@playwright/test');
 
 // 主循环 E2E：验证模块加载器接入后，游戏仍可正常启动 / 暂停 / 重开。
 // 这是 v1.27.0 注册表懒加载接入的安全网，任何破坏模块就绪或启动流程的回归都会在此暴露。
-test.describe('Snake Game main loop (registry-driven boot)', () => {
+test.describe('Snake Game main loop (ESM boot)', () => {
   const consoleErrors = [];
+
+  // ESM 就绪等价条件：关键模块全局已挂载（静态 import 完成后由 main.js 启动游戏）
+  async function waitModulesReady(page) {
+    await page.waitForFunction(() =>
+      typeof window.SnakeStorage === 'object' &&
+      typeof window.SnakeRender === 'object' &&
+      typeof window.SnakeInput === 'object'
+    , null, { timeout: 15000 });
+  }
 
   test.beforeEach(async ({ page }) => {
     consoleErrors.length = 0;
@@ -16,8 +25,8 @@ test.describe('Snake Game main loop (registry-driven boot)', () => {
   test('modules load via manifest and game boots', async ({ page }) => {
     await page.goto('index.html');
 
-    // 1) 模块加载器接入生效：清单存在且全部脚本注入完成
-    await page.waitForFunction(() => window.__SNAKE_MODULES_READY === true, null, { timeout: 15000 });
+    // 1) 模块加载完成：关键全局变量就绪（ESM 静态 import 保证顺序）
+    await waitModulesReady(page);
 
     // 2) 关键模块全局变量已就绪（证明 manifest 顺序正确、无遗漏）
     const globalsOk = await page.evaluate(() =>
@@ -34,7 +43,7 @@ test.describe('Snake Game main loop (registry-driven boot)', () => {
 
   test('arrow key starts the game (overlay hides)', async ({ page }) => {
     await page.goto('index.html');
-    await page.waitForFunction(() => window.__SNAKE_MODULES_READY === true, null, { timeout: 15000 });
+    await waitModulesReady(page);
 
     // 开局遮罩可见
     await expect(page.locator('#overlay')).toBeVisible();
@@ -48,7 +57,7 @@ test.describe('Snake Game main loop (registry-driven boot)', () => {
 
   test('pause toggles and restart does not crash', async ({ page }) => {
     await page.goto('index.html');
-    await page.waitForFunction(() => window.__SNAKE_MODULES_READY === true, null, { timeout: 15000 });
+    await waitModulesReady(page);
 
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#overlay')).toBeHidden({ timeout: 5000 });
@@ -69,7 +78,7 @@ test.describe('Snake Game main loop (registry-driven boot)', () => {
 
   test('no console errors during main loop', async ({ page }) => {
     await page.goto('index.html');
-    await page.waitForFunction(() => window.__SNAKE_MODULES_READY === true, null, { timeout: 15000 });
+    await waitModulesReady(page);
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(1000);
     expect(consoleErrors).toEqual([]);

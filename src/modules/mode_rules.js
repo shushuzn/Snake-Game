@@ -44,3 +44,6 @@ window.SnakeModeRules = (() => {
 
   return { createModeRulesModule };
 })();
+
+const SnakeModeRules = window.SnakeModeRules;
+export { SnakeModeRules };

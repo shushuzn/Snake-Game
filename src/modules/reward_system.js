@@ -182,3 +182,6 @@
 
   window.SnakeRewardSystem = { createRewardSystemModule, DEFAULT_RULES };
 })();
+
+const SnakeRewardSystem = window.SnakeRewardSystem;
+export { SnakeRewardSystem };

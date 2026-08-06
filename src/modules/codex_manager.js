@@ -87,3 +87,6 @@ window.SnakeCodexManager = (() => {
 
   return { createModule, codexCatalog };
 })();
+
+const SnakeCodexManager = window.SnakeCodexManager;
+export { SnakeCodexManager };

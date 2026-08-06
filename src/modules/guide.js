@@ -495,3 +495,6 @@ window.SnakeGuide = (() => {
     PHASE_CONFIG
   };
 })();
+
+const SnakeGuide = window.SnakeGuide;
+export { SnakeGuide };

@@ -116,3 +116,6 @@ window.SnakeEndgameFlow = (() => {
 
   return { createEndgameFlowModule };
 })();
+
+const SnakeEndgameFlow = window.SnakeEndgameFlow;
+export { SnakeEndgameFlow };

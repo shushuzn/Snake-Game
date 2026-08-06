@@ -95,3 +95,6 @@ window.SnakeBestManager = (() => {
 
   return { createModule };
 })();
+
+const SnakeBestManager = window.SnakeBestManager;
+export { SnakeBestManager };

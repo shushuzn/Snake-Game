@@ -40,3 +40,6 @@ window.AIEngineSelector = (() => {
 
   return { createAIPlayer, isUsingWorker, getSupportedEngines };
 })();
+
+const AIEngineSelector = window.AIEngineSelector;
+export { AIEngineSelector };

@@ -108,3 +108,6 @@ window.SnakeEvents = (() => {
 
   return { createEventsModule };
 })();
+
+const SnakeEvents = window.SnakeEvents;
+export { SnakeEvents };

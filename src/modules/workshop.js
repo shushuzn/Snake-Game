@@ -182,3 +182,6 @@
 
   global.SnakeWorkshop = { createWorkshopModule };
 })(window);
+
+const SnakeWorkshop = window.SnakeWorkshop;
+export { SnakeWorkshop };

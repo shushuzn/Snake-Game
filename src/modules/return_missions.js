@@ -214,3 +214,6 @@
 
   window.SnakeReturnMissions = { createReturnMissionsModule };
 })();
+
+const SnakeReturnMissions = window.SnakeReturnMissions;
+export { SnakeReturnMissions };

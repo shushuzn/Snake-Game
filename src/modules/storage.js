@@ -78,3 +78,6 @@ window.SnakeStorage = (() => {
 
   return { createStorageModule };
 })();
+
+const SnakeStorage = window.SnakeStorage;
+export { SnakeStorage };

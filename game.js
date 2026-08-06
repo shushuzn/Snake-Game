@@ -1,3 +1,47 @@
+import {
+  GAME_VERSION,
+  GRID_SIZE as gridSize,
+  TIMED_MODE_DURATION as timedModeDuration,
+  BLITZ_MODE_DURATION as blitzModeDuration,
+  SETTINGS_KEY as settingsKey,
+  SETTINGS_SCHEMA_VERSION as settingsSchemaVersion,
+  STATS_KEY as statsKey,
+  AUDIO_KEY as audioKey,
+  VOLUME_KEY as volumeKey,
+  BEST_BY_MODE_KEY as bestByModeKey,
+  ACHIEVEMENTS_KEY as achievementsKey,
+  LAST_RESULT_KEY as lastResultKey,
+  HISTORY_KEY as historyKey,
+  CODEX_KEY as codexKey,
+  ENDLESS_BEST_LEVEL_KEY as endlessBestLevelKey,
+  ACCOUNT_STORE_KEY as accountStoreKey,
+  CURRENT_ACCOUNT_KEY as currentAccountKey,
+  ROGUE_META_KEY as rogueMetaKey,
+  ONBOARDING_KEY as onboardingKey,
+  CUSTOM_ROCKS_KEY as customRocksKey,
+  LEADERBOARD_KEY as leaderboardKey,
+  SEASON_META_KEY as seasonMetaKey,
+  RECAP_KEY as recapKey,
+  GUIDE_KEY as guideKey,
+  ACTIVE_TAB_KEY as activeTabKey,
+  DEFAULT_TAB_NAME as defaultTabName,
+  VALID_MODES as validModes,
+  VALID_DIFFICULTIES as validDifficulties,
+  VALID_DLC_PACKS as validDlcPacks,
+  DLC_META as dlcMeta,
+  isValidModeValue,
+  isValidDifficultyValue,
+  isValidDlcPackValue,
+  isValidSwipeThresholdValue
+} from './src/game/config.js';
+import {
+  encodeRocks,
+  encodeMapPayload,
+  checksumMapPayload,
+  getMapRiskLevel,
+  getRecommendedModeByCoverage
+} from './src/game/utils.js';
+
 function bootSnakeGame() {
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -174,81 +218,10 @@ const shareScoreBtn = document.getElementById('shareScore');
 const shareAchievementBtn = document.getElementById('shareAchievement');
 const titlesListEl = document.getElementById('titlesList');
 
-const GAME_VERSION = '1.55.0';
-const gridSize = 20;
 const tileCount = canvas.width / gridSize;
-const timedModeDuration = 60;
-const blitzModeDuration = 45;
+
 const missionOptions = SnakeModes.missionOptions;
-const settingsKey = 'snake-settings-v2';
-const settingsSchemaVersion = 3;
-const statsKey = 'snake-stats-v1';
-const audioKey = 'snake-audio-v1';
-const volumeKey = 'snake-volume-v1';
-const bestByModeKey = 'snake-best-by-mode-v1';
-const achievementsKey = 'snake-achievements-v1';
-const lastResultKey = 'snake-last-result-v1';
-const historyKey = 'snake-history-v1';
-const codexKey = 'snake-codex-v1';
-const endlessBestLevelKey = 'snake-endless-best-level-v1';
-const accountStoreKey = 'snake-accounts-v1';
-const currentAccountKey = 'snake-current-account-v1';
-const rogueMetaKey = 'snake-roguelike-meta-v1';
-const onboardingKey = 'snake-onboarding-v1';
-const customRocksKey = 'snake-custom-rocks-v1';
-const leaderboardKey = 'snake-leaderboard-v1';
-const seasonMetaKey = 'snake-season-meta-v1';
-const recapKey = 'snake-recap-v1';
-const guideKey = 'snake-guide-v1';
-const activeTabKey = 'snake-active-tab-v1';
-const defaultTabName = 'game';
 let tabsInitialized = false;
-
-const validModes = ['classic', 'timed', 'blitz', 'endless', 'roguelike', 'ai-battle', 'multiplayer', 'spectate', 'daily-challenge'];
-const validDifficulties = ['140', '110', '80'];
-const validDlcPacks = ['none', 'frenzy', 'guardian', 'chrono'];
-const dlcMeta = {
-  none: {
-    hudText: '关闭',
-    summary: '未启用扩展规则',
-    risk: '无额外风险',
-    reward: '基础平衡体验'
-  },
-  frenzy: {
-    hudText: '狂热（奖励果+10，刷新更频繁）',
-    summary: '道具刷新更快，节奏更激进',
-    risk: '护盾上限降为 1，容错显著下降',
-    reward: '更高分数上限与爆发收益'
-  },
-  guardian: {
-    hudText: '守护（开局护盾+1）',
-    summary: '开局提供额外护盾，稳定推进',
-    risk: '前中期收益更稳但爆发较弱',
-    reward: '容错提升，任务/连胜更稳'
-  },
-  chrono: {
-    hudText: '时序（限时开局+8秒）',
-    summary: '限时类模式时间收益更突出',
-    risk: '更依赖节奏把控，拖节奏会亏时机',
-    reward: '计时模式可获得更长输出窗口'
-  }
-};
-
-function isValidModeValue(value) {
-  return validModes.includes(String(value));
-}
-
-function isValidDifficultyValue(value) {
-  return validDifficulties.includes(String(value));
-}
-
-function isValidDlcPackValue(value) {
-  return validDlcPacks.includes(String(value));
-}
-
-function isValidSwipeThresholdValue(value) {
-  return ['12', '18', '24', '32'].includes(String(value));
-}
 
 function saveActiveTab(tabName) {
   try {
@@ -3375,7 +3348,8 @@ function maybeShowOnboarding() {
   if (storage.readText(onboardingKey) === '1') return;
   toggleHelp(true);
   showOverlay('<p><strong>欢迎来到贪吃蛇</strong></p><p>先看帮助面板，再按方向键开局</p>');
-  setTimeout(() => { if (!running || paused) hideOverlay(); }, 1400);
+  // 注意：不在此设置 hideOverlay 定时器——resetGame(true) 会立即接管
+  // 显示 start-screen，定时器会把 start-screen 误隐藏（既有 bug，已修复）。
   storage.writeText(onboardingKey, '1');
 }
 
@@ -3448,22 +3422,6 @@ function parseRockEditorText(raw) {
   return normalizeRockList(parsed);
 }
 
-function encodeRocks(rockList) {
-  return rockList.map(item => `${item.x},${item.y}`).join('\n');
-}
-
-function encodeMapPayload(rockList) {
-  return rockList.map(item => `${item.x},${item.y}`).join(';');
-}
-
-function checksumMapPayload(payload) {
-  let acc = 7;
-  for (let i = 0; i < payload.length; i += 1) {
-    acc = (acc * 131 + payload.charCodeAt(i)) % 104729;
-  }
-  return acc.toString(36).toUpperCase();
-}
-
 function encodeMapCode(rockList) {
   const normalized = normalizeRockList(rockList);
   const payload = encodeMapPayload(normalized);
@@ -3503,18 +3461,6 @@ function parseRocksFromInput(raw) {
     return { rocks: parsedMap.rocks, mode: 'mapCode' };
   }
   return { rocks: parseRockEditorText(text), mode: 'coords' };
-}
-
-function getMapRiskLevel(coveragePercent) {
-  if (coveragePercent >= 14) return '高';
-  if (coveragePercent >= 8) return '中';
-  return '低';
-}
-
-function getRecommendedModeByCoverage(coveragePercent) {
-  if (coveragePercent >= 14) return '经典/限时（谨慎）';
-  if (coveragePercent >= 8) return '经典/肉鸽';
-  return '经典/无尽';
 }
 
 function refreshMapSummary(rockList = customRocks) {
@@ -4362,7 +4308,9 @@ function update() {
     if (!hardcoreModeInput.checked && shields > 0) {
       shields -= 1;
       shieldEl.textContent = String(shields);
+      if (renderer && renderer.burst) renderer.burst(head.x, head.y, '#38bdf8', 10, 1.2);
     } else {
+      if (renderer && renderer.burst) renderer.burst(head.x, head.y, '#ff5c7a', 22, 1.8);
       return endGame('💥 撞到了！');
     }
   }
@@ -5446,9 +5394,7 @@ settingsRuntime.setCurrentSkin(skinSelect.value);
   }
 }
 
-// 模块加载完成后再启动游戏。ModuleLoader.bootstrap 会派发 snake:modules-ready。
-if (window.__SNAKE_MODULES_READY) {
-  bootSnakeGame();
-} else {
-  window.addEventListener('snake:modules-ready', bootSnakeGame, { once: true });
-}
+// 模块加载完成后再启动游戏。
+// 旧机制：ModuleLoader.bootstrap 派发 snake:modules-ready 事件。
+// 新机制（ESM）：src/main.js 静态 import 全部模块后直接调用 bootSnakeGame()。
+export { bootSnakeGame };

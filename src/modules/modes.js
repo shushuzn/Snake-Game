@@ -159,3 +159,6 @@
     getModeLabel
   };
 })(window);
+
+const SnakeModes = window.SnakeModes;
+export { SnakeModes };

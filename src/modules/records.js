@@ -103,3 +103,6 @@ window.SnakeRecords = (() => {
 
   return { createRecordsModule };
 })();
+
+const SnakeRecords = window.SnakeRecords;
+export { SnakeRecords };

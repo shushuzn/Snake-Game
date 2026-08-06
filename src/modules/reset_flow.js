@@ -32,3 +32,6 @@ window.SnakeResetFlow = (() => {
 
   return { createResetFlowModule };
 })();
+
+const SnakeResetFlow = window.SnakeResetFlow;
+export { SnakeResetFlow };

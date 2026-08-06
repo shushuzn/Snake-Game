@@ -59,3 +59,6 @@
 
   global.SnakeSettlement = { createSettlementModule };
 })(window);
+
+const SnakeSettlement = window.SnakeSettlement;
+export { SnakeSettlement };

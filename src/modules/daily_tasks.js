@@ -224,3 +224,6 @@ window.SnakeDailyTasks = (() => {
 
   return { createDailyTasksModule };
 })();
+
+const SnakeDailyTasks = window.SnakeDailyTasks;
+export { SnakeDailyTasks };

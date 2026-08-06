@@ -579,3 +579,6 @@ window.SnakeLevelUnlock = (() => {
     refreshAll
   };
 })();
+
+const SnakeLevelUnlock = window.SnakeLevelUnlock;
+export { SnakeLevelUnlock };

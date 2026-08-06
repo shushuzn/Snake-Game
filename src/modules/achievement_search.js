@@ -84,3 +84,6 @@
     createAchievementSearchModule
   };
 })();
+
+const SnakeAchievementSearch = window.SnakeAchievementSearch;
+export { SnakeAchievementSearch };

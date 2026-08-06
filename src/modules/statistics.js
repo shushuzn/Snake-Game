@@ -238,3 +238,6 @@ window.SnakeStatistics = (() => {
 
   return { createStatisticsModule };
 })();
+
+const SnakeStatistics = window.SnakeStatistics;
+export { SnakeStatistics };

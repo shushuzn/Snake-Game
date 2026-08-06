@@ -97,3 +97,6 @@
     createInputController
   };
 })(window);
+
+const SnakeInput = window.SnakeInput;
+export { SnakeInput };

@@ -153,3 +153,6 @@
     createPersonalizedAchievementsModule
   };
 })();
+
+const SnakePersonalizedAchievements = window.SnakePersonalizedAchievements;
+export { SnakePersonalizedAchievements };

@@ -10,12 +10,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html')
-      },
-      output: {
-        manualChunks: {
-          'ai-core': ['src/modules/ai_player.js'],
-          'game-modules': ['game.js']
-        }
       }
     }
   },

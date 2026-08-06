@@ -161,3 +161,6 @@
 
   window.SnakeAchievementToast = { createAchievementToastModule };
 })();
+
+const SnakeAchievementToast = window.SnakeAchievementToast;
+export { SnakeAchievementToast };

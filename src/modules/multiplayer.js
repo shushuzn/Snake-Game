@@ -369,3 +369,6 @@ window.SnakeMultiplayer = (() => {
 
   return { createMultiplayerController };
 })();
+
+const SnakeMultiplayer = window.SnakeMultiplayer;
+export { SnakeMultiplayer };

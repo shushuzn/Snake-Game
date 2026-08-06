@@ -109,3 +109,6 @@ window.SnakeRogueManager = (() => {
 
   return { createModule };
 })();
+
+const SnakeRogueManager = window.SnakeRogueManager;
+export { SnakeRogueManager };

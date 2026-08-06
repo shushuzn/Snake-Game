@@ -332,3 +332,6 @@ window.SnakeShop = (() => {
 
   return { createShopModule };
 })();
+
+const SnakeShop = window.SnakeShop;
+export { SnakeShop };

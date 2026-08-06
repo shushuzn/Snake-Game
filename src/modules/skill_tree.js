@@ -539,3 +539,6 @@ window.SnakeSkillTree = (() => {
     ALL_SKILLS
   };
 })();
+
+const SnakeSkillTree = window.SnakeSkillTree;
+export { SnakeSkillTree };

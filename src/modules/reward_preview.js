@@ -190,3 +190,6 @@
 
   window.SnakeRewardPreview = { createRewardPreviewModule };
 })();
+
+const SnakeRewardPreview = window.SnakeRewardPreview;
+export { SnakeRewardPreview };

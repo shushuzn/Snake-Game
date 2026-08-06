@@ -283,3 +283,6 @@ window.SnakeReplay = (() => {
     deleteReplay
   };
 })();
+
+const SnakeReplay = window.SnakeReplay;
+export { SnakeReplay };

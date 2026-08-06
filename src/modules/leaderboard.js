@@ -224,3 +224,6 @@ window.SnakeLeaderboard = (() => {
 
   return { createLeaderboardModule };
 })();
+
+const SnakeLeaderboard = window.SnakeLeaderboard;
+export { SnakeLeaderboard };

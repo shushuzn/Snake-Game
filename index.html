@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>贪吃蛇游戏</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -78,10 +84,10 @@
           <button id="quickStart" type="button" class="secondary">⚡</button>
           <div style="position:relative; display:inline-block;">
             <button id="moreMenuBtn" type="button" class="secondary">⋯</button>
-            <div id="moreMenuDropdown" style="display:none; position:absolute; right:0; top:100%; background:#1a1a2e; border:1px solid #444; border-radius:8px; padding:8px 0; min-width:140px; z-index:100;">
-              <button id="showReturnCenter" type="button" style="display:block; width:100%; padding:8px 12px; border:none; background:none; color:#fff; text-align:left; cursor:pointer;">🎁 回流中心</button>
-              <button id="showReturnMissions" type="button" style="display:block; width:100%; padding:8px 12px; border:none; background:none; color:#fff; text-align:left; cursor:pointer;">📋 回流任务</button>
-              <button id="showSeasonChallenges" type="button" style="display:block; width:100%; padding:8px 12px; border:none; background:none; color:#fff; text-align:left; cursor:pointer;">🏆 赛季挑战</button>
+            <div id="moreMenuDropdown" style="display:none; position:absolute; right:0; top:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:8px 0; min-width:140px; z-index:100; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+              <button id="showReturnCenter" type="button" style="display:block; width:100%; padding:8px 12px; border:none; background:none; color:var(--text); text-align:left; cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--accent-dim)'" onmouseleave="this.style.background='none'">🎁 回流中心</button>
+              <button id="showReturnMissions" type="button" style="display:block; width:100%; padding:8px 12px; border:none; background:none; color:var(--text); text-align:left; cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--accent-dim)'" onmouseleave="this.style.background='none'">📋 回流任务</button>
+              <button id="showSeasonChallenges" type="button" style="display:block; width:100%; padding:8px 12px; border:none; background:none; color:var(--text); text-align:left; cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--accent-dim)'" onmouseleave="this.style.background='none'">🏆 赛季挑战</button>
             </div>
           </div>
         </div>
@@ -318,17 +324,17 @@
               <div class="stat-label">成就完成</div>
             </div>
             <!-- 成就详情弹窗 -->
-            <div id="achievementDetailModal" class="achievement-detail-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a1a2e; border:2px solid #f59e0b; border-radius:12px; padding:20px; z-index:1000; max-width:300px; width:90%;">
+            <div id="achievementDetailModal" class="achievement-detail-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--surface-2); border:2px solid var(--warn); border-radius:12px; padding:20px; z-index:1000; max-width:300px; width:90%; box-shadow:0 12px 48px rgba(0,0,0,0.6);">
               <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 id="detailTitle" style="margin:0; color:#f59e0b;">成就详情</h3>
-                <button id="closeDetailModal" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">×</button>
+                <h3 id="detailTitle" style="margin:0; color:var(--warn);">成就详情</h3>
+                <button id="closeDetailModal" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">×</button>
               </div>
-              <div id="detailContent" style="color:#fff;">
+              <div id="detailContent" style="color:var(--text);">
                 <p id="detailDescription" style="margin:0 0 10px;"></p>
-                <div style="background:#0f0f1a; border-radius:8px; padding:10px; margin-bottom:10px;">
+                <div style="background:var(--surface-1); border-radius:8px; padding:10px; margin-bottom:10px;">
                   <div id="detailProgress" style="font-size:14px;"></div>
                 </div>
-                <p id="detailTips" style="color:#9ca3af; font-size:13px; margin:0;"></p>
+                <p id="detailTips" style="color:var(--muted); font-size:13px; margin:0;"></p>
               </div>
             </div>
           <h3>模式偏好</h3>
@@ -636,29 +642,7 @@
 
     </main>
 
-    <!-- Core Infrastructure -->
-    <script src="src/modules/moduleRegistry.js"></script>
-    <script src="src/modules/moduleLoader.js"></script>
-    
-    <!-- MODULES START (module list driven by src/modules/manifest.js via ModuleLoader.bootstrap) -->
-    <script src="src/modules/manifest.js"></script>
-    <script>
-      (function () {
-        function boot() {
-          ModuleLoader.bootstrap(window.SNAKE_MODULE_MANIFEST, {
-            lazy: window.SNAKE_LAZY_MODULES || []
-          }).catch(function (e) {
-            console.error('[bootstrap] fatal', e);
-          });
-        }
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', boot);
-        } else {
-          boot();
-        }
-      })();
-    </script>
-  <!-- MODULES END -->
-    <script src="game.js"></script>
+    <!-- ESM 入口：Vite 打包，模块依赖顺序由 import 图保证 -->
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>

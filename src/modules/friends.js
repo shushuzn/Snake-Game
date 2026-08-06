@@ -155,3 +155,6 @@ window.SnakeFriends = (() => {
 
   return { createFriendsModule };
 })();
+
+const SnakeFriends = window.SnakeFriends;
+export { SnakeFriends };

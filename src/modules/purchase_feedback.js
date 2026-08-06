@@ -113,3 +113,6 @@
 
   window.SnakePurchaseFeedback = { createPurchaseFeedbackModule };
 })();
+
+const SnakePurchaseFeedback = window.SnakePurchaseFeedback;
+export { SnakePurchaseFeedback };

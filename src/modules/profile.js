@@ -65,3 +65,6 @@ window.SnakeProfile = (() => {
 
   return { createProfileModule };
 })();
+
+const SnakeProfile = window.SnakeProfile;
+export { SnakeProfile };

@@ -94,3 +94,6 @@ window.SnakeEffectTimer = (() => {
 
   return { createEffectTimerModule };
 })();
+
+const SnakeEffectTimer = window.SnakeEffectTimer;
+export { SnakeEffectTimer };

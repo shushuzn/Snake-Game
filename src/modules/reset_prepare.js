@@ -47,3 +47,6 @@ window.SnakeResetPrepare = (() => {
 
   return { createResetPrepareModule };
 })();
+
+const SnakeResetPrepare = window.SnakeResetPrepare;
+export { SnakeResetPrepare };

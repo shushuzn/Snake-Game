@@ -548,3 +548,6 @@ window.SnakeTitles = (() => {
 
   return { createTitlesModule };
 })();
+
+const SnakeTitles = window.SnakeTitles;
+export { SnakeTitles };

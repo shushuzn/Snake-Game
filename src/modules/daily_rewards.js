@@ -196,3 +196,6 @@ window.SnakeDailyRewards = (() => {
 
   return { createDailyRewardsModule };
 })();
+
+const SnakeDailyRewards = window.SnakeDailyRewards;
+export { SnakeDailyRewards };

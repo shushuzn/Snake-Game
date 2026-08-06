@@ -184,3 +184,6 @@ window.SnakeSettings = (() => {
 
   return { createSettingsModule };
 })();
+
+const SnakeSettings = window.SnakeSettings;
+export { SnakeSettings };

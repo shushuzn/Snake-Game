@@ -63,3 +63,6 @@ window.SnakeRecap = (() => {
 
   return { createRecapModule };
 })();
+
+const SnakeRecap = window.SnakeRecap;
+export { SnakeRecap };
