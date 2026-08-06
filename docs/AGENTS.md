@@ -89,6 +89,13 @@ END:AGENTS:CONFIG -->
 - 核心流程失败次数
 - 高风险模块改动频率
 
+## 工程防复发规则（promoted from .learnings/）
+
+- **测试验证**: 全量 E2E 默认 `--project=chromium`（firefox 的 server_integration 联调用例是 file:// 跨源 fetch 环境问题，会挂起拖垮全量任务；firefox 单独跑需 `--grep-invert "leaderboard connects to backend"`）。
+- **git 安全**: 禁止用 `git stash` 作临时备份（pop 失败会损坏工作区与对象库）。临时切换工作区用 `git worktree` 或独立分支 commit。push 失败先 `git rev-list --objects <parent>..HEAD` 逐对象校验，缺 blob 用 `git hash-object -w` 补齐。
+- **引用审计**: 统计代码引用一律用子串计数（`src.split(name).length-1`），禁止在 bash 双引号里构造正则（`new RegExp('\\b')` 会退化为退格字符）。
+- **状态域迁移方法学**: 见 `docs/architecture/gamejs-refactor.md`（周边域→效果计时域→核心玩法域的渐进顺序 + Node vm 沙箱模拟 + 双保险全量验证）。
+
 ========================================
 每轮必须评估
 ========================================
