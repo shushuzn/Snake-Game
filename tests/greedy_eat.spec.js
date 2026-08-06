@@ -18,9 +18,10 @@ test('greedy snake eats food (score increases) via test hook', async ({ page }) 
   await page.keyboard.press('ArrowRight');
   await page.waitForFunction(() => getComputedStyle(document.getElementById('overlay')).display === 'none', null, { timeout: 4000 });
 
-  // 贪吃循环: 读状态 → 决策方向 → 按键
+  // 贪吃循环: 读状态 → 避障决策 → 按键
   const t0 = Date.now();
   let ateFood = false;
+  const bodyKeys = new Set();
   while (Date.now() - t0 < 30000 && !ateFood) {
     const st = await page.evaluate(() => window.__SNAKE_TEST__.getState());
     if (!st || !st.snake || !st.food || st.running === false) break;
@@ -31,7 +32,13 @@ test('greedy snake eats food (score increases) via test hook', async ({ page }) 
     const dx = st.food.x - head.x;
     const dy = st.food.y - head.y;
 
-    // 优先对齐较大的坐标差, 且不选掉头方向
+    // 身体占用格(蛇尾会移动, 排除最后 2 节更宽容)
+    bodyKeys.clear();
+    for (let i = 2; i < st.snake.length; i++) {
+      bodyKeys.add(`${st.snake[i].x},${st.snake[i].y}`);
+    }
+
+    // 优先对齐较大的坐标差, 且不选掉头方向、不撞身体
     const primary = Math.abs(dx) > Math.abs(dy)
       ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft')
       : (dy > 0 ? 'ArrowDown' : 'ArrowUp');
@@ -40,11 +47,17 @@ test('greedy snake eats food (score increases) via test hook', async ({ page }) 
       : (dx > 0 ? 'ArrowRight' : 'ArrowLeft');
     const candidates = [primary, secondary].filter((k) => k !== OPPOSITE[DIR_KEYS[current]]);
 
-    await page.keyboard.press(candidates[0] || primary);
+    // 选择目标格未被身体占用的方向
+    const safeMove = candidates.find((k) => {
+      const nx = head.x + (k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0);
+      const ny = head.y + (k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0);
+      return !bodyKeys.has(`${nx},${ny}`);
+    });
+
+    await page.keyboard.press(safeMove || candidates[0] || primary);
     await page.waitForTimeout(80);
 
     // 吃到食物 → 分数增加
-    if (st.score > 0 || (st.combo && st.combo > 1)) ateFood = true;
     if (st.score > 0) ateFood = true;
   }
 

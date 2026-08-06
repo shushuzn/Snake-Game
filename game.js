@@ -602,14 +602,14 @@ const friendsLeaderboardRuntimeLazy = LazyInit.create('friendsLeaderboardRuntime
   window.SnakeFriendsLeaderboard.createFriendsLeaderboardModule({
     storage,
     friendsRuntime: friendsRuntimeLazy.get(),
-    getCurrentUser: () => ({ username: activeAccount || '我', bestScore: bestManager.getBestScore() })
+    getCurrentUser: () => ({ username: accountRuntime.getActiveAccount() || '我', bestScore: bestManager.getBestScore() })
   })
 );
 
 const friendsChallengeRuntimeLazy = LazyInit.create('friendsChallengeRuntime', () => 
   window.SnakeFriendsChallenge.createFriendsChallengeModule({
     storage,
-    getCurrentPlayerId: () => activeAccount || 'self'
+    getCurrentPlayerId: () => accountRuntime.getActiveAccount() || 'self'
   })
 );
 
@@ -721,7 +721,7 @@ const statisticsRuntime = window.SnakeStatistics.createStatisticsModule({ storag
 // 初始化个人资料系统
 const profileRuntime = window.SnakeProfile.createProfileModule({ 
   storage, 
-  getActiveAccount: () => activeAccount 
+  getActiveAccount: () => accountRuntime.getActiveAccount() 
 });
 
 // 初始化称号系统
@@ -732,8 +732,6 @@ const achievementShowcaseRuntime = window.SnakeAchievementShowcase.createAchieve
 
 let dlcPack = 'none';
 const settlement = window.SnakeSettlement.createSettlementModule({ settlementListEl });
-let activeAccount = '';
-let accountStore = {};
 let roguePerks = 0;
 let rogueMutatorLabel = '--';
 let rogueSpeedDelta = 0;
@@ -923,12 +921,6 @@ function reloadAllFromStorage() {
 const accountRuntime = window.SnakeAccount.createAccountModule({
   storage,
   keys: { accountStoreKey, currentAccountKey },
-  state: {
-    getActiveAccount: () => activeAccount,
-    setActiveAccount: (value) => { activeAccount = value; },
-    getAccountStore: () => accountStore,
-    setAccountStore: (value) => { accountStore = value; }
-  },
   callbacks: {
     captureProfileSnapshot,
     applyProfileSnapshot,
@@ -2544,7 +2536,7 @@ function refreshChallengesUI() {
     activeChallengesEl.innerHTML = '<p class="tips">暂无进行中的挑战</p>';
   } else {
     const html = activeChallenges.map(challenge => {
-      const isChallenger = challenge.challengerId === (activeAccount || 'self');
+      const isChallenger = challenge.challengerId === (accountRuntime.getActiveAccount() || 'self');
       const statusClass = challenge.status;
       const statusText = challenge.status === 'pending' ? '等待接受' : '进行中';
       
@@ -2577,7 +2569,7 @@ function refreshChallengesUI() {
     challengeHistoryEl.innerHTML = '<p class="tips">暂无挑战记录</p>';
   } else {
     const html = history.map(challenge => {
-      const isWinner = challenge.winnerId === (activeAccount || 'self');
+      const isWinner = challenge.winnerId === (accountRuntime.getActiveAccount() || 'self');
       const isTie = challenge.winnerId === null;
       const statusClass = isWinner ? 'won' : isTie ? '' : 'lost';
       const statusText = isWinner ? '胜利' : isTie ? '平局' : '失败';
