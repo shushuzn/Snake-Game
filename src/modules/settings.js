@@ -27,6 +27,16 @@ window.SnakeSettings = (() => {
     let obstacleModePreference = controls.obstacleModeInput.checked;
     // B1b-2 迁移: 当前皮肤状态
     let currentSkin = 'classic-green';
+    // B2c 迁移: 当前每日挑战 (初始由 game.js 在初始化时 setCurrentChallenge)
+    let currentChallenge = null;
+
+    function getCurrentChallenge() {
+      return currentChallenge;
+    }
+
+    function setCurrentChallenge(value) {
+      currentChallenge = value;
+    }
 
     function getSkinThemes() {
       return skinThemes;
@@ -161,6 +171,8 @@ window.SnakeSettings = (() => {
       getCurrentSkin,
       setCurrentSkin,
       isValidSkin,
+      getCurrentChallenge,
+      setCurrentChallenge,
       applyContrastMode,
       applyLightMode,
       applyMiniHudMode,

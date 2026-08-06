@@ -660,7 +660,6 @@ let freezeUntil = 0;
 let phaseUntil = 0;
 let magnetUntil = 0;
 let comboGuardUntil = 0;
-let currentChallenge = SnakeModes.dailyChallengeOptions[0];
 
 // AI对战模式变量
 let aiBattleController = null;
@@ -689,14 +688,14 @@ const challengeRuntime = window.SnakeChallenge.createChallengeModule({
   controls: { modeSelect, obstacleModeInput },
   runtime: {
     isRunning: () => running,
-    getCurrentChallenge: () => currentChallenge,
+    getCurrentChallenge: () => settingsRuntime.getCurrentChallenge(),
     getModePreference: () => settingsRuntime.getModePreference(),
     setModePreference: (value) => settingsRuntime.setModePreference(value),
     syncMode: (value) => { mode = value; },
     getObstacleModePreference: () => settingsRuntime.getObstacleModePreference(),
     setObstacleModePreference: (value) => settingsRuntime.setObstacleModePreference(value)
   },
-  setCurrentChallenge: (value) => { currentChallenge = value; }
+  setCurrentChallenge: (value) => settingsRuntime.setCurrentChallenge(value)
 });
 
 // 初始化每日签到系统
@@ -840,7 +839,7 @@ function renderDlcComparePanel() {
 }
 
 function getChallengeScoreFactor() {
-  const rawFactor = Number(currentChallenge?.scoreFactor || 1);
+  const rawFactor = Number(settingsRuntime.getCurrentChallenge()?.scoreFactor || 1);
   if (!Number.isFinite(rawFactor)) return 1;
   return Math.min(3, Math.max(1, rawFactor));
 }
@@ -967,6 +966,9 @@ const settingsRuntime = window.SnakeSettings.createSettingsModule({
   onSave: saveActiveAccountSnapshot
 });
 
+// B2c 迁移: currentChallenge 由 settings 模块持有, 初始化默认每日挑战
+settingsRuntime.setCurrentChallenge(SnakeModes.dailyChallengeOptions[0]);
+
 function getModeSettingValue() {
   return settingsRuntime.getModeSettingValue();
 }
@@ -1085,7 +1087,7 @@ const modeRulesRuntime = window.SnakeModeRules.createModeRulesModule({
   runtime: {
     getMode: () => mode,
     getDlcPack: () => dlcPack,
-    getCurrentChallenge: () => currentChallenge
+    getCurrentChallenge: () => settingsRuntime.getCurrentChallenge()
   }
 });
 
@@ -1099,7 +1101,7 @@ const itemSpawnRuntime = window.SnakeItemSpawn.createItemSpawnModule({
     getBonusStep,
     isHardcoreEnabled: () => hardcoreModeInput.checked,
     isObstacleEnabled: () => obstacleModeInput.checked,
-    isChallengeNoRocks: () => Boolean(currentChallenge.noRocks),
+    isChallengeNoRocks: () => Boolean(settingsRuntime.getCurrentChallenge()?.noRocks),
     hasCustomRocks: () => customRocks.length > 0,
     getRocksCount: () => rocks.length,
     addRock: (value) => { rocks.push(value); },
@@ -1343,7 +1345,7 @@ const resetPrepareRuntime = window.SnakeResetPrepare.createResetPrepareModule({
   },
   challenge: {
     refreshHud: () => challengeRuntime.refreshHud(),
-    getCurrentChallenge: () => currentChallenge
+    getCurrentChallenge: () => settingsRuntime.getCurrentChallenge()
   },
   round: {
     createSpawnState: () => roundStateRuntime.createSpawnState(),
@@ -5255,7 +5257,7 @@ shareBtn.addEventListener('click', async () => {
   const modeLabel = SnakeModes.getModeLabel(mode);
   const hardcoreTag = hardcoreModeInput.checked ? '（硬核）' : '';
   const levelTag = mode === 'endless' ? `，当前关卡 L${level}（最高 L${endlessBestLevel}）` : '';
-  const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${currentChallenge.label}，活动：${eventsRuntime.getLabel()}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
+  const text = `我在贪吃蛇 v${GAME_VERSION} 的${modeLabel}${hardcoreTag}拿到 ${score} 分${levelTag}！挑战：${settingsRuntime.getCurrentChallenge()?.label || '无'}，活动：${eventsRuntime.getLabel()}，最高倍率${multiplierEl.textContent}，当前状态${stateEl.textContent}`;
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
