@@ -24,6 +24,16 @@ window.SnakeStorage = (() => {
       store.setItem(key, JSON.stringify(value));
     }
 
+    // 兼容旧 API: storage.get(key, fallback) 等价 readJson
+    function get(key, fallbackValue) {
+      return readJson(key, fallbackValue);
+    }
+
+    // 兼容旧 API: storage.set(key, value) 等价 writeJson
+    function set(key, value) {
+      writeJson(key, value);
+    }
+
     function remove(key) {
       store.removeItem(key);
     }
@@ -57,6 +67,8 @@ window.SnakeStorage = (() => {
       writeText,
       readJson,
       writeJson,
+      get,
+      set,
       remove,
       removeMany,
       captureSnapshot,
