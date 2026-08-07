@@ -7,34 +7,27 @@
 
 import './modules/account.js';
 import './modules/achievement_detail.js';
-import './modules/achievement_preview.js';
 import './modules/achievement_search.js';
 import './modules/achievement_showcase.js';
 import './modules/achievement_stats.js';
 import './modules/achievement_toast.js';
 import './modules/achievements_manager.js';
-import './modules/ai_engine_selector.js';
 import './modules/ai_player.js';
 import './modules/ai_worker_bridge.js';
 import './modules/best_manager.js';
 import './modules/challenge.js';
-import './modules/churn_analytics.js';
-import './modules/churn_warning.js';
 import './modules/codex_manager.js';
 import './modules/daily_challenge_mode.js';
 import './modules/daily_rewards.js';
 import './modules/daily_tasks.js';
 import './modules/effect_timer.js';
 import './modules/endgame_flow.js';
-import './modules/enhanced_newbie_guide.js';
-import './modules/enhanced_return_rewards.js';
 import './modules/events.js';
 import './modules/first_milestone.js';
 import './modules/friends.js';
 import './modules/friends_challenge.js';
 import './modules/friends_leaderboard.js';
 import './modules/guide.js';
-import './modules/in_game_hints.js';
 import './modules/in_game_notifications.js';
 import './modules/input.js';
 import './modules/item_spawn.js';
@@ -46,11 +39,9 @@ import './modules/mode_rules.js';
 import './modules/mode_trial.js';
 import './modules/modes.js';
 import './modules/multiplayer.js';
-import './modules/personalized_achievements.js';
 import './modules/play_state.js';
 import './modules/profile.js';
 import './modules/purchase_feedback.js';
-import './modules/quick_start.js';
 import './modules/recall.js';
 import './modules/recap.js';
 import './modules/records.js';
@@ -61,18 +52,14 @@ import './modules/reset_prepare.js';
 import './modules/return_center.js';
 import './modules/return_missions.js';
 import './modules/return_reminder.js';
-import './modules/returning_guide.js';
-import './modules/reward_preview.js';
 import './modules/reward_system.js';
 import './modules/rogue_manager.js';
 import './modules/round_state.js';
 import './modules/round_stats_manager.js';
 import './modules/season.js';
-import './modules/season_rewards_preview.js';
 import './modules/settings.js';
 import './modules/settlement.js';
 import './modules/shop.js';
-import './modules/skill_tree.js';
 import './modules/sound.js';
 import './modules/spectate.js';
 import './modules/statistics.js';
@@ -85,10 +72,40 @@ import { bootSnakeGame } from '../game.js';
 
 // 兼容标志：旧 ModuleLoader 机制在模块就绪后设置，测试依赖此语义
 window.__SNAKE_MODULES_READY = true;
-window.SNAKE_LAZY_MODULES = []; // 新机制无懒加载，全部静态 import 立即可用
+window.SNAKE_LAZY_MODULES = []; // 兼容：原懒加载模块现由下方异步预加载接管
 
 // 兼容事件：旧机制在模块就绪后派发 snake:modules-ready（perf 测试等依赖）
 window.dispatchEvent(new Event('snake:modules-ready'));
 
 // 模块全部就绪后启动（静态 import 保证顺序，无需等待事件）
 bootSnakeGame();
+
+// ---- 低频/未接线模块异步预加载（不阻塞首屏，空闲时后台加载）----
+// 这些模块在 game.js 中零引用，仅保留产品价值（历史功能/未来接线）。
+// 静态 import 会并入首屏关键路径；改为动态 import() 后由浏览器单独拉取，
+// 首屏 bundle 显著减小。模块加载后自动挂载 window 全局，运行期按需可用。
+// 注意：必须使用字面量路径（变量形式动态 import 无法被 Rollup 静态分析，
+// 生产构建中会以运行时相对路径请求 src/modules/，导致 404）。
+function preloadLazyModules() {
+  // 空闲时后台加载，单模块失败不阻断（保留 window 兼容性检查的降级路径）
+  return Promise.allSettled([
+    import('./modules/achievement_preview.js'),
+    import('./modules/ai_engine_selector.js'),
+    import('./modules/churn_analytics.js'),
+    import('./modules/churn_warning.js'),
+    import('./modules/enhanced_newbie_guide.js'),
+    import('./modules/enhanced_return_rewards.js'),
+    import('./modules/in_game_hints.js'),
+    import('./modules/personalized_achievements.js'),
+    import('./modules/quick_start.js'),
+    import('./modules/returning_guide.js'),
+    import('./modules/reward_preview.js'),
+    import('./modules/season_rewards_preview.js'),
+    import('./modules/skill_tree.js')  ]);
+}
+
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(() => { preloadLazyModules(); }, { timeout: 3000 });
+} else {
+  setTimeout(() => { preloadLazyModules(); }, 500);
+}

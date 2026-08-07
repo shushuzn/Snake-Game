@@ -17,7 +17,10 @@ const dir = 'src/modules';
 const EXCLUDED = ['moduleRegistry', 'moduleLoader', 'manifest'];
 
 const mainSrc = fs.readFileSync(path.join('src', 'main.js'), 'utf8');
-const imports = [...mainSrc.matchAll(/import '\.\/modules\/([^']+)\.js';/g)].map((m) => m[1]);
+// 静态 import + 动态 import() 均为有效引用
+const staticImports = [...mainSrc.matchAll(/import '\.\/modules\/([^']+)\.js';/g)].map((m) => m[1]);
+const lazyImports = [...mainSrc.matchAll(/import\('\.\/modules\/([^']+)\.js'\)/g)].map((m) => m[1]);
+const imports = [...new Set([...staticImports, ...lazyImports])];
 
 const onDisk = fs
   .readdirSync(dir)
@@ -38,5 +41,7 @@ if (orphans.length) {
   ok = false;
 }
 if (ok)
-  console.log('main.js imports OK: ' + imports.length + ' modules, no missing/orphan entries');
+  console.log(
+    `main.js imports OK: ${imports.length} modules (static ${staticImports.length} + lazy ${lazyImports.length}), no missing/orphan entries`
+  );
 process.exit(ok ? 0 : 1);
