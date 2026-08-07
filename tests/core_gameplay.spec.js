@@ -3,6 +3,8 @@ const { test, expect } = require('@playwright/test');
 // 核心玩法流程回归: 开局 → 游走 → 死亡/结算 → 重开
 // 固化自动试玩诊断的价值: 完整对局循环零运行时错误 + 结算结构正确
 test('core gameplay round-cycle: start, play, settlement, restart', async ({ page }) => {
+  // 完整对局含 30s 自动试玩 + 结算等待，全套并行负载下偶发超 30s 默认上限
+  test.setTimeout(90000);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
   page.on('pageerror', (e) => errors.push('[pageerror] ' + String(e)));

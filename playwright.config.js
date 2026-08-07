@@ -7,6 +7,7 @@ module.exports = defineConfig({
     baseURL: 'http://localhost:4173/',
     headless: true,
   },
+  // 前端静态服务（vite preview，构建产物）
   webServer: {
     command: 'npx vite build && npx vite preview --port 4173 --strictPort',
     url: 'http://localhost:4173/',
@@ -29,6 +30,20 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: { browserName: 'chromium' },
+    },
+    {
+      // 联调测试：额外启动 Express 后端（127.0.0.1:8787），仅跑 server_integration.spec.js
+      name: 'backend',
+      testMatch: /server_integration\.spec\.js/,
+      use: { browserName: 'chromium' },
+      webServer: [
+        {
+          command: 'node server/index.js',
+          url: 'http://127.0.0.1:8787/api/health',
+          reuseExistingServer: true,
+          timeout: 15000,
+        },
+      ],
     },
   ],
 });

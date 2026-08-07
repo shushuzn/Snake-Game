@@ -6,6 +6,8 @@ const DIR_KEYS = { RIGHT: 'ArrowRight', LEFT: 'ArrowLeft', UP: 'ArrowUp', DOWN: 
 const OPPOSITE = { ArrowRight: 'ArrowLeft', ArrowLeft: 'ArrowRight', ArrowUp: 'ArrowDown', ArrowDown: 'ArrowUp' };
 
 test('greedy snake eats food (score increases) via test hook', async ({ page }) => {
+  // 贪吃循环最多 30s（30s 贪吃窗口 + 循环开销），全套并行负载下偶发超 30s 默认上限
+  test.setTimeout(90000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('index.html');
